@@ -251,6 +251,26 @@ export async function createSplToken(
   const feeIx = feeTransferIx(payer, CREATE_FEE_SOL);
   if (feeIx) tx.add(feeIx);
 
+  // Fee ix runs last; if the wallet is light on SOL, rent consumes balance first and the
+  // transfer fails with "insufficient lamports ... need 25000000". Preflight a lower bound.
+  const METADATA_ACCOUNT_SPACE = 679;
+  const lamportsMetadata = await connection.getMinimumBalanceForRentExemption(
+    METADATA_ACCOUNT_SPACE,
+  );
+  const lamportsAta = await connection.getMinimumBalanceForRentExemption(165);
+  const feeLamports = feeIx
+    ? Math.round(CREATE_FEE_SOL * LAMPORTS_PER_SOL)
+    : 0;
+  const headroom = 25_000;
+  const minLamportsNeeded =
+    lamportsForMint + lamportsMetadata + lamportsAta + feeLamports + headroom;
+  const balance = await connection.getBalance(payer, 'confirmed');
+  if (balance < minLamportsNeeded) {
+    throw new Error(
+      `Not enough SOL: this create needs about ${(minLamportsNeeded / LAMPORTS_PER_SOL).toFixed(3)} SOL (mint + metadata + token account rent${feeLamports > 0 ? ` + ${CREATE_FEE_SOL} SOL platform fee` : ''}). You have ${(balance / LAMPORTS_PER_SOL).toFixed(3)} SOL — fund the wallet and retry.`,
+    );
+  }
+
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash('confirmed');
   tx.recentBlockhash = blockhash;
