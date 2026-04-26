@@ -43,6 +43,8 @@ function metadataBaseUrl(): URL {
 
 const SITE = metadataBaseUrl();
 
+const SOCIAL_IMAGE_PATH = '/brand.jpg';
+
 export const metadata: Metadata = {
   metadataBase: SITE,
   title: {
@@ -61,6 +63,10 @@ export const metadata: Metadata = {
     'metaplex',
     'rootrecord',
   ],
+  icons: {
+    icon: [{ url: SOCIAL_IMAGE_PATH, type: 'image/jpeg' }],
+    apple: [{ url: SOCIAL_IMAGE_PATH, type: 'image/jpeg' }],
+  },
   openGraph: {
     title: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
     description:
@@ -68,12 +74,22 @@ export const metadata: Metadata = {
     url: SITE.href.replace(/\/$/, ''),
     siteName: 'RootRecord Solana Tools',
     type: 'website',
+    locale: 'en_US',
+    images: [
+      {
+        url: SOCIAL_IMAGE_PATH,
+        alt: 'RootRecord Solana Tools',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@rootrecord',
+    creator: '@rootrecord',
     title: 'RootRecord Solana Tools',
     description:
       'Cheap, fast, no-BS Solana token creator. ~Half the cost of competitors.',
+    images: [SOCIAL_IMAGE_PATH],
   },
 };
 
