@@ -1,0 +1,108 @@
+import Link from 'next/link';
+import { Github } from 'lucide-react';
+
+export function Footer() {
+  return (
+    <footer
+      data-testid="site-footer"
+      className="border-t border-border mt-24"
+    >
+      <div className="container py-12 grid gap-10 md:grid-cols-3">
+        <div>
+          <div className="text-lg font-semibold">
+            Root<span className="text-sol-green">Record</span>{' '}
+            <span className="text-muted-foreground text-sm font-normal">
+              / Solana Tools
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground max-w-sm">
+            On-chain tools that respect <em className="text-foreground/90">your SOL</em>,{' '}
+            <em className="text-foreground/90">your time</em>, and{' '}
+            <em className="text-foreground/90">your tokens</em>.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 text-sm">
+          <div>
+            <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-3">
+              Product
+            </div>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/create" className="hover:text-sol-green">
+                  Create Token
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools" className="hover:text-sol-green">
+                  Tools
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-sol-green">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs" className="hover:text-sol-green">
+                  Docs
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-3">
+              Legal
+            </div>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/privacy" className="hover:text-sol-green">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-sol-green">
+                  Terms
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://rootrecord.info"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-sol-green"
+                >
+                  rootrecord.info
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="text-sm">
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-3">
+            Open
+          </div>
+          <a
+            href="https://github.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-foreground hover:text-sol-green"
+          >
+            <Github className="h-4 w-4" /> GitHub
+          </a>
+          <p className="mt-6 text-xs text-muted-foreground">
+            Made with respect for users. Not financial advice. Verify every
+            transaction in your wallet before signing.
+          </p>
+        </div>
+      </div>
+      <div className="border-t border-border">
+        <div className="container py-5 text-xs text-muted-foreground flex justify-between">
+          <span>© {new Date().getFullYear()} RootRecord</span>
+          <span>solana.rootrecord.info</span>
+        </div>
+      </div>
+    </footer>
+  );
+}

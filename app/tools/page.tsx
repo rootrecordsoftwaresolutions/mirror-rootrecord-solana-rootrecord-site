@@ -1,0 +1,148 @@
+'use client';
+
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  ShieldOff,
+  Lock,
+  Coins,
+  Pencil,
+  ArrowRight,
+} from 'lucide-react';
+import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
+
+const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldOff; tone: 'green' | 'purple' }[] = [
+  {
+    kind: 'revoke-mint',
+    title: 'Revoke mint authority',
+    desc: 'Lock supply forever. The single most-requested signal of trust for new tokens.',
+    icon: ShieldOff,
+    tone: 'green',
+  },
+  {
+    kind: 'revoke-freeze',
+    title: 'Revoke freeze authority',
+    desc: 'Tell the market no one can freeze holders\' token accounts. A simple, public guarantee.',
+    icon: Lock,
+    tone: 'green',
+  },
+  {
+    kind: 'mint-more',
+    title: 'Mint more tokens',
+    desc: 'Top up supply for an airdrop, market making, or LP funding. Mint authority required.',
+    icon: Coins,
+    tone: 'purple',
+  },
+  {
+    kind: 'update-metadata',
+    title: 'Update metadata',
+    desc: 'Fix a typo, rebrand, or repoint to a new IPFS URI. Requires mutable metadata.',
+    icon: Pencil,
+    tone: 'purple',
+  },
+];
+
+function ToolsInner() {
+  const params = useSearchParams();
+  const [active, setActive] = useState<ToolKind | null>(null);
+  const [initialMint, setInitialMint] = useState<string | undefined>();
+
+  useEffect(() => {
+    const action = params.get('action');
+    const mint = params.get('mint') || undefined;
+    if (action === 'mint') {
+      setActive('mint-more');
+      setInitialMint(mint);
+    }
+  }, [params]);
+
+  return (
+    <div className="container py-14 md:py-20">
+      <div className="max-w-3xl">
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
+          02 / Tools
+        </div>
+        <h1 className="font-display text-4xl md:text-6xl tracking-tight">
+          Manage your token like an{' '}
+          <em className="italic text-sol-purple">operator</em>.
+        </h1>
+        <p className="mt-5 text-muted-foreground max-w-2xl">
+          Standalone, on-chain actions you might run before, during, or after a
+          launch. Each one is a single signed transaction.
+        </p>
+      </div>
+
+      <div className="mt-12 grid gap-5 md:grid-cols-2">
+        {TOOLS.map((t, i) => (
+          <Card
+            key={t.kind}
+            data-testid={`tool-card-${t.kind}`}
+            className="group cursor-pointer transition-all hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]"
+            onClick={() => {
+              setActive(t.kind);
+              setInitialMint(undefined);
+            }}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <span className="text-xs font-mono text-sol-green/80 tracking-widest">
+                  {(i + 1).toString().padStart(2, '0')} /
+                </span>
+                <t.icon
+                  className={
+                    'h-5 w-5 transition-colors ' +
+                    (t.tone === 'green'
+                      ? 'text-muted-foreground group-hover:text-sol-green'
+                      : 'text-muted-foreground group-hover:text-sol-purple')
+                  }
+                />
+              </div>
+              <CardTitle className="mt-4">{t.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="leading-relaxed">
+                {t.desc}
+              </CardDescription>
+              <div className="mt-5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-0 hover:bg-transparent text-sol-green"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActive(t.kind);
+                    setInitialMint(undefined);
+                  }}
+                >
+                  Open tool <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <ToolDialog
+        kind={active}
+        initialMint={initialMint}
+        onClose={() => setActive(null)}
+      />
+    </div>
+  );
+}
+
+export default function ToolsPage() {
+  return (
+    <Suspense fallback={<div className="container py-20" />}>
+      <ToolsInner />
+    </Suspense>
+  );
+}
