@@ -1,7 +1,6 @@
 /**
- * Pinata IPFS uploader (frontend-only stub).
- * Uses a JWT in NEXT_PUBLIC_PINATA_JWT. For production, route through a
- * server function so the JWT isn't exposed.
+ * Pinata IPFS uploader — client SDK that proxies through our own
+ * server routes so the JWT never leaves the server.
  */
 
 export interface PinataUploadResult {
@@ -10,69 +9,64 @@ export interface PinataUploadResult {
   gatewayUrl: string;
 }
 
-const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
-const GATEWAY = process.env.NEXT_PUBLIC_PINATA_GATEWAY || 'gateway.pinata.cloud';
+const GATEWAY =
+  process.env.NEXT_PUBLIC_PINATA_GATEWAY || 'gateway.pinata.cloud';
 
 function gatewayUrl(cid: string): string {
   return `https://${GATEWAY}/ipfs/${cid}`;
 }
 
-export function isPinataConfigured(): boolean {
-  return !!PINATA_JWT && PINATA_JWT !== 'YOUR_PINATA_JWT_HERE';
+let cachedConfigured: boolean | null = null;
+
+/**
+ * Hits our server status endpoint to learn whether the server has a Pinata JWT.
+ * Cached for the lifetime of the page so it doesn't fire on every form change.
+ */
+export async function isPinataConfigured(): Promise<boolean> {
+  if (cachedConfigured !== null) return cachedConfigured;
+  try {
+    const r = await fetch('/api/pin/status', { cache: 'no-store' });
+    const j = (await r.json()) as { configured: boolean };
+    cachedConfigured = !!j.configured;
+  } catch {
+    cachedConfigured = false;
+  }
+  return cachedConfigured;
 }
 
 export async function uploadFileToPinata(file: File): Promise<PinataUploadResult> {
-  if (!isPinataConfigured()) {
-    throw new Error(
-      'Pinata is not configured. Set NEXT_PUBLIC_PINATA_JWT in your .env.local',
-    );
-  }
   const fd = new FormData();
   fd.append('file', file);
-  fd.append(
-    'pinataMetadata',
-    JSON.stringify({ name: `rootrecord-${Date.now()}-${file.name}` }),
-  );
-
-  const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${PINATA_JWT}` },
-    body: fd,
-  });
-  if (!res.ok) throw new Error(`Pinata file upload failed: ${res.status}`);
-  const json = (await res.json()) as { IpfsHash: string };
+  const res = await fetch('/api/pin/file', { method: 'POST', body: fd });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `Upload failed: ${res.status}`);
+  }
+  const j = (await res.json()) as { cid: string };
   return {
-    cid: json.IpfsHash,
-    uri: `ipfs://${json.IpfsHash}`,
-    gatewayUrl: gatewayUrl(json.IpfsHash),
+    cid: j.cid,
+    uri: `ipfs://${j.cid}`,
+    gatewayUrl: gatewayUrl(j.cid),
   };
 }
 
 export async function uploadJsonToPinata(
-  json: Record<string, unknown>,
+  content: Record<string, unknown>,
   name = 'metadata.json',
 ): Promise<PinataUploadResult> {
-  if (!isPinataConfigured()) {
-    throw new Error(
-      'Pinata is not configured. Set NEXT_PUBLIC_PINATA_JWT in your .env.local',
-    );
-  }
-  const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+  const res = await fetch('/api/pin/json', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${PINATA_JWT}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      pinataMetadata: { name: `rootrecord-${Date.now()}-${name}` },
-      pinataContent: json,
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, content }),
   });
-  if (!res.ok) throw new Error(`Pinata JSON upload failed: ${res.status}`);
-  const data = (await res.json()) as { IpfsHash: string };
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `Upload failed: ${res.status}`);
+  }
+  const j = (await res.json()) as { cid: string };
   return {
-    cid: data.IpfsHash,
-    uri: `ipfs://${data.IpfsHash}`,
-    gatewayUrl: gatewayUrl(data.IpfsHash),
+    cid: j.cid,
+    uri: `ipfs://${j.cid}`,
+    gatewayUrl: gatewayUrl(j.cid),
   };
 }

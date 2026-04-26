@@ -81,10 +81,11 @@ export default function CreateTokenPage() {
     try {
       // 1. upload logo
       let imageUri = '';
+      const pinataReady = await isPinataConfigured();
       if (logoFile) {
-        if (!isPinataConfigured()) {
+        if (!pinataReady) {
           toast.warning(
-            'Pinata not configured — token will be created without an image. Set NEXT_PUBLIC_PINATA_JWT to enable IPFS uploads.',
+            'Pinata not configured — token will be created without an image. Set PINATA_JWT on the server to enable IPFS uploads.',
           );
         } else {
           setStage('Uploading logo to IPFS…');
@@ -95,7 +96,7 @@ export default function CreateTokenPage() {
 
       // 2. upload metadata json
       let metadataUri = '';
-      if (isPinataConfigured()) {
+      if (pinataReady) {
         setStage('Pinning metadata JSON…');
         const meta = {
           name: values.name,

@@ -45,12 +45,13 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_FEE_WALLET` | Public key receiving the platform fee |
 | `NEXT_PUBLIC_CREATE_FEE_SOL` | Default `0.025` |
 | `NEXT_PUBLIC_ACTION_FEE_SOL` | Default `0.01` (revoke / mint / update) |
-| `NEXT_PUBLIC_PINATA_JWT` | JWT for Pinata IPFS uploads (needed for metadata) |
+| `PINATA_JWT` | **Server-only**. JWT for Pinata IPFS uploads. Browser never sees it. |
 | `NEXT_PUBLIC_PINATA_GATEWAY` | Custom Pinata gateway domain (optional) |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL for OG / SEO |
 
-> ⚠️ The Pinata JWT is exposed client-side. For production, proxy uploads
-> through a server route so the JWT stays private.
+> ✅ The Pinata JWT is **server-only**. The frontend uploads through three
+> Next.js Route Handlers under `/api/pin/*` so the JWT never lands in the
+> client bundle.
 
 ## Deploy to Vercel
 
