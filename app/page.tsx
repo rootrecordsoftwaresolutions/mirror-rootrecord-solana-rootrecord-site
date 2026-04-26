@@ -18,8 +18,18 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
+import { cn } from '@/lib/utils';
+import type { LucideIcon } from 'lucide-react';
 
-const FEATURES = [
+const FEATURES: {
+  n: string;
+  title: string;
+  desc: string;
+  icon: LucideIcon;
+  /** When set, the whole card links (e.g. to a tool on /tools). */
+  href?: string;
+}[] = [
   {
     n: '01',
     title: 'Create Token',
@@ -43,6 +53,13 @@ const FEATURES = [
     title: 'Update Metadata',
     desc: 'Fix a typo, swap a logo, point to a new IPFS URI. As long as metadata is mutable, you stay in control.',
     icon: Pencil,
+  },
+  {
+    n: '05',
+    title: 'Burn tokens',
+    desc: 'Remove tokens from your wallet’s token account for a mint and shrink circulating supply. No RootRecord fee — only Solana network fees.',
+    icon: Flame,
+    href: '/tools?action=burn',
   },
 ];
 
@@ -132,6 +149,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* WALLET — Jupiter (partner-style recommendation) */}
+      <section className="container pt-4 pb-16 md:pt-2 md:pb-20" aria-labelledby="jupiter-wallet-heading">
+        <JupiterWalletPromo variant="featured" />
+      </section>
+
       {/* FEATURES */}
       <section className="container py-20" id="features">
         <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
@@ -149,29 +171,47 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <Card
-              key={f.n}
-              data-testid={`feature-${f.title.toLowerCase().replace(' ', '-')}`}
-              className="group transition-all duration-300 hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <span className="text-xs font-mono text-sol-green/80 tracking-widest">
-                    {f.n} /
-                  </span>
-                  <f.icon className="h-5 w-5 text-muted-foreground group-hover:text-sol-green transition-colors" />
-                </div>
-                <CardTitle className="mt-4">{f.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm leading-relaxed">
-                  {f.desc}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {FEATURES.map((f) => {
+            const card = (
+              <Card
+                data-testid={`feature-${f.title.toLowerCase().replace(' ', '-')}`}
+                className={cn(
+                  'group h-full transition-all duration-300 hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]',
+                  f.href && 'cursor-pointer',
+                )}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <span className="text-xs font-mono text-sol-green/80 tracking-widest">
+                      {f.n} /
+                    </span>
+                    <f.icon className="h-5 w-5 text-muted-foreground group-hover:text-sol-green transition-colors" />
+                  </div>
+                  <CardTitle className="mt-4">{f.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-sm leading-relaxed">
+                    {f.desc}
+                  </CardDescription>
+                  {f.href && (
+                    <p className="mt-3 text-xs font-medium text-sol-green">
+                      Open on Tools →
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+            return f.href ? (
+              <Link key={f.n} href={f.href} className="block h-full">
+                {card}
+              </Link>
+            ) : (
+              <div key={f.n} className="h-full">
+                {card}
+              </div>
+            );
+          })}
         </div>
       </section>
 

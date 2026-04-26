@@ -14,6 +14,7 @@ import {
   ShieldOff,
   Lock,
   Coins,
+  Flame,
   Pencil,
   ArrowRight,
   Banknote,
@@ -42,6 +43,13 @@ const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldO
     title: 'Mint more tokens',
     desc: 'Top up supply for an airdrop, market making, or LP funding. Mint authority required.',
     icon: Coins,
+    tone: 'purple',
+  },
+  {
+    kind: 'burn-tokens',
+    title: 'Burn tokens',
+    desc: 'Remove tokens from your wallet’s account for that mint and shrink supply. No RootRecord fee — only network fees.',
+    icon: Flame,
     tone: 'purple',
   },
   {
@@ -88,6 +96,9 @@ function ToolsInner() {
   useEffect(() => {
     if (actionParam === 'mint') {
       setActive('mint-more');
+      setInitialMint(mintParam || undefined);
+    } else if (actionParam === 'burn') {
+      setActive('burn-tokens');
       setInitialMint(mintParam || undefined);
     }
   }, [actionParam, mintParam]);

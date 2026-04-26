@@ -35,6 +35,7 @@ import {
   isFeeWalletConfigured,
 } from '@/lib/solana';
 import { createToken2022 } from '@/lib/token2022';
+import { getStoredReferrer } from '@/lib/referral';
 import { defaultExtensions, type ExtensionState } from '@/lib/schema';
 import { Token2022Section } from '@/components/create/Token2022Section';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
@@ -120,6 +121,7 @@ export default function CreateTokenPage() {
 
       // 3. create the token on-chain (legacy SPL or Token-2022 path)
       setStage('Building transaction…');
+      const referrer = getStoredReferrer();
       let result: { signature: string; mint: string; ata: string };
       if (extensions.enabled) {
         // Validate Token-2022 conflicts
@@ -138,7 +140,9 @@ export default function CreateTokenPage() {
         if (values.telegram) additional.push(['telegram', values.telegram]);
         if (imageUri) additional.push(['image', imageUri]);
 
-        result = await createToken2022(wallet, {
+        result = await createToken2022(
+          wallet,
+          {
           name: values.name,
           symbol: values.symbol,
           decimals: values.decimals,
@@ -168,15 +172,21 @@ export default function CreateTokenPage() {
               ? 'frozen'
               : undefined,
           },
-        });
+        },
+          { referrer },
+        );
       } else {
-        result = await createSplToken(wallet, {
+        result = await createSplToken(
+          wallet,
+          {
           name: values.name,
           symbol: values.symbol,
           decimals: values.decimals,
           supply: parseSupply(values.supply),
           uri: metadataUri,
-        });
+        },
+          { referrer },
+        );
       }
 
       setStage('');
@@ -202,7 +212,7 @@ export default function CreateTokenPage() {
     if (!success) return;
     setPostBusy('mint');
     try {
-      await revokeMintAuthority(wallet, success.mint);
+      await revokeMintAuthority(wallet, success.mint, getStoredReferrer());
       toast.success('Mint authority revoked');
     } catch (e) {
       toast.error('Revoke failed', {
@@ -216,7 +226,7 @@ export default function CreateTokenPage() {
     if (!success) return;
     setPostBusy('freeze');
     try {
-      await revokeFreezeAuthority(wallet, success.mint);
+      await revokeFreezeAuthority(wallet, success.mint, getStoredReferrer());
       toast.success('Freeze authority revoked');
     } catch (e) {
       toast.error('Revoke failed', {

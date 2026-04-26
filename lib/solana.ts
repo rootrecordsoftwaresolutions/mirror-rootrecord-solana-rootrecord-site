@@ -20,6 +20,8 @@ import {
   createSetAuthorityInstruction,
   AuthorityType,
   getMint,
+  getAccount,
+  createBurnCheckedInstruction,
 } from '@solana/spl-token';
 import {
   createCreateMetadataAccountV3Instruction,
@@ -27,6 +29,11 @@ import {
   PROGRAM_ID as METADATA_PROGRAM_ID,
 } from '@metaplex-foundation/mpl-token-metadata';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
+
+import {
+  appendReferralMemoIfEligible,
+  appendReferralMemoToTransaction,
+} from '@/lib/referralMemo';
 
 export const SOLANA_NETWORK = (process.env.NEXT_PUBLIC_SOLANA_NETWORK ||
   'mainnet-beta') as Cluster;
@@ -153,11 +160,12 @@ export function metadataPda(mint: PublicKey): PublicKey {
  *  4. mint full supply
  *  5. create Metaplex metadata account v3
  *  6. transfer create fee to platform fee wallet
- *  7. (optional) referral note via memo (already tracked client-side)
+ *  7. optional memo tagging referrer wallet (same tx, for later payout attribution)
  */
 export async function createSplToken(
   wallet: WalletContextState,
   input: CreateTokenInput,
+  opts?: { referrer?: string | null },
 ): Promise<CreateTokenResult> {
   if (!wallet.publicKey || !wallet.signTransaction) {
     throw new Error('Wallet not connected');
@@ -237,6 +245,7 @@ export async function createSplToken(
   // 6. fee transfer
   const feeIx = feeTransferIx(payer, CREATE_FEE_SOL);
   if (feeIx) tx.add(feeIx);
+  appendReferralMemoToTransaction(tx, payer, opts?.referrer ?? null);
 
   // Fee ix runs last; if the wallet is light on SOL, rent consumes balance first and the
   // transfer fails with "insufficient lamports ... need 25000000". Preflight a lower bound.
@@ -352,6 +361,7 @@ async function sendSimpleTx(
 export async function revokeMintAuthority(
   wallet: WalletContextState,
   mintAddress: string,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
@@ -367,12 +377,14 @@ export async function revokeMintAuthority(
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
 
 export async function revokeFreezeAuthority(
   wallet: WalletContextState,
   mintAddress: string,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
@@ -388,6 +400,7 @@ export async function revokeFreezeAuthority(
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
 
@@ -396,6 +409,7 @@ export async function mintMore(
   mintAddress: string,
   amount: bigint,
   decimals: number,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
@@ -433,7 +447,49 @@ export async function mintMore(
   );
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
+}
+
+/**
+ * Burn tokens from the connected wallet's ATA for this mint (legacy SPL or Token-2022).
+ * No platform fee — user only pays Solana network fees.
+ */
+export async function burnTokens(
+  wallet: WalletContextState,
+  mintAddress: string,
+  amount: bigint,
+  decimals: number,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error('Wallet not connected');
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  const connection = getConnection();
+  const ata = await getAssociatedTokenAddress(
+    mint,
+    wallet.publicKey,
+    false,
+    programId,
+  );
+  const acc = await getAccount(connection, ata, 'confirmed', programId);
+  const rawBurn = amount * BigInt(10) ** BigInt(decimals);
+  if (rawBurn <= 0n) {
+    throw new Error('Amount must be greater than zero');
+  }
+  if (rawBurn > acc.amount) {
+    throw new Error(
+      `This wallet only holds ${acc.amount.toString()} raw units in its token account for that mint; cannot burn ${rawBurn.toString()}.`,
+    );
+  }
+  const ix = createBurnCheckedInstruction(
+    ata,
+    mint,
+    wallet.publicKey,
+    rawBurn,
+    decimals,
+    [],
+    programId,
+  );
+  return sendSimpleTx(wallet, [ix]);
 }
 
 export interface UpdateMetadataInput {
@@ -446,6 +502,7 @@ export async function updateTokenMetadata(
   wallet: WalletContextState,
   mintAddress: string,
   data: UpdateMetadataInput,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
@@ -480,5 +537,6 @@ export async function updateTokenMetadata(
   const ixs: TransactionInstruction[] = [ix];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }

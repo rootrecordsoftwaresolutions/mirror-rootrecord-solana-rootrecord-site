@@ -1,12 +1,29 @@
 'use client';
 
+import { PublicKey } from '@solana/web3.js';
+
 const REF_KEY = 'rootrecord_referrer';
 
+export function isValidReferrerAddress(ref: string): boolean {
+  const t = ref.trim();
+  if (!t) return false;
+  try {
+    new PublicKey(t);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reads `?ref=` from the URL, validates it as a Solana address, stores it in
+ * localStorage, and returns the stored value (new or previous).
+ */
 export function captureReferrerFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  const ref = params.get('ref');
-  if (ref && ref.length >= 32 && ref.length <= 64) {
+  const ref = params.get('ref')?.trim() ?? '';
+  if (ref && isValidReferrerAddress(ref)) {
     try {
       window.localStorage.setItem(REF_KEY, ref);
       return ref;
@@ -20,7 +37,9 @@ export function captureReferrerFromUrl(): string | null {
 export function getStoredReferrer(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage.getItem(REF_KEY);
+    const v = window.localStorage.getItem(REF_KEY)?.trim() ?? '';
+    if (!v) return null;
+    return isValidReferrerAddress(v) ? v : null;
   } catch {
     return null;
   }

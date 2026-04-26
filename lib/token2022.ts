@@ -46,6 +46,7 @@ import {
   ACTION_FEE_SOL,
   resolveMintAndProgram,
 } from '@/lib/solana';
+import { appendReferralMemoIfEligible, appendReferralMemoToTransaction } from '@/lib/referralMemo';
 
 /* ---------------- Types ---------------- */
 
@@ -130,6 +131,7 @@ function extensionList(ext: Token2022Extensions): ExtensionType[] {
 export async function createToken2022(
   wallet: WalletContextState,
   input: CreateToken2022Input,
+  opts?: { referrer?: string | null },
 ): Promise<CreateToken2022Result> {
   if (!wallet.publicKey || !wallet.signTransaction) {
     throw new Error('Wallet not connected');
@@ -328,6 +330,7 @@ export async function createToken2022(
 
   const fee = feeTransferIx(payer, CREATE_FEE_SOL);
   if (fee) tx2.add(fee);
+  appendReferralMemoToTransaction(tx2, payer, opts?.referrer ?? null);
 
   /* ---- Sign + send sequentially. The mint Keypair signs only TX1. ---- */
   const { blockhash, lastValidBlockHeight } =
@@ -370,6 +373,7 @@ export async function withdrawWithheldFromMint(
   wallet: WalletContextState,
   mintAddress: string,
   destinationOwnerAddress?: string,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error('Wallet not connected');
@@ -413,6 +417,7 @@ export async function withdrawWithheldFromMint(
 
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);
   const { blockhash, lastValidBlockHeight } =
@@ -435,6 +440,7 @@ export async function harvestWithheldToMint(
   wallet: WalletContextState,
   mintAddress: string,
   tokenAccountAddresses: string[],
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error('Wallet not connected');
@@ -454,6 +460,7 @@ export async function harvestWithheldToMint(
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);
   const { blockhash, lastValidBlockHeight } =
@@ -477,6 +484,7 @@ export async function updateTransferFee(
   mintAddress: string,
   feeBps: number,
   maxFee: bigint,
+  referrerWallet?: string | null,
 ): Promise<string> {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error('Wallet not connected');
@@ -495,6 +503,7 @@ export async function updateTransferFee(
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);
   const { blockhash, lastValidBlockHeight } =

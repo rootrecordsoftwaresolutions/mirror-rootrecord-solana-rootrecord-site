@@ -24,6 +24,7 @@ import {
   revokeMintAuthority,
   revokeFreezeAuthority,
   mintMore,
+  burnTokens,
   updateTokenMetadata,
   ACTION_FEE_SOL,
   explorerUrl,
@@ -36,11 +37,13 @@ import {
   readMintInfo,
 } from '@/lib/token2022';
 import { parseSupply } from '@/lib/utils';
+import { getStoredReferrer } from '@/lib/referral';
 
 export type ToolKind =
   | 'revoke-mint'
   | 'revoke-freeze'
   | 'mint-more'
+  | 'burn-tokens'
   | 'update-metadata'
   | 'withdraw-fees'
   | 'harvest-fees'
@@ -48,7 +51,7 @@ export type ToolKind =
 
 const META: Record<
   ToolKind,
-  { title: string; desc: string; cta: string; t2022?: boolean }
+  { title: string; desc: string; cta: string; t2022?: boolean; free?: boolean }
 > = {
   'revoke-mint': {
     title: 'Revoke mint authority',
@@ -64,6 +67,12 @@ const META: Record<
     title: 'Mint more tokens',
     desc: 'Mint additional supply to your wallet. Only works while the mint authority is still active.',
     cta: `Mint · ${ACTION_FEE_SOL} SOL`,
+  },
+  'burn-tokens': {
+    title: 'Burn tokens',
+    desc: 'Permanently destroy tokens from your wallet’s token account for this mint. Supply decreases. Works on legacy SPL and Token-2022.',
+    cta: 'Burn tokens (free)',
+    free: true,
   },
   'update-metadata': {
     title: 'Update metadata (legacy)',
@@ -213,13 +222,23 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     }
     setBusy(true);
     try {
+      const ref = getStoredReferrer();
       let sig = '';
-      if (kind === 'revoke-mint') sig = await revokeMintAuthority(wallet, mint);
+      if (kind === 'revoke-mint') sig = await revokeMintAuthority(wallet, mint, ref);
       else if (kind === 'revoke-freeze')
-        sig = await revokeFreezeAuthority(wallet, mint);
+        sig = await revokeFreezeAuthority(wallet, mint, ref);
       else if (kind === 'mint-more') {
         if (!amount) throw new Error('Amount is required');
         sig = await mintMore(
+          wallet,
+          mint,
+          parseSupply(amount),
+          parseInt(decimals, 10) || 9,
+          ref,
+        );
+      } else if (kind === 'burn-tokens') {
+        if (!amount) throw new Error('Amount is required');
+        sig = await burnTokens(
           wallet,
           mint,
           parseSupply(amount),
@@ -228,12 +247,13 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       } else if (kind === 'update-metadata') {
         if (!name || !symbol)
           throw new Error('Name and symbol are required');
-        sig = await updateTokenMetadata(wallet, mint, { name, symbol, uri });
+        sig = await updateTokenMetadata(wallet, mint, { name, symbol, uri }, ref);
       } else if (kind === 'withdraw-fees') {
         sig = await withdrawWithheldFromMint(
           wallet,
           mint,
           destination || undefined,
+          ref,
         );
       } else if (kind === 'harvest-fees') {
         const list = accountList
@@ -241,13 +261,14 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           .map((s) => s.trim())
           .filter(Boolean);
         if (!list.length) throw new Error('Provide at least one token account');
-        sig = await harvestWithheldToMint(wallet, mint, list);
+        sig = await harvestWithheldToMint(wallet, mint, list, ref);
       } else if (kind === 'update-fee-config') {
         sig = await updateTransferFee(
           wallet,
           mint,
           parseInt(feeBps, 10) || 0,
           BigInt(maxFee || '0'),
+          ref,
         );
       }
       toast.success('Transaction confirmed', {
@@ -290,6 +311,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             />
             {[
               'mint-more',
+              'burn-tokens',
               'revoke-mint',
               'revoke-freeze',
               'update-metadata',
@@ -354,7 +376,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             </div>
           )}
 
-          {kind === 'mint-more' && (
+          {(kind === 'mint-more' || kind === 'burn-tokens') && (
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label>Amount</Label>
@@ -375,6 +397,14 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                 />
               </div>
             </div>
+          )}
+
+          {kind === 'burn-tokens' && (
+            <p className="text-[11px] text-muted-foreground">
+              Burns from <strong className="text-foreground/90">your</strong> associated
+              token account for this mint. You still pay a tiny Solana network fee only —
+              no RootRecord fee.
+            </p>
           )}
 
           {kind === 'update-metadata' && (
@@ -481,7 +511,9 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             onClick={handle}
             disabled={busy}
             variant={
-              kind.startsWith('revoke') ? 'destructive' : 'default'
+              kind.startsWith('revoke') || kind === 'burn-tokens'
+                ? 'destructive'
+                : 'default'
             }
           >
             {busy ? (

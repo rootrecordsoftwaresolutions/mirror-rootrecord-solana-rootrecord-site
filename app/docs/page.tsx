@@ -1,48 +1,159 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata = { title: 'Docs' };
 
-const SECTIONS = [
+const JUPITER_SITE = 'https://jup.ag/';
+const JUPITER_EXTENSION =
+  'https://chromewebstore.google.com/detail/jupiter-wallet/iledlaeogohbilgbfhmbgkgmpplbfboh';
+
+const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
   {
     n: '01',
     title: 'Connecting your wallet',
-    body: 'Click "Select Wallet" in the top right. Phantom, Solflare and any wallet implementing the Wallet Standard (Backpack, Glow, etc.) will appear automatically. We never request your seed phrase or private key.',
+    body: (
+      <>
+        <p>
+          Use <strong className="text-foreground">Select Wallet</strong> in the top
+          right, then pick your Solana wallet and approve the connection. We never ask for
+          your seed phrase or recovery words—only normal sign-in prompts.
+        </p>
+        <p className="mt-3">
+          <strong className="text-foreground">Wallet we recommend:</strong>{' '}
+          <a
+            href={JUPITER_SITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sol-green hover:underline underline-offset-4"
+          >
+            Jupiter Wallet
+          </a>{' '}
+          —{' '}
+          <a
+            href={JUPITER_EXTENSION}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sol-green hover:underline underline-offset-4"
+          >
+            Chrome extension
+          </a>
+          , or visit{' '}
+          <a
+            href={JUPITER_SITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sol-green hover:underline underline-offset-4"
+          >
+            jup.ag
+          </a>
+          .
+        </p>
+      </>
+    ),
   },
   {
     n: '02',
     title: 'Creating a token',
-    body: 'Fill in the form on /create. We upload your logo and metadata to IPFS via Pinata, then build a single Solana transaction that creates the mint, mints the full supply to your wallet, registers Metaplex metadata, and includes our 0.025 SOL platform fee. You sign once.',
+    body: (
+      <p>
+        Open <Link href="/create" className="text-sol-green hover:underline">Create</Link>
+        , fill in name, symbol, image, and description, then connect your wallet and
+        confirm. We charge <strong className="text-foreground">0.025 SOL</strong> for the
+        launch; Solana adds a small network fee. Your supply is sent to the wallet you
+        connect.
+      </p>
+    ),
   },
   {
     n: '03',
-    title: 'Revoking authorities',
-    body: 'After launch you almost always want to revoke the mint authority (so no more supply can ever be minted) and the freeze authority (so accounts can\'t be frozen). Both are one-click actions on /tools, billed at 0.01 SOL.',
+    title: 'Locking your token after launch',
+    body: (
+      <p>
+        Most creators use <strong className="text-foreground">Tools</strong> to{' '}
+        <strong className="text-foreground">revoke mint</strong> (so the total supply can
+        never increase) and <strong className="text-foreground">revoke freeze</strong>{' '}
+        (so holder balances can&apos;t be frozen). Each step costs{' '}
+        <strong className="text-foreground">0.01 SOL</strong> through us, plus the usual
+        network fee.
+      </p>
+    ),
   },
   {
     n: '04',
-    title: 'Minting more / updating metadata',
-    body: 'Mint authority must still be active to mint more. Metadata can be updated as long as the mint authority hasn\'t marked it immutable. Each action is a separate signed transaction.',
+    title: 'Minting more or updating your listing',
+    body: (
+      <p>
+        If you still control minting, you can add more supply. If your token allows edits,
+        you can change name, symbol, or the link to your image and details. Each action is
+        a separate confirmation in your wallet—use{' '}
+        <Link href="/tools" className="text-sol-green hover:underline">
+          Tools
+        </Link>
+        .
+      </p>
+    ),
   },
   {
     n: '05',
-    title: 'Token-2022 mode',
-    body: 'On /create, toggle "Token-2022 mode" to access seven on-chain extensions: transfer fee (% on every transfer, withheld in the mint), transfer hook (custom program executed on every transfer), non-transferable (soulbound), mint close authority, permanent delegate (compliance), interest-bearing (display-only APY), and default-frozen accounts. When enabled, metadata is stored directly inside the mint via the in-mint TokenMetadata extension — no Metaplex tx needed.',
+    title: 'Advanced token options',
+    body: (
+      <p>
+        On <Link href="/create" className="text-sol-green hover:underline">Create</Link>{' '}
+        you can switch on <strong className="text-foreground">advanced mode</strong> for
+        special cases—like taking a small cut on every transfer, or making tokens
+        non-transferable. The form explains each choice. Skip this unless you already
+        know you need it; most people use the default path.
+      </p>
+    ),
   },
   {
     n: '06',
-    title: 'Withdraw / harvest transfer fees',
-    body: 'For Token-2022 mints with the transfer fee extension, fees accumulate in two places: (a) inside individual holder accounts as they transact, and (b) on the mint itself once "harvested". Use /tools → Harvest fees to sweep account-level fees onto the mint, then Withdraw transfer fees to pull them into a wallet you own.',
+    title: 'If your token charges trading fees',
+    body: (
+      <p>
+        Only applies if you turned on fee-on-transfer style settings in advanced mode.
+        Over time, fees can sit in different places;{' '}
+        <Link href="/tools" className="text-sol-green hover:underline">
+          Tools
+        </Link>{' '}
+        walks you through gathering them, then moving them into a wallet you control.
+        Follow the order shown on the page.
+      </p>
+    ),
   },
   {
     n: '07',
-    title: 'Referrals',
-    body: 'Share any RootRecord URL with ?ref=YOUR_WALLET. We track the referrer in localStorage on the visitor\'s browser. Payouts are not yet live — but every referred action is logged on-chain via the fee transfer that we can attribute later.',
+    title: 'Referral links',
+    body: (
+      <p>
+        Add <strong className="text-foreground font-mono text-xs">?ref=</strong> and your
+        wallet address to any link you share (for example{' '}
+        <span className="font-mono text-xs break-all">
+          solana.rootrecord.info/create?ref=YourWalletHere
+        </span>
+        ). Their browser saves that wallet as the referrer. When they later pay a
+        RootRecord fee (create or a paid tool), the same transaction records that referrer
+        on-chain so we can run payouts later. Rewards aren&apos;t live yet; tracking works
+        today.
+      </p>
+    ),
   },
   {
     n: '08',
-    title: 'Self-host',
-    body: 'The full source is configured for Vercel. Clone the repo, set NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_FEE_WALLET, and PINATA_JWT (server-only), then npm run dev or vercel deploy.',
+    title: 'Burning tokens',
+    body: (
+      <p>
+        To permanently remove tokens from <strong className="text-foreground">your</strong>{' '}
+        balance for a mint and shrink how many exist, open{' '}
+        <Link href="/tools?action=burn" className="text-sol-green hover:underline">
+          Tools → Burn tokens
+        </Link>
+        . Enter the mint address, how much to destroy, and decimals (same numbers you used
+        at launch). We don&apos;t charge a RootRecord fee for burns—you only pay
+        Solana&apos;s small network fee.
+      </p>
+    ),
   },
 ];
 
@@ -54,8 +165,11 @@ export default function DocsPage() {
           Docs
         </div>
         <h1 className="font-display text-4xl md:text-6xl tracking-tight">
-          Straight answers, in <em className="italic text-sol-green">plain English</em>.
+          How RootRecord works, in <em className="italic text-sol-green">plain language</em>.
         </h1>
+        <p className="mt-4 text-muted-foreground">
+          What you need to launch, manage, and clean up tokens—without the noise.
+        </p>
       </div>
 
       <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -67,21 +181,24 @@ export default function DocsPage() {
               </span>
               <CardTitle className="mt-3">{s.title}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {s.body}
-              </p>
+            <CardContent className="text-sm text-muted-foreground leading-relaxed">
+              {typeof s.body === 'string' ? <p>{s.body}</p> : s.body}
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="mt-12 text-sm text-muted-foreground">
-        Questions we haven&apos;t answered? Check{' '}
-        <Link href="/" className="text-sol-green hover:underline">
+        More questions? Visit{' '}
+        <a
+          href="https://rootrecord.info"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sol-green hover:underline"
+        >
           rootrecord.info
-        </Link>{' '}
-        or open an issue on GitHub.
+        </a>
+        .
       </div>
     </div>
   );

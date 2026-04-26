@@ -1,7 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, ExternalLink, CheckCircle2, ShieldOff, Coins, Twitter, X } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Copy,
+  ExternalLink,
+  CheckCircle2,
+  ShieldOff,
+  Coins,
+  Flame,
+  Twitter,
+  X,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -170,6 +180,17 @@ export function SuccessDialog({
                 <Coins className="h-4 w-4" /> Mint additional tokens
               </span>
               <span className="text-xs text-muted-foreground">Open tool</span>
+            </Button>
+            <Button asChild variant="ghost" className="justify-between" data-testid="burn-tokens-link">
+              <Link
+                href={`/tools?action=burn&mint=${encodeURIComponent(payload.mint)}`}
+                onClick={onClose}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Flame className="h-4 w-4" /> Burn tokens
+                </span>
+                <span className="text-xs text-muted-foreground">Free · Tools</span>
+              </Link>
             </Button>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
+import { JupiterWalletAdapter } from '@/lib/jupiterWalletAdapter';
 import { RPC_URL } from '@/lib/solana';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -21,7 +22,11 @@ export function SolanaProviders({ children }: { children: React.ReactNode }) {
   // so static prerender / Vercel "Export" does not throw in Node.
   const [wallets, setWallets] = useState<WalletAdapter[]>([]);
   useEffect(() => {
-    setWallets([new PhantomWalletAdapter(), new SolflareWalletAdapter()]);
+    setWallets([
+      new JupiterWalletAdapter(),
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ]);
   }, []);
 
   return (

@@ -5,6 +5,7 @@ import './globals.css';
 import { SolanaProviders } from '@/components/providers/SolanaProviders';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { ReferralCapture } from '@/components/ReferralCapture';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -95,6 +96,7 @@ export default function RootLayout({
     >
       <body className="font-sans min-h-screen flex flex-col antialiased">
         <SolanaProviders>
+          <ReferralCapture />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

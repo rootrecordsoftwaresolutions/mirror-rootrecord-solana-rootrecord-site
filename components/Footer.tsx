@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
+import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
 
 export function Footer() {
   return (
@@ -84,9 +85,9 @@ export function Footer() {
             Open
           </div>
           <a
-            href="https://github.com/"
+            href="https://github.com/RootRecord?tab=repositories"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-foreground hover:text-sol-green"
           >
             <Github className="h-4 w-4" /> GitHub
@@ -95,6 +96,11 @@ export function Footer() {
             Made with respect for users. Not financial advice. Verify every
             transaction in your wallet before signing.
           </p>
+        </div>
+      </div>
+      <div className="border-t border-border bg-ink-900/40">
+        <div className="container py-6">
+          <JupiterWalletPromo variant="compact" />
         </div>
       </div>
       <div className="border-t border-border">
