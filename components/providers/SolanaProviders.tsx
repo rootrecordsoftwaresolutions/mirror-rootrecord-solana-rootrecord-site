@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { WalletAdapter } from '@solana/wallet-adapter-base';
 import {
   ConnectionProvider,
   WalletProvider,
@@ -16,12 +17,12 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 export function SolanaProviders({ children }: { children: React.ReactNode }) {
   const endpoint = useMemo(() => RPC_URL, []);
-  // Note: most modern wallets (Backpack, Glow, etc.) auto-register via the
-  // Wallet Standard, so they show up in the modal without an adapter.
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [],
-  );
+  // Wallet adapter constructors touch browser APIs; build only on the client
+  // so static prerender / Vercel "Export" does not throw in Node.
+  const [wallets, setWallets] = useState<WalletAdapter[]>([]);
+  useEffect(() => {
+    setWallets([new PhantomWalletAdapter(), new SolflareWalletAdapter()]);
+  }, []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>

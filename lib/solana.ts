@@ -30,8 +30,25 @@ import type { WalletContextState } from '@solana/wallet-adapter-react';
 export const SOLANA_NETWORK = (process.env.NEXT_PUBLIC_SOLANA_NETWORK ||
   'mainnet-beta') as Cluster;
 
-export const RPC_URL =
-  process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com';
+const DEFAULT_RPC = 'https://api.mainnet-beta.solana.com';
+
+/** Avoid Invalid URL / prerender crashes when Vercel env is mistyped or missing scheme. */
+function resolveRpcUrl(): string {
+  const trimmed = process.env.NEXT_PUBLIC_RPC_URL?.trim();
+  if (!trimmed) return DEFAULT_RPC;
+  try {
+    const withProto = /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    const u = new URL(withProto);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return DEFAULT_RPC;
+    return u.toString();
+  } catch {
+    return DEFAULT_RPC;
+  }
+}
+
+export const RPC_URL = resolveRpcUrl();
 
 export const FEE_WALLET_STR = process.env.NEXT_PUBLIC_FEE_WALLET || '';
 
@@ -42,11 +59,18 @@ const FEE_WALLET_PLACEHOLDERS = new Set([
   'YourActualFeeWalletPubkeyHere',
 ]);
 
-export const CREATE_FEE_SOL = parseFloat(
-  process.env.NEXT_PUBLIC_CREATE_FEE_SOL || '0.025',
+function parseFeeSol(env: string | undefined, fallback: number): number {
+  const n = parseFloat(env ?? '');
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+export const CREATE_FEE_SOL = parseFeeSol(
+  process.env.NEXT_PUBLIC_CREATE_FEE_SOL,
+  0.025,
 );
-export const ACTION_FEE_SOL = parseFloat(
-  process.env.NEXT_PUBLIC_ACTION_FEE_SOL || '0.01',
+export const ACTION_FEE_SOL = parseFeeSol(
+  process.env.NEXT_PUBLIC_ACTION_FEE_SOL,
+  0.01,
 );
 
 export function getConnection(): Connection {
