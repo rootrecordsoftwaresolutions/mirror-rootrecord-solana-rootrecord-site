@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Instrument_Serif } from 'next/font/google';
+import Script from 'next/script';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { SolanaProviders } from '@/components/providers/SolanaProviders';
@@ -99,6 +100,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const CF_WEB_ANALYTICS_TOKEN =
+  process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN?.trim() ||
+  'a09f914edc5a428282e32a75198a0921';
+
 export default function RootLayout({
   children,
 }: {
@@ -128,6 +133,12 @@ export default function RootLayout({
             }}
           />
         </SolanaProviders>
+        <Script
+          id="cloudflare-beacon"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          strategy="afterInteractive"
+          data-cf-beacon={JSON.stringify({ token: CF_WEB_ANALYTICS_TOKEN })}
+        />
       </body>
     </html>
   );

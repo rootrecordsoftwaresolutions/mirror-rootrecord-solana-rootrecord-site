@@ -107,7 +107,7 @@ const TOOLS: (
   {
     href: '/launch',
     title: 'Launch Raydium pool',
-    desc: 'Create a CPMM pool for your token vs SOL and seed liquidity in one signed transaction — no detour to raydium.io.',
+    desc: 'Create a CPMM pool vs SOL, USDC, or another mint, seed liquidity, and pay a small RootRecord launch fee — without raydium.io.',
     icon: Rocket,
     tone: 'green',
   },

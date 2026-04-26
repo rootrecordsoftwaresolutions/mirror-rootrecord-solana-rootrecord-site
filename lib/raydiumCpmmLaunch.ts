@@ -8,24 +8,41 @@ import {
   getCpmmPdaAmmConfigId,
 } from '@raydium-io/raydium-sdk-v2';
 import { getMint, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import type { Transaction, VersionedTransaction } from '@solana/web3.js';
+import type {
+  Transaction,
+  TransactionInstruction,
+  VersionedTransaction,
+} from '@solana/web3.js';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 
 import { decimalStringToRawAmount } from '@/lib/bulkSol';
+import { appendReferralMemoIfEligible } from '@/lib/referralMemo';
 import {
   getConnection,
   resolveMintAndProgram,
   SOLANA_NETWORK,
   explorerUrl,
+  feeTransferIx,
+  sendSimpleTx,
+  LAUNCH_FEE_SOL,
 } from '@/lib/solana';
 
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+/** Mainnet USDC (legacy SPL). */
+const MAINNET_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+/** Common devnet USDC mint (override with NEXT_PUBLIC_LAUNCH_USDC_MINT if needed). */
+const DEVNET_USDC_DEFAULT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEGERXfW9vpM8Xo';
 
 export type CpmmMintPick = {
   address: string;
   decimals: number;
   programId: string;
 };
+
+export type LaunchQuoteKind = 'wsol' | 'usdc' | 'custom';
+
+export { LAUNCH_FEE_SOL };
 
 function toRaydiumCluster(): 'mainnet' | 'devnet' {
   return SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet';
@@ -78,6 +95,23 @@ function wsolPick(): CpmmMintPick {
   };
 }
 
+function configuredUsdcMint(): string {
+  const trimmed = process.env.NEXT_PUBLIC_LAUNCH_USDC_MINT?.trim();
+  if (trimmed) return trimmed;
+  return SOLANA_NETWORK === 'devnet' ? DEVNET_USDC_DEFAULT : MAINNET_USDC;
+}
+
+async function quotePickForKind(
+  kind: LaunchQuoteKind,
+  customMint?: string,
+): Promise<CpmmMintPick> {
+  if (kind === 'wsol') return wsolPick();
+  if (kind === 'usdc') return mintToCpmmPick(configuredUsdcMint());
+  const m = customMint?.trim();
+  if (!m) throw new Error('Enter the quote token mint for “Other token”');
+  return mintToCpmmPick(m);
+}
+
 /** Raydium CPMM requires mint A < mint B lexicographically; amounts follow that order. */
 function orderCpmmPair(
   mintX: CpmmMintPick,
@@ -91,23 +125,36 @@ function orderCpmmPair(
   throw new Error('Cannot create a pool between a mint and itself');
 }
 
+async function sendLaunchPlatformFee(
+  wallet: WalletContextState,
+  referrer: string | null | undefined,
+): Promise<string | null> {
+  if (!wallet.publicKey || LAUNCH_FEE_SOL <= 0) return null;
+  const feeIx = feeTransferIx(wallet.publicKey, LAUNCH_FEE_SOL);
+  const ixs: TransactionInstruction[] = [];
+  if (feeIx) ixs.push(feeIx);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrer ?? null);
+  if (!ixs.length) return null;
+  return sendSimpleTx(wallet, ixs);
+}
+
 /**
- * Create a Raydium CPMM pool: your SPL / Token-2022 mint vs WSOL, with initial liquidity
- * (one signed versioned transaction). Uses Raydium’s public API for fee configs.
- *
- * You pay Raydium’s on-chain pool-creation fee and network fees; no extra RootRecord fee here.
+ * Create a Raydium CPMM pool: your base mint vs SOL, USDC, or another SPL / Token-2022 mint.
+ * Optionally sends a prior legacy tx for the RootRecord launch fee + referral memo.
  */
-export async function createCpmmPoolWithSol(
+export async function createCpmmPoolWithQuote(
   wallet: WalletContextState,
   params: {
-    /** Your token mint (base asset you already hold). */
     baseMint: string;
-    /** Human amount of your token to deposit (mint decimals). */
     tokenAmount: string;
-    /** Human SOL amount paired into the pool (wraps via `useSOLBalance`). */
-    solAmount: string;
+    quoteKind: LaunchQuoteKind;
+    /** Required when `quoteKind` is `custom`. */
+    quoteMint?: string;
+    /** Human amount for the quote side (quote mint decimals). */
+    quoteAmount: string;
+    referrer?: string | null;
   },
-): Promise<{ txId: string; poolId: string }> {
+): Promise<{ feeTxId: string | null; poolTxId: string; poolId: string }> {
   if (!wallet.publicKey) {
     throw new Error('Connect your wallet first');
   }
@@ -115,6 +162,8 @@ export async function createCpmmPoolWithSol(
   if (!signAll) {
     throw new Error('Wallet must support signing transactions');
   }
+
+  const feeTxId = await sendLaunchPlatformFee(wallet, params.referrer);
 
   const connection = getConnection();
   const cluster = toRaydiumCluster();
@@ -128,23 +177,29 @@ export async function createCpmmPoolWithSol(
   });
 
   const base = await mintToCpmmPick(params.baseMint.trim());
-  const quote = wsolPick();
+  const quote = await quotePickForKind(params.quoteKind, params.quoteMint);
 
-  const rawToken = decimalStringToRawAmount(
+  const rawBase = decimalStringToRawAmount(
     params.tokenAmount.trim(),
     base.decimals,
   );
-  const rawSol = decimalStringToRawAmount(params.solAmount.trim(), 9);
+  const rawQuote = decimalStringToRawAmount(
+    params.quoteAmount.trim(),
+    quote.decimals,
+  );
 
-  const bnToken = new BN(rawToken.toString());
-  const bnSol = new BN(rawSol.toString());
+  const bnBase = new BN(rawBase.toString());
+  const bnQuote = new BN(rawQuote.toString());
 
   const [mintA, mintB, mintAAmount, mintBAmount] = orderCpmmPair(
     base,
-    bnToken,
+    bnBase,
     quote,
-    bnSol,
+    bnQuote,
   );
+
+  const useSolBalance =
+    mintA.address === WSOL_MINT || mintB.address === WSOL_MINT;
 
   let feeConfigs = await raydium.api.getCpmmConfigs();
   if (cluster === 'devnet') {
@@ -180,14 +235,15 @@ export async function createCpmmPoolWithSol(
     feeConfig: feeConfigs[0],
     associatedOnly: false,
     ownerInfo: {
-      useSOLBalance: true,
+      useSOLBalance: useSolBalance,
     },
     txVersion: TxVersion.V0,
   });
 
-  const { txId } = await execute({ sendAndConfirm: true });
+  const { txId: poolTxId } = await execute({ sendAndConfirm: true });
   return {
-    txId,
+    feeTxId,
+    poolTxId,
     poolId: extInfo.address.poolId.toBase58(),
   };
 }

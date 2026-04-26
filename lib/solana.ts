@@ -80,6 +80,11 @@ export const ACTION_FEE_SOL = parseFeeSol(
   process.env.NEXT_PUBLIC_ACTION_FEE_SOL,
   0.01,
 );
+/** RootRecord fee for the Raydium pool launch tool (first tx, before pool creation). */
+export const LAUNCH_FEE_SOL = parseFeeSol(
+  process.env.NEXT_PUBLIC_LAUNCH_FEE_SOL,
+  0.01,
+);
 
 export function getConnection(): Connection {
   return new Connection(RPC_URL, 'confirmed');
@@ -332,7 +337,8 @@ export async function resolveMintAndProgram(
   return { mint, programId };
 }
 
-async function sendSimpleTx(
+/** One legacy `Transaction`: sign, send, confirm (used for simple fee / memo flows). */
+export async function sendSimpleTx(
   wallet: WalletContextState,
   ixs: TransactionInstruction[],
 ): Promise<string> {
