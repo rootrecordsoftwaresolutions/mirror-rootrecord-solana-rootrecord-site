@@ -19,6 +19,8 @@ export interface SuccessPayload {
   signature: string;
   name: string;
   symbol: string;
+  /** Token-2022 path uses two sequential signed transactions. */
+  usedToken2022?: boolean;
 }
 
 interface Props {
@@ -78,7 +80,10 @@ export function SuccessDialog({
             ${payload.symbol} is live on Solana
           </DialogTitle>
           <DialogDescription>
-            <em>{payload.name}</em> was created in a single signed transaction.
+            <em>{payload.name}</em> was created
+            {payload.usedToken2022
+              ? ' in two sequential signed transactions (mint setup, then supply + fee).'
+              : ' in a single signed transaction.'}
           </DialogDescription>
         </DialogHeader>
 

@@ -32,7 +32,7 @@ import {
   revokeFreezeAuthority,
   CREATE_FEE_SOL,
   ACTION_FEE_SOL,
-  FEE_WALLET_STR,
+  isFeeWalletConfigured,
 } from '@/lib/solana';
 import { createToken2022 } from '@/lib/token2022';
 import { defaultExtensions, type ExtensionState } from '@/lib/schema';
@@ -73,8 +73,7 @@ export default function CreateTokenPage() {
     form.setValue('supply', formatNumber(raw), { shouldValidate: true });
   };
 
-  const feeWalletConfigured =
-    !!FEE_WALLET_STR && FEE_WALLET_STR !== 'YOUR_FEE_WALLET_PUBKEY_HERE';
+  const feeWalletConfigured = isFeeWalletConfigured();
 
   const onSubmit = async (values: TokenFormValues) => {
     if (!wallet.connected || !wallet.publicKey) {
@@ -186,6 +185,7 @@ export default function CreateTokenPage() {
         signature: result.signature,
         name: values.name,
         symbol: values.symbol,
+        usedToken2022: extensions.enabled,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';

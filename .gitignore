@@ -1,27 +1,21 @@
 node_modules
 .next
 out
-.env
-.env.local
-.env.*.local
 *.log
 .DS_Store
 .vercel
 next-env.d.ts
--e 
-# Environment and credential files
+
+# Local env (keep .env.example tracked)
 .env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
+.env.local
+.env.*.local
+!.env.example
+
+# Other env files — not the documented example template
+.env.production
+.env.development
+
 credentials.json
 *.pem
 *.key

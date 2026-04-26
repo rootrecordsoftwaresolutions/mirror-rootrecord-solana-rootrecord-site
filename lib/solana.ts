@@ -35,6 +35,13 @@ export const RPC_URL =
 
 export const FEE_WALLET_STR = process.env.NEXT_PUBLIC_FEE_WALLET || '';
 
+/** Values treated as “not configured” for fee collection. */
+const FEE_WALLET_PLACEHOLDERS = new Set([
+  '',
+  'YOUR_FEE_WALLET_PUBKEY_HERE',
+  'YourActualFeeWalletPubkeyHere',
+]);
+
 export const CREATE_FEE_SOL = parseFloat(
   process.env.NEXT_PUBLIC_CREATE_FEE_SOL || '0.025',
 );
@@ -47,14 +54,19 @@ export function getConnection(): Connection {
 }
 
 function getFeeWallet(): PublicKey | null {
-  if (!FEE_WALLET_STR || FEE_WALLET_STR === 'YOUR_FEE_WALLET_PUBKEY_HERE') {
+  const trimmed = FEE_WALLET_STR.trim();
+  if (FEE_WALLET_PLACEHOLDERS.has(trimmed)) {
     return null;
   }
   try {
-    return new PublicKey(FEE_WALLET_STR);
+    return new PublicKey(trimmed);
   } catch {
     return null;
   }
+}
+
+export function isFeeWalletConfigured(): boolean {
+  return getFeeWallet() !== null;
 }
 
 export function feeTransferIx(

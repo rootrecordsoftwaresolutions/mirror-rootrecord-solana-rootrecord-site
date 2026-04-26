@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { PublicKey } from '@solana/web3.js';
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,11 +27,13 @@ import {
   updateTokenMetadata,
   ACTION_FEE_SOL,
   explorerUrl,
+  getConnection,
 } from '@/lib/solana';
 import {
   withdrawWithheldFromMint,
   harvestWithheldToMint,
   updateTransferFee,
+  readMintInfo,
 } from '@/lib/token2022';
 import { parseSupply } from '@/lib/utils';
 
@@ -105,11 +109,16 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   const [feeBps, setFeeBps] = useState('500');
   const [maxFee, setMaxFee] = useState('1000000');
   const [busy, setBusy] = useState(false);
+  const [mintPreview, setMintPreview] = useState<{
+    loading: boolean;
+    error?: string;
+    programLabel?: string;
+    decimals?: number;
+    feeBps?: number;
+    withheldRaw?: string;
+  } | null>(null);
 
-  if (!kind) return null;
-  const meta = META[kind];
-
-  const reset = () => {
+  const reset = useCallback(() => {
     setMint('');
     setAmount('');
     setDecimals('9');
@@ -120,7 +129,78 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setAccountList('');
     setFeeBps('500');
     setMaxFee('1000000');
-  };
+    setMintPreview(null);
+  }, []);
+
+  useEffect(() => {
+    if (!kind) return;
+    reset();
+    if (initialMint) setMint(initialMint);
+  }, [kind, initialMint, reset]);
+
+  useEffect(() => {
+    if (!kind) {
+      setMintPreview(null);
+      return;
+    }
+    const m = META[kind];
+    if (!m.t2022) {
+      setMintPreview(null);
+      return;
+    }
+    const trimmed = mint.trim();
+    if (!trimmed) {
+      setMintPreview(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        new PublicKey(trimmed);
+      } catch {
+        if (!cancelled) {
+          setMintPreview({ loading: false, error: 'Invalid mint address' });
+        }
+        return;
+      }
+      if (!cancelled) setMintPreview({ loading: true });
+      try {
+        const info = await readMintInfo(getConnection(), trimmed);
+        if (cancelled) return;
+        if (!info.programId.equals(TOKEN_2022_PROGRAM_ID)) {
+          setMintPreview({
+            loading: false,
+            error:
+              'This mint is legacy SPL Token. These tools apply to Token-2022 mints only.',
+            programLabel: info.programId.toBase58(),
+            decimals: info.decimals,
+          });
+          return;
+        }
+        setMintPreview({
+          loading: false,
+          programLabel: 'Token-2022',
+          decimals: info.decimals,
+          feeBps: info.transferFee?.feeBps,
+          withheldRaw: info.transferFee?.withheldAmount.toString(),
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setMintPreview({
+            loading: false,
+            error: e instanceof Error ? e.message : 'Could not load mint',
+          });
+        }
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, mint]);
+
+  if (!kind) return null;
+  const meta = META[kind];
 
   const handle = async () => {
     if (!wallet.connected) {
@@ -209,6 +289,51 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               onChange={(e) => setMint(e.target.value.trim())}
             />
           </div>
+
+          {meta.t2022 && mintPreview && (
+            <div
+              data-testid="tool-mint-preview"
+              className="rounded-lg border border-border bg-ink-700/40 px-3 py-2 text-xs space-y-1"
+            >
+              {mintPreview.loading ? (
+                <span className="text-muted-foreground">Loading mint…</span>
+              ) : mintPreview.error ? (
+                <span className="text-amber-200">{mintPreview.error}</span>
+              ) : (
+                <>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Program</span>
+                    <span className="font-mono text-right break-all">
+                      {mintPreview.programLabel}
+                    </span>
+                  </div>
+                  {mintPreview.decimals !== undefined && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Decimals</span>
+                      <span>{mintPreview.decimals}</span>
+                    </div>
+                  )}
+                  {mintPreview.feeBps !== undefined && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">
+                        Transfer fee (newer epoch)
+                      </span>
+                      <span>{mintPreview.feeBps} bps</span>
+                    </div>
+                  )}
+                  {mintPreview.withheldRaw !== undefined &&
+                    mintPreview.withheldRaw !== '0' && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground">
+                          Withheld on mint (raw)
+                        </span>
+                        <span className="font-mono">{mintPreview.withheldRaw}</span>
+                      </div>
+                    )}
+                </>
+              )}
+            </div>
+          )}
 
           {kind === 'mint-more' && (
             <div className="grid sm:grid-cols-2 gap-3">
