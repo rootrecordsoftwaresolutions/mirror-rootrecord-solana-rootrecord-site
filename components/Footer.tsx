@@ -40,6 +40,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/bulk" className="hover:text-sol-green">
+                  Bulk SOL
+                </Link>
+              </li>
+              <li>
                 <Link href="/pricing" className="hover:text-sol-green">
                   Pricing
                 </Link>

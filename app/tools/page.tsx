@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Card,
@@ -20,10 +21,29 @@ import {
   Banknote,
   Wand2,
   Sparkles,
+  Layers,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
 
-const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldOff; tone: 'green' | 'purple'; t2022?: boolean }[] = [
+const TOOLS: (
+  | {
+      kind: ToolKind;
+      title: string;
+      desc: string;
+      icon: LucideIcon;
+      tone: 'green' | 'purple';
+      t2022?: boolean;
+    }
+  | {
+      href: string;
+      title: string;
+      desc: string;
+      icon: LucideIcon;
+      tone: 'green' | 'purple';
+      t2022?: boolean;
+    }
+)[] = [
   {
     kind: 'revoke-mint',
     title: 'Revoke mint authority',
@@ -83,6 +103,13 @@ const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldO
     tone: 'purple',
     t2022: true,
   },
+  {
+    href: '/bulk',
+    title: 'Bulk SOL & SPL sends',
+    desc: 'Pay many wallets in a few batched transactions — native SOL or SPL tokens. RootRecord fee scales with list size.',
+    icon: Layers,
+    tone: 'green',
+  },
 ];
 
 function ToolsInner() {
@@ -120,60 +147,94 @@ function ToolsInner() {
       </div>
 
       <div className="mt-12 grid gap-5 md:grid-cols-2">
-        {TOOLS.map((t, i) => (
-          <Card
-            key={t.kind}
-            data-testid={`tool-card-${t.kind}`}
-            className="group cursor-pointer transition-all hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]"
-            onClick={() => {
-              setActive(t.kind);
-              setInitialMint(undefined);
-            }}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <span className="text-xs font-mono text-sol-green/80 tracking-widest">
-                  {(i + 1).toString().padStart(2, '0')} /
-                </span>
-                <div className="flex items-center gap-2">
-                  {t.t2022 && (
-                    <span className="text-[10px] uppercase tracking-[0.14em] rounded-full px-2 py-0.5 border border-sol-purple/40 bg-sol-purple/10 text-sol-purple">
-                      Token-2022
-                    </span>
-                  )}
-                  <t.icon
-                    className={
-                      'h-5 w-5 transition-colors ' +
-                      (t.tone === 'green'
-                        ? 'text-muted-foreground group-hover:text-sol-green'
-                        : 'text-muted-foreground group-hover:text-sol-purple')
-                    }
-                  />
+        {TOOLS.map((t, i) => {
+          const isLink = 'href' in t;
+          const key = isLink ? t.href : t.kind;
+          const testId = isLink ? 'tool-card-bulk' : `tool-card-${t.kind}`;
+          const cardClassName =
+            'group h-full transition-all hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]' +
+            (isLink ? '' : ' cursor-pointer');
+
+          const inner = (
+            <>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <span className="text-xs font-mono text-sol-green/80 tracking-widest">
+                    {(i + 1).toString().padStart(2, '0')} /
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {t.t2022 && (
+                      <span className="text-[10px] uppercase tracking-[0.14em] rounded-full px-2 py-0.5 border border-sol-purple/40 bg-sol-purple/10 text-sol-purple">
+                        Token-2022
+                      </span>
+                    )}
+                    <t.icon
+                      className={
+                        'h-5 w-5 transition-colors ' +
+                        (t.tone === 'green'
+                          ? 'text-muted-foreground group-hover:text-sol-green'
+                          : 'text-muted-foreground group-hover:text-sol-purple')
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-              <CardTitle className="mt-4">{t.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="leading-relaxed">
-                {t.desc}
-              </CardDescription>
-              <div className="mt-5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="px-0 hover:bg-transparent text-sol-green"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActive(t.kind);
-                    setInitialMint(undefined);
-                  }}
-                >
-                  Open tool <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <CardTitle className="mt-4">{t.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="leading-relaxed">
+                  {t.desc}
+                </CardDescription>
+                <div className="mt-5">
+                  {isLink ? (
+                    <span className="inline-flex items-center gap-1 text-sm font-medium text-sol-green">
+                      Open tool <ArrowRight className="h-4 w-4" />
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-0 hover:bg-transparent text-sol-green"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActive(t.kind);
+                        setInitialMint(undefined);
+                      }}
+                    >
+                      Open tool <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </>
+          );
+
+          if (isLink) {
+            return (
+              <Link
+                key={key}
+                href={t.href}
+                data-testid={testId}
+                className="block rounded-xl text-inherit no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sol-green/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Card className={`${cardClassName} cursor-pointer`}>{inner}</Card>
+              </Link>
+            );
+          }
+
+          return (
+            <Card
+              key={key}
+              data-testid={testId}
+              className={cardClassName}
+              onClick={() => {
+                setActive(t.kind);
+                setInitialMint(undefined);
+              }}
+            >
+              {inner}
+            </Card>
+          );
+        })}
       </div>
 
       <ToolDialog
