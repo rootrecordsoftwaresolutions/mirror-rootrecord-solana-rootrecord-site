@@ -82,14 +82,15 @@ function ToolsInner() {
   const [active, setActive] = useState<ToolKind | null>(null);
   const [initialMint, setInitialMint] = useState<string | undefined>();
 
+  const actionParam = params.get('action');
+  const mintParam = params.get('mint')?.trim() || '';
+
   useEffect(() => {
-    const action = params.get('action');
-    const mint = params.get('mint') || undefined;
-    if (action === 'mint') {
+    if (actionParam === 'mint') {
       setActive('mint-more');
-      setInitialMint(mint);
+      setInitialMint(mintParam || undefined);
     }
-  }, [params]);
+  }, [actionParam, mintParam]);
 
   return (
     <div className="container py-14 md:py-20">

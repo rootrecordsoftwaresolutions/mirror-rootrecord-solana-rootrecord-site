@@ -19,6 +19,7 @@ import {
   createMintToInstruction,
   createSetAuthorityInstruction,
   AuthorityType,
+  getMint,
 } from '@solana/spl-token';
 import {
   createCreateMetadataAccountV3Instruction,
@@ -269,11 +270,36 @@ export async function createSplToken(
   return { signature, mint: mint.toBase58(), ata: ata.toBase58() };
 }
 
+/**
+ * Resolve SPL vs Token-2022 program for a mint, and ensure the pubkey is a real mint
+ * (not a wallet, ATA, or other account — those used to fall through to legacy SPL and
+ * caused "IncorrectProgramId" in simulations).
+ */
 async function detectMintProgram(mint: PublicKey): Promise<PublicKey> {
-  const info = await getConnection().getAccountInfo(mint, 'confirmed');
+  const connection = getConnection();
+  const info = await connection.getAccountInfo(mint, 'confirmed');
   if (!info) throw new Error('Mint not found');
-  if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
-  return TOKEN_PROGRAM_ID;
+  if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+    try {
+      await getMint(connection, mint, 'confirmed', TOKEN_2022_PROGRAM_ID);
+      return TOKEN_2022_PROGRAM_ID;
+    } catch {
+      throw new Error('Not a valid Token-2022 mint account.');
+    }
+  }
+  if (info.owner.equals(TOKEN_PROGRAM_ID)) {
+    try {
+      await getMint(connection, mint, 'confirmed', TOKEN_PROGRAM_ID);
+      return TOKEN_PROGRAM_ID;
+    } catch {
+      throw new Error(
+        'Not a valid SPL mint — paste the mint address from Solscan (or your launch success screen), not your wallet or token account.',
+      );
+    }
+  }
+  throw new Error(
+    'That address is not an SPL or Token-2022 mint. Use the mint field from the token page on Solscan.',
+  );
 }
 
 async function sendSimpleTx(

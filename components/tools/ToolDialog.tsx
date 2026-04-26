@@ -288,6 +288,12 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               value={mint}
               onChange={(e) => setMint(e.target.value.trim())}
             />
+            {kind === 'mint-more' && (
+              <p className="text-[11px] text-muted-foreground">
+                Use the <strong className="text-foreground/90">token mint</strong> address
+                (from Solscan or your launch dialog), not your wallet address.
+              </p>
+            )}
           </div>
 
           {meta.t2022 && mintPreview && (
