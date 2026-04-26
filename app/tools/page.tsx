@@ -16,10 +16,13 @@ import {
   Coins,
   Pencil,
   ArrowRight,
+  Banknote,
+  Wand2,
+  Sparkles,
 } from 'lucide-react';
 import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
 
-const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldOff; tone: 'green' | 'purple' }[] = [
+const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldOff; tone: 'green' | 'purple'; t2022?: boolean }[] = [
   {
     kind: 'revoke-mint',
     title: 'Revoke mint authority',
@@ -43,10 +46,34 @@ const TOOLS: { kind: ToolKind; title: string; desc: string; icon: typeof ShieldO
   },
   {
     kind: 'update-metadata',
-    title: 'Update metadata',
-    desc: 'Fix a typo, rebrand, or repoint to a new IPFS URI. Requires mutable metadata.',
+    title: 'Update metadata (legacy)',
+    desc: 'Fix a typo, rebrand, or repoint to a new IPFS URI. Requires mutable Metaplex metadata.',
     icon: Pencil,
     tone: 'purple',
+  },
+  {
+    kind: 'withdraw-fees',
+    title: 'Withdraw transfer fees',
+    desc: 'Pull all withheld transfer fees from your Token-2022 mint into a destination you own.',
+    icon: Banknote,
+    tone: 'green',
+    t2022: true,
+  },
+  {
+    kind: 'harvest-fees',
+    title: 'Harvest fees → mint',
+    desc: 'Sweep withheld fees from a list of holder accounts back to the mint, ready to withdraw.',
+    icon: Wand2,
+    tone: 'green',
+    t2022: true,
+  },
+  {
+    kind: 'update-fee-config',
+    title: 'Update transfer fee config',
+    desc: 'Change the basis points or max fee on a Token-2022 mint. Takes effect after 2 epochs.',
+    icon: Sparkles,
+    tone: 'purple',
+    t2022: true,
   },
 ];
 
@@ -96,14 +123,21 @@ function ToolsInner() {
                 <span className="text-xs font-mono text-sol-green/80 tracking-widest">
                   {(i + 1).toString().padStart(2, '0')} /
                 </span>
-                <t.icon
-                  className={
-                    'h-5 w-5 transition-colors ' +
-                    (t.tone === 'green'
-                      ? 'text-muted-foreground group-hover:text-sol-green'
-                      : 'text-muted-foreground group-hover:text-sol-purple')
-                  }
-                />
+                <div className="flex items-center gap-2">
+                  {t.t2022 && (
+                    <span className="text-[10px] uppercase tracking-[0.14em] rounded-full px-2 py-0.5 border border-sol-purple/40 bg-sol-purple/10 text-sol-purple">
+                      Token-2022
+                    </span>
+                  )}
+                  <t.icon
+                    className={
+                      'h-5 w-5 transition-colors ' +
+                      (t.tone === 'green'
+                        ? 'text-muted-foreground group-hover:text-sol-green'
+                        : 'text-muted-foreground group-hover:text-sol-purple')
+                    }
+                  />
+                </div>
               </div>
               <CardTitle className="mt-4">{t.title}</CardTitle>
             </CardHeader>

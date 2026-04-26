@@ -44,27 +44,42 @@ rootrecord.info aesthetic 1:1, dark mode by default, with Solana brand accents
 - ✅ Inter (sans) + Instrument Serif (display italic) fonts
 - ✅ Header with brand mark, navigation, ReferralPill, wallet adapter button
 - ✅ Footer with Privacy, Terms, GitHub, brand statement
-- ✅ Landing page (`/`) — hero with italic emphasis, trust bar, 4 numbered
-  feature cards, principles section, competitor comparison table, fake
-  "recently launched" wall, dual-CTA closer
-- ✅ Token Creator page (`/create`) — full form (name, symbol, decimals, supply
-  with comma formatting, description, logo dropzone, website/twitter/telegram),
-  fee sidebar, "what happens" sidebar, fee-wallet warning banner
-- ✅ Single-tx token creation flow:
-  createAccount → InitializeMint2 → createATA → MintTo(full supply) →
-  CreateMetadataAccountV3 → fee transfer
+- ✅ Landing page (`/`), Pricing (`/pricing`), Docs (`/docs`), Privacy, Terms
+- ✅ Token Creator page (`/create`) — full form, fee sidebar, fee-wallet warning
+- ✅ Single-tx **legacy SPL** token creation flow with Metaplex v3 metadata
 - ✅ Success dialog: copy mint, Solscan/Solana.fm links, one-click revoke mint
   authority, revoke freeze authority, mint more, share-on-X
-- ✅ Tools page (`/tools`) — 4 cards opening modal forms for revoke mint /
-  revoke freeze / mint more / update metadata
-- ✅ Pricing page (`/pricing`) — fee comparison vs competitors, real on-chain costs
-- ✅ Docs page (`/docs`) — 6 numbered sections explaining each flow
-- ✅ Privacy + Terms pages
-- ✅ Referral system stub: parse `?ref=`, store in localStorage, header pill
-- ✅ Pinata uploader (file + JSON) with `isPinataConfigured` guard
-- ✅ `.env.example`, README.md, vercel.json
-- ✅ Production build passes (`next build` → 10 routes static)
-- ✅ TypeScript strict, ESLint clean
+- ✅ **Token-2022 mode** with 7 extensions on /create:
+  - Transfer fee (bps + max fee)
+  - Transfer hook (custom program ID)
+  - Non-transferable (soulbound)
+  - Mint close authority
+  - Permanent delegate (compliance)
+  - Interest-bearing (display APY)
+  - Default-frozen account state
+  - Plus in-mint TokenMetadata extension (no Metaplex needed for 2022)
+- ✅ Token-2022 creation flow uses 2 sequential transactions (account + extensions
+  + InitializeMint + InitializeMetadata, then ATA + MintTo + fee).
+- ✅ **Tools page** (`/tools`) with 7 cards:
+  - Revoke mint authority (auto-detects program ID, works for both)
+  - Revoke freeze authority (auto-detects)
+  - Mint more (auto-detects)
+  - Update metadata (legacy Metaplex)
+  - Withdraw transfer fees (Token-2022)
+  - Harvest fees → mint (Token-2022)
+  - Update transfer fee config (Token-2022)
+- ✅ Referral system stub
+- ✅ **Pinata IPFS uploader is server-only**: 3 Route Handlers under
+  `/api/pin/{file,json,status}` proxy uploads. JWT lives in `PINATA_JWT` (no
+  `NEXT_PUBLIC_` prefix) — never lands in the browser bundle.
+- ✅ Production build passes — 10 static + 3 dynamic API routes.
+- ✅ TypeScript strict, ESLint clean.
+
+## Live env (set Jan 26, 2026)
+- Network: `mainnet-beta`
+- RPC: Helius mainnet (key in `.env.local`)
+- Fee wallet: `HCeCfMAAZeFUaBQrzC2t84myrBnvnb3h8M26k4urv2X1`
+- Pinata: configured (JWT server-side only); smoke-tested via JSON pin.
 
 ## NOT IMPLEMENTED / placeholders
 - `NEXT_PUBLIC_FEE_WALLET` is a placeholder — the app shows a yellow "set this

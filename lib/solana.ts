@@ -11,6 +11,7 @@ import {
 import {
   MINT_SIZE,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   createInitializeMint2Instruction,
   getMinimumBalanceForRentExemptMint,
   getAssociatedTokenAddress,
@@ -232,6 +233,13 @@ export async function createSplToken(
   return { signature, mint: mint.toBase58(), ata: ata.toBase58() };
 }
 
+async function detectMintProgram(mint: PublicKey): Promise<PublicKey> {
+  const info = await getConnection().getAccountInfo(mint, 'confirmed');
+  if (!info) throw new Error('Mint not found');
+  if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
+  return TOKEN_PROGRAM_ID;
+}
+
 async function sendSimpleTx(
   wallet: WalletContextState,
   ixs: TransactionInstruction[],
@@ -264,12 +272,15 @@ export async function revokeMintAuthority(
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const mint = new PublicKey(mintAddress);
+  const programId = await detectMintProgram(mint);
   const ixs: TransactionInstruction[] = [
     createSetAuthorityInstruction(
       mint,
       wallet.publicKey,
       AuthorityType.MintTokens,
       null,
+      [],
+      programId,
     ),
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
@@ -283,12 +294,15 @@ export async function revokeFreezeAuthority(
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const mint = new PublicKey(mintAddress);
+  const programId = await detectMintProgram(mint);
   const ixs: TransactionInstruction[] = [
     createSetAuthorityInstruction(
       mint,
       wallet.publicKey,
       AuthorityType.FreezeAccount,
       null,
+      [],
+      programId,
     ),
   ];
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
@@ -304,7 +318,13 @@ export async function mintMore(
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const mint = new PublicKey(mintAddress);
-  const ata = await getAssociatedTokenAddress(mint, wallet.publicKey);
+  const programId = await detectMintProgram(mint);
+  const ata = await getAssociatedTokenAddress(
+    mint,
+    wallet.publicKey,
+    false,
+    programId,
+  );
   const fullAmount = amount * BigInt(10) ** BigInt(decimals);
 
   const connection = getConnection();
@@ -317,10 +337,20 @@ export async function mintMore(
         ata,
         wallet.publicKey,
         mint,
+        programId,
       ),
     );
   }
-  ixs.push(createMintToInstruction(mint, ata, wallet.publicKey, fullAmount));
+  ixs.push(
+    createMintToInstruction(
+      mint,
+      ata,
+      wallet.publicKey,
+      fullAmount,
+      [],
+      programId,
+    ),
+  );
   const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
   if (fee) ixs.push(fee);
   return sendSimpleTx(wallet, ixs);

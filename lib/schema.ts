@@ -19,3 +19,32 @@ export const tokenSchema = z.object({
 });
 
 export type TokenFormValues = z.infer<typeof tokenSchema>;
+
+/* ---------- Token-2022 extension state ---------- */
+
+export interface ExtensionState {
+  enabled: boolean;
+  // Transfer fee
+  transferFee: { on: boolean; bps: string; maxFee: string };
+  // Transfer hook
+  transferHook: { on: boolean; programId: string };
+  // Simple toggles
+  nonTransferable: boolean;
+  mintCloseAuthority: boolean;
+  permanentDelegate: boolean;
+  // Interest bearing (display only — does not change supply)
+  interestBearing: { on: boolean; rateBps: string };
+  // Default account state
+  defaultFrozen: boolean;
+}
+
+export const defaultExtensions: ExtensionState = {
+  enabled: false,
+  transferFee: { on: false, bps: '500', maxFee: '1000000' },
+  transferHook: { on: false, programId: '' },
+  nonTransferable: false,
+  mintCloseAuthority: false,
+  permanentDelegate: false,
+  interestBearing: { on: false, rateBps: '500' },
+  defaultFrozen: false,
+};

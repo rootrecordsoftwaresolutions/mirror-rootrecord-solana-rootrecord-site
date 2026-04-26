@@ -34,6 +34,9 @@ import {
   ACTION_FEE_SOL,
   FEE_WALLET_STR,
 } from '@/lib/solana';
+import { createToken2022 } from '@/lib/token2022';
+import { defaultExtensions, type ExtensionState } from '@/lib/schema';
+import { Token2022Section } from '@/components/create/Token2022Section';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 
 export default function CreateTokenPage() {
@@ -43,6 +46,7 @@ export default function CreateTokenPage() {
   const [stage, setStage] = useState<string>('');
   const [success, setSuccess] = useState<SuccessPayload | null>(null);
   const [postBusy, setPostBusy] = useState<'mint' | 'freeze' | null>(null);
+  const [extensions, setExtensions] = useState<ExtensionState>(defaultExtensions);
 
   const form = useForm<TokenFormValues>({
     resolver: zodResolver(tokenSchema),
@@ -114,15 +118,66 @@ export default function CreateTokenPage() {
         metadataUri = res.gatewayUrl;
       }
 
-      // 3. create the token on-chain
+      // 3. create the token on-chain (legacy SPL or Token-2022 path)
       setStage('Building transaction…');
-      const result = await createSplToken(wallet, {
-        name: values.name,
-        symbol: values.symbol,
-        decimals: values.decimals,
-        supply: parseSupply(values.supply),
-        uri: metadataUri,
-      });
+      let result: { signature: string; mint: string; ata: string };
+      if (extensions.enabled) {
+        // Validate Token-2022 conflicts
+        if (
+          extensions.nonTransferable &&
+          (extensions.transferFee.on || extensions.transferHook.on)
+        ) {
+          throw new Error(
+            'Non-transferable conflicts with Transfer fee / Transfer hook. Disable one.',
+          );
+        }
+        const additional: [string, string][] = [];
+        if (values.description) additional.push(['description', values.description]);
+        if (values.website) additional.push(['website', values.website]);
+        if (values.twitter) additional.push(['twitter', values.twitter]);
+        if (values.telegram) additional.push(['telegram', values.telegram]);
+        if (imageUri) additional.push(['image', imageUri]);
+
+        result = await createToken2022(wallet, {
+          name: values.name,
+          symbol: values.symbol,
+          decimals: values.decimals,
+          supply: parseSupply(values.supply),
+          uri: metadataUri,
+          additionalMetadata: additional,
+          extensions: {
+            transferFee: extensions.transferFee.on
+              ? {
+                  feeBps: parseInt(extensions.transferFee.bps, 10) || 0,
+                  maxFee: BigInt(extensions.transferFee.maxFee || '0'),
+                }
+              : undefined,
+            transferHook: extensions.transferHook.on
+              ? { programId: extensions.transferHook.programId }
+              : undefined,
+            nonTransferable: extensions.nonTransferable || undefined,
+            mintCloseAuthority: extensions.mintCloseAuthority || undefined,
+            permanentDelegate: extensions.permanentDelegate || undefined,
+            interestBearing: extensions.interestBearing.on
+              ? {
+                  rateBps:
+                    parseInt(extensions.interestBearing.rateBps, 10) || 0,
+                }
+              : undefined,
+            defaultAccountState: extensions.defaultFrozen
+              ? 'frozen'
+              : undefined,
+          },
+        });
+      } else {
+        result = await createSplToken(wallet, {
+          name: values.name,
+          symbol: values.symbol,
+          decimals: values.decimals,
+          supply: parseSupply(values.supply),
+          uri: metadataUri,
+        });
+      }
 
       setStage('');
       toast.success(`$${values.symbol} created successfully`);
@@ -326,6 +381,13 @@ export default function CreateTokenPage() {
                   </div>
                 </div>
 
+                <div className="border-t border-border pt-6">
+                  <Token2022Section
+                    state={extensions}
+                    onChange={setExtensions}
+                  />
+                </div>
+
                 <div className="border-t border-border pt-6 flex flex-wrap items-center justify-between gap-4">
                   <div className="text-sm text-muted-foreground">
                     {wallet.connected ? (
@@ -359,7 +421,9 @@ export default function CreateTokenPage() {
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4" />
-                          Create token · {CREATE_FEE_SOL} SOL
+                          {extensions.enabled
+                            ? `Create Token-2022 · ${CREATE_FEE_SOL} SOL`
+                            : `Create token · ${CREATE_FEE_SOL} SOL`}
                         </>
                       )}
                     </Button>

@@ -26,13 +26,23 @@ const SECTIONS = [
   },
   {
     n: '05',
+    title: 'Token-2022 mode',
+    body: 'On /create, toggle "Token-2022 mode" to access seven on-chain extensions: transfer fee (% on every transfer, withheld in the mint), transfer hook (custom program executed on every transfer), non-transferable (soulbound), mint close authority, permanent delegate (compliance), interest-bearing (display-only APY), and default-frozen accounts. When enabled, metadata is stored directly inside the mint via the in-mint TokenMetadata extension — no Metaplex tx needed.',
+  },
+  {
+    n: '06',
+    title: 'Withdraw / harvest transfer fees',
+    body: 'For Token-2022 mints with the transfer fee extension, fees accumulate in two places: (a) inside individual holder accounts as they transact, and (b) on the mint itself once "harvested". Use /tools → Harvest fees to sweep account-level fees onto the mint, then Withdraw transfer fees to pull them into a wallet you own.',
+  },
+  {
+    n: '07',
     title: 'Referrals',
     body: 'Share any RootRecord URL with ?ref=YOUR_WALLET. We track the referrer in localStorage on the visitor\'s browser. Payouts are not yet live — but every referred action is logged on-chain via the fee transfer that we can attribute later.',
   },
   {
-    n: '06',
+    n: '08',
     title: 'Self-host',
-    body: 'The full source is configured for Vercel. Clone the repo, set NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_FEE_WALLET, and NEXT_PUBLIC_PINATA_JWT, then npm run dev or vercel deploy.',
+    body: 'The full source is configured for Vercel. Clone the repo, set NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_FEE_WALLET, and PINATA_JWT (server-only), then npm run dev or vercel deploy.',
   },
 ];
 
