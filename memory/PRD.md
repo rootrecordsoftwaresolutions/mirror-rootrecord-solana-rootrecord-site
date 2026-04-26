@@ -47,7 +47,7 @@ rootrecord.info aesthetic 1:1, dark mode by default, with Solana brand accents
 - ✅ Landing page (`/`), Pricing (`/pricing`), Docs (`/docs`), Privacy, Terms
 - ✅ Token Creator page (`/create`) — full form, fee sidebar, fee-wallet warning
 - ✅ Single-tx **legacy SPL** token creation flow with Metaplex v3 metadata
-- ✅ Success dialog: copy mint, Solscan/Solana.fm links, one-click revoke mint
+- ✅ Success dialog: copy mint, Solscan link, one-click revoke mint
   authority, revoke freeze authority, mint more, share-on-X
 - ✅ **Token-2022 mode** with 7 extensions on /create:
   - Transfer fee (bps + max fee)

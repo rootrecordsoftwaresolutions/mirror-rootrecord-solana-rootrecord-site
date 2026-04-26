@@ -54,7 +54,7 @@ This app is a fast, cheap, user-first Solana SPL token creator and management su
    - Loading state with transaction simulation + confirmation
    - Success modal/dialog:
      - Mint address (copyable)
-     - Solscan / Solana.fm explorer links
+     - Solscan explorer link
      - "Revoke Mint Authority" and "Revoke Freeze Authority" one-click buttons (separate txs, 0.01 SOL each)
      - "Mint additional tokens" quick action
      - Share on X button with pre-filled tweet

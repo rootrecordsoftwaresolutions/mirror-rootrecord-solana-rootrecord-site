@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { explorerUrl, solanaFmUrl } from '@/lib/solana';
+import { explorerUrl } from '@/lib/solana';
 import { shortAddr } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -109,26 +109,15 @@ export function SuccessDialog({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button asChild variant="outline" size="sm" data-testid="open-solscan">
-            <a
-              href={explorerUrl(payload.mint, 'address')}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Solscan <ExternalLink className="h-3 w-3" />
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm" data-testid="open-solfm">
-            <a
-              href={solanaFmUrl(payload.mint, 'address')}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Solana.fm <ExternalLink className="h-3 w-3" />
-            </a>
-          </Button>
-        </div>
+        <Button asChild variant="outline" size="sm" data-testid="open-solscan" className="w-full">
+          <a
+            href={explorerUrl(payload.mint, 'address')}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View on Solscan <ExternalLink className="h-3 w-3" />
+          </a>
+        </Button>
 
         <div className="space-y-3 pt-2">
           <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">

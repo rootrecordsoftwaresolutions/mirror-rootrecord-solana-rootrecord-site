@@ -116,19 +116,6 @@ export function explorerUrl(
   return `https://solscan.io/${type}/${signatureOrAddress}${cluster}`;
 }
 
-export function solanaFmUrl(
-  signatureOrAddress: string,
-  type: 'tx' | 'address' = 'tx',
-): string {
-  const cluster =
-    SOLANA_NETWORK === 'mainnet-beta'
-      ? 'mainnet-alpha'
-      : SOLANA_NETWORK === 'devnet'
-        ? 'devnet-solana'
-        : 'testnet-solana';
-  return `https://solana.fm/${type}/${signatureOrAddress}?cluster=${cluster}`;
-}
-
 export interface CreateTokenInput {
   name: string;
   symbol: string;
