@@ -20,11 +20,30 @@ const instrument = Instrument_Serif({
   variable: '--font-display',
 });
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://solana.rootrecord.info';
+const SITE_URL_FALLBACK = 'https://solana.rootrecord.info';
+
+/** NEXT_PUBLIC_SITE_URL must be absolute for metadataBase; host-only values are normalized. */
+function metadataBaseUrl(): URL {
+  const trimmed = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!trimmed) return new URL(SITE_URL_FALLBACK);
+  try {
+    const withProto = /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    const u = new URL(withProto);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      return new URL(SITE_URL_FALLBACK);
+    }
+    return u;
+  } catch {
+    return new URL(SITE_URL_FALLBACK);
+  }
+}
+
+const SITE = metadataBaseUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: SITE,
   title: {
     default: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
     template: '%s | RootRecord Solana Tools',
@@ -45,7 +64,7 @@ export const metadata: Metadata = {
     title: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
     description:
       'Fast, cheap, on-chain SPL token creation that respects your SOL.',
-    url: SITE_URL,
+    url: SITE.href.replace(/\/$/, ''),
     siteName: 'RootRecord Solana Tools',
     type: 'website',
   },
