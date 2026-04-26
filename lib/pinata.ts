@@ -9,11 +9,26 @@ export interface PinataUploadResult {
   gatewayUrl: string;
 }
 
-const GATEWAY =
-  process.env.NEXT_PUBLIC_PINATA_GATEWAY || 'gateway.pinata.cloud';
+function pinataGatewayHost(): string {
+  const raw = (process.env.NEXT_PUBLIC_PINATA_GATEWAY || 'gateway.pinata.cloud')
+    .trim()
+    .replace(/\/$/, '');
+  if (!raw) return 'gateway.pinata.cloud';
+  try {
+    if (raw.includes('://')) {
+      const u = new URL(raw);
+      return u.hostname || 'gateway.pinata.cloud';
+    }
+    const slash = raw.indexOf('/');
+    const host = slash === -1 ? raw : raw.slice(0, slash);
+    return host || 'gateway.pinata.cloud';
+  } catch {
+    return 'gateway.pinata.cloud';
+  }
+}
 
 function gatewayUrl(cid: string): string {
-  return `https://${GATEWAY}/ipfs/${cid}`;
+  return `https://${pinataGatewayHost()}/ipfs/${cid}`;
 }
 
 let cachedConfigured: boolean | null = null;

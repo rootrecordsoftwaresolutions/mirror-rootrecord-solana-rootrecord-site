@@ -101,11 +101,10 @@ export default function CreateTokenPage() {
       let metadataUri = '';
       if (pinataReady) {
         setStage('Pinning metadata JSON…');
-        const meta = {
+        const meta: Record<string, unknown> = {
           name: values.name,
           symbol: values.symbol,
           description: values.description || '',
-          image: imageUri,
           external_url: values.website || '',
           extensions: {
             website: values.website || undefined,
@@ -113,6 +112,8 @@ export default function CreateTokenPage() {
             telegram: values.telegram || undefined,
           },
         };
+        // Empty `image` breaks explorers (e.g. "IMAGE FAILED"); omit unless we have a URL.
+        if (imageUri) meta.image = imageUri;
         const res = await uploadJsonToPinata(meta, `${values.symbol}.json`);
         metadataUri = res.gatewayUrl;
       }
