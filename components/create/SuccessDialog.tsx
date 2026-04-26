@@ -11,6 +11,7 @@ import {
   Flame,
   Twitter,
   X,
+  Rocket,
 } from 'lucide-react';
 import {
   Dialog,
@@ -180,6 +181,17 @@ export function SuccessDialog({
                 <Coins className="h-4 w-4" /> Mint additional tokens
               </span>
               <span className="text-xs text-muted-foreground">Open tool</span>
+            </Button>
+            <Button asChild variant="ghost" className="justify-between" data-testid="launch-pool-link">
+              <Link
+                href={`/launch?mint=${encodeURIComponent(payload.mint)}`}
+                onClick={onClose}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Rocket className="h-4 w-4" /> Add liquidity (Raydium)
+                </span>
+                <span className="text-xs text-muted-foreground">Launch pool</span>
+              </Link>
             </Button>
             <Button asChild variant="ghost" className="justify-between" data-testid="burn-tokens-link">
               <Link

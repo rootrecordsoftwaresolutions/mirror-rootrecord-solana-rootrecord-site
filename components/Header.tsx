@@ -8,6 +8,7 @@ import { ReferralPill } from '@/components/ReferralPill';
 
 const NAV = [
   { href: '/create', label: 'Create Token' },
+  { href: '/launch', label: 'Launch pool' },
   { href: '/tools', label: 'Tools' },
   { href: '/bulk', label: 'Bulk SOL' },
   { href: '/pricing', label: 'Pricing' },

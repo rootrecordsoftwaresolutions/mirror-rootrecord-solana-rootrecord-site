@@ -22,6 +22,7 @@ import {
   Wand2,
   Sparkles,
   Layers,
+  Rocket,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
@@ -104,6 +105,13 @@ const TOOLS: (
     t2022: true,
   },
   {
+    href: '/launch',
+    title: 'Launch Raydium pool',
+    desc: 'Create a CPMM pool for your token vs SOL and seed liquidity in one signed transaction — no detour to raydium.io.',
+    icon: Rocket,
+    tone: 'green',
+  },
+  {
     href: '/bulk',
     title: 'Bulk SOL & SPL sends',
     desc: 'Pay many wallets in a few batched transactions — native SOL or SPL tokens. RootRecord fee scales with list size.',
@@ -142,7 +150,8 @@ function ToolsInner() {
         </h1>
         <p className="mt-5 text-muted-foreground max-w-2xl">
           Standalone, on-chain actions you might run before, during, or after a
-          launch. Each one is a single signed transaction.
+          launch. Most tools are one signed transaction; bulk sends and Raydium
+          pool creation may batch or chain as required.
         </p>
       </div>
 
@@ -150,7 +159,9 @@ function ToolsInner() {
         {TOOLS.map((t, i) => {
           const isLink = 'href' in t;
           const key = isLink ? t.href : t.kind;
-          const testId = isLink ? 'tool-card-bulk' : `tool-card-${t.kind}`;
+          const testId = isLink
+            ? `tool-card-${t.href.replace(/^\//, '').replace(/\//g, '-')}`
+            : `tool-card-${t.kind}`;
           const cardClassName =
             'group h-full transition-all hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]' +
             (isLink ? '' : ' cursor-pointer');
