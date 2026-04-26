@@ -307,61 +307,6 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* RECENT TOKENS (decorative for MVP) */}
-      <section className="container py-20" id="recent">
-        <div className="grid md:grid-cols-3 gap-10 items-end mb-10">
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-              Recently launched
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl tracking-tight">
-              Tokens shipped through{' '}
-              <em className="italic text-sol-purple">RootRecord</em>.
-            </h2>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            A curated wall of tokens created with our toolkit. Verify each on-chain
-            via Solscan — same fee, same flow, same results.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { sym: 'PIXEL', name: 'Pixel Pup', supply: '1,000,000,000', delta: '2m ago' },
-            { sym: 'ZEN', name: 'Zen Mode', supply: '420,000,000', delta: '14m ago' },
-            { sym: 'NOVA', name: 'Nova Coin', supply: '21,000,000', delta: '38m ago' },
-            { sym: 'LEAF', name: 'Leaf Protocol', supply: '500,000,000', delta: '1h ago' },
-            { sym: 'SUN', name: 'Sunlit', supply: '100,000,000', delta: '2h ago' },
-            { sym: 'INK', name: 'Inkjet', supply: '69,420,000', delta: '4h ago' },
-          ].map((t) => (
-            <Card key={t.sym} data-testid={`recent-${t.sym}`}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sol-green/30 to-sol-purple/30 grid place-items-center text-sm font-bold">
-                      {t.sym.slice(0, 2)}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{t.name}</div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        ${t.sym}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge>{t.delta}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Supply</span>
-                  <span className="font-mono">{t.supply}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
       {/* FINAL CTA */}
       <section className="container py-24">
         <Card className="overflow-hidden relative">
