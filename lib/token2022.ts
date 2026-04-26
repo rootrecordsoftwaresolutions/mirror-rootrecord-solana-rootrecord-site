@@ -44,6 +44,7 @@ import {
   feeTransferIx,
   CREATE_FEE_SOL,
   ACTION_FEE_SOL,
+  resolveMintAndProgram,
 } from '@/lib/solana';
 
 /* ---------------- Types ---------------- */
@@ -86,6 +87,16 @@ export interface CreateToken2022Result {
 
 /* ---------------- Helpers ---------------- */
 
+async function assertToken2022ToolMint(mintAddress: string): Promise<PublicKey> {
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  if (!programId.equals(TOKEN_2022_PROGRAM_ID)) {
+    throw new Error(
+      'This tool only works on Token-2022 mints. Use the legacy revoke / mint / metadata tools for standard SPL tokens.',
+    );
+  }
+  return mint;
+}
+
 /** Detect which token program owns a given mint. */
 export async function getMintProgramId(
   connection: Connection,
@@ -95,7 +106,9 @@ export async function getMintProgramId(
   if (!info) throw new Error('Mint not found');
   if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
   if (info.owner.equals(TOKEN_PROGRAM_ID)) return TOKEN_PROGRAM_ID;
-  throw new Error(`Unknown owner ${info.owner.toBase58()}`);
+  throw new Error(
+    'That address is not an SPL or Token-2022 mint. Paste the mint from Solscan, not a wallet or random account.',
+  );
 }
 
 function extensionList(ext: Token2022Extensions): ExtensionType[] {
@@ -361,7 +374,7 @@ export async function withdrawWithheldFromMint(
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error('Wallet not connected');
   const connection = getConnection();
-  const mint = new PublicKey(mintAddress);
+  const mint = await assertToken2022ToolMint(mintAddress);
 
   const destOwner = destinationOwnerAddress
     ? new PublicKey(destinationOwnerAddress)
@@ -429,7 +442,7 @@ export async function harvestWithheldToMint(
     throw new Error('Provide at least one token account');
 
   const connection = getConnection();
-  const mint = new PublicKey(mintAddress);
+  const mint = await assertToken2022ToolMint(mintAddress);
   const sources = tokenAccountAddresses.map((s) => new PublicKey(s.trim()));
 
   const ixs: TransactionInstruction[] = [
@@ -468,7 +481,7 @@ export async function updateTransferFee(
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error('Wallet not connected');
   const connection = getConnection();
-  const mint = new PublicKey(mintAddress);
+  const mint = await assertToken2022ToolMint(mintAddress);
 
   const ixs: TransactionInstruction[] = [
     createSetTransferFeeInstruction(
@@ -512,8 +525,7 @@ export async function readMintInfo(
   connection: Connection,
   mintAddress: string,
 ): Promise<MintInfo2022> {
-  const mint = new PublicKey(mintAddress);
-  const programId = await getMintProgramId(connection, mint);
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const m = await getMint(connection, mint, 'confirmed', programId);
   let transferFee: MintInfo2022['transferFee'];
   if (programId.equals(TOKEN_2022_PROGRAM_ID)) {

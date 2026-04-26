@@ -288,10 +288,23 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               value={mint}
               onChange={(e) => setMint(e.target.value.trim())}
             />
-            {kind === 'mint-more' && (
+            {[
+              'mint-more',
+              'revoke-mint',
+              'revoke-freeze',
+              'update-metadata',
+              'withdraw-fees',
+              'harvest-fees',
+              'update-fee-config',
+            ].includes(kind) && (
               <p className="text-[11px] text-muted-foreground">
-                Use the <strong className="text-foreground/90">token mint</strong> address
-                (from Solscan or your launch dialog), not your wallet address.
+                Use the <strong className="text-foreground/90">mint</strong> address from
+                Solscan or your launch dialog — not your wallet.
+                {meta.t2022
+                  ? ' Must be a Token-2022 mint.'
+                  : kind === 'update-metadata'
+                    ? ' Legacy Metaplex metadata on standard SPL mints only.'
+                    : ''}
               </p>
             )}
           </div>

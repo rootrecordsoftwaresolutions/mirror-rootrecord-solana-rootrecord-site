@@ -302,6 +302,20 @@ async function detectMintProgram(mint: PublicKey): Promise<PublicKey> {
   );
 }
 
+/** Parse base58 and ensure the account is a real SPL or Token-2022 mint. */
+export async function resolveMintAndProgram(
+  mintAddress: string,
+): Promise<{ mint: PublicKey; programId: PublicKey }> {
+  let mint: PublicKey;
+  try {
+    mint = new PublicKey(mintAddress.trim());
+  } catch {
+    throw new Error('Invalid mint address — must be valid base58.');
+  }
+  const programId = await detectMintProgram(mint);
+  return { mint, programId };
+}
+
 async function sendSimpleTx(
   wallet: WalletContextState,
   ixs: TransactionInstruction[],
@@ -333,8 +347,7 @@ export async function revokeMintAuthority(
   mintAddress: string,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
-  const mint = new PublicKey(mintAddress);
-  const programId = await detectMintProgram(mint);
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const ixs: TransactionInstruction[] = [
     createSetAuthorityInstruction(
       mint,
@@ -355,8 +368,7 @@ export async function revokeFreezeAuthority(
   mintAddress: string,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
-  const mint = new PublicKey(mintAddress);
-  const programId = await detectMintProgram(mint);
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const ixs: TransactionInstruction[] = [
     createSetAuthorityInstruction(
       mint,
@@ -379,8 +391,7 @@ export async function mintMore(
   decimals: number,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
-  const mint = new PublicKey(mintAddress);
-  const programId = await detectMintProgram(mint);
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const ata = await getAssociatedTokenAddress(
     mint,
     wallet.publicKey,
@@ -430,7 +441,12 @@ export async function updateTokenMetadata(
   data: UpdateMetadataInput,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
-  const mint = new PublicKey(mintAddress);
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  if (programId.equals(TOKEN_2022_PROGRAM_ID)) {
+    throw new Error(
+      'Update metadata (legacy) only applies to standard SPL mints with Metaplex metadata. Token-2022 mints use the on-mint TokenMetadata extension.',
+    );
+  }
   const metadata = metadataPda(mint);
   const ix = createUpdateMetadataAccountV2Instruction(
     {
