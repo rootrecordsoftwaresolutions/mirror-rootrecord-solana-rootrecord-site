@@ -55,7 +55,7 @@ export function SuccessDialog({
   if (!payload) return null;
 
   const tweet = encodeURIComponent(
-    `Just launched $${payload.symbol} (${payload.name}) on Solana via @rootrecord_info — cheap, fast, no-BS token creation. Mint: ${payload.mint}`,
+    `Just launched $${payload.symbol} (${payload.name}) on Solana via @rootrecord — cheap, fast, no-BS token creation. Mint: ${payload.mint}`,
   );
   const share = `https://twitter.com/intent/tweet?text=${tweet}`;
 
