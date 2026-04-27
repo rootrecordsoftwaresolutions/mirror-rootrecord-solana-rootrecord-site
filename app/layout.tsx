@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Instrument_Serif } from 'next/font/google';
 import Script from 'next/script';
 import { Toaster } from 'sonner';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SolanaProviders } from '@/components/providers/SolanaProviders';
 import { Header } from '@/components/Header';
@@ -133,6 +134,7 @@ export default function RootLayout({
             }}
           />
         </SolanaProviders>
+        <SpeedInsights />
         <Script
           id="cloudflare-beacon"
           src="https://static.cloudflareinsights.com/beacon.min.js"
