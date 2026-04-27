@@ -40,6 +40,7 @@ import { getStoredReferrer } from '@/lib/referral';
 import { defaultExtensions, type ExtensionState } from '@/lib/schema';
 import { Token2022Section } from '@/components/create/Token2022Section';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
+import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 export default function CreateTokenPage() {
   const wallet = useWallet();
@@ -199,6 +200,20 @@ export default function CreateTokenPage() {
         symbol: values.symbol,
         usedToken2022: extensions.enabled,
       });
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.TOKEN_CREATE,
+          route: '/create',
+          signature: result.signature,
+          metadata: {
+            mint: result.mint,
+            symbol: values.symbol,
+            name: values.name,
+            token2022: extensions.enabled,
+          },
+        });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       console.error(err);
@@ -213,8 +228,17 @@ export default function CreateTokenPage() {
     if (!success) return;
     setPostBusy('mint');
     try {
-      await revokeMintAuthority(wallet, success.mint, getStoredReferrer());
+      const sig = await revokeMintAuthority(wallet, success.mint, getStoredReferrer());
       toast.success('Mint authority revoked');
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.TOKEN_REVOKE_MINT,
+          route: '/create',
+          signature: sig,
+          metadata: { mint: success.mint },
+        });
+      }
     } catch (e) {
       toast.error('Revoke failed', {
         description: e instanceof Error ? e.message : '',
@@ -227,8 +251,17 @@ export default function CreateTokenPage() {
     if (!success) return;
     setPostBusy('freeze');
     try {
-      await revokeFreezeAuthority(wallet, success.mint, getStoredReferrer());
+      const sig = await revokeFreezeAuthority(wallet, success.mint, getStoredReferrer());
       toast.success('Freeze authority revoked');
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.TOKEN_REVOKE_FREEZE,
+          route: '/create',
+          signature: sig,
+          metadata: { mint: success.mint },
+        });
+      }
     } catch (e) {
       toast.error('Revoke failed', {
         description: e instanceof Error ? e.message : '',

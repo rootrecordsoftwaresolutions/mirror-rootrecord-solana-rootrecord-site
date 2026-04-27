@@ -31,6 +31,7 @@ import {
   type LaunchQuoteKind,
 } from '@/lib/raydiumCpmmLaunch';
 import { getStoredReferrer } from '@/lib/referral';
+import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 import {
   ADD_LIQUIDITY_FEE_SOL,
   isFeeWalletConfigured,
@@ -196,6 +197,21 @@ function LiquidityPageInner() {
       setLastPoolTx(poolTxId);
       setLastPool(pid);
       toast.success('Pool created — your pair is live on Raydium CPMM');
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.LIQ_POOL_CREATE,
+          route: '/liquidity',
+          signature: poolTxId || feeTxId || undefined,
+          metadata: {
+            poolId: pid,
+            poolTxId,
+            feeTxId: feeTxId || undefined,
+            baseMint: mint.trim(),
+            quoteKind,
+          },
+        });
+      }
     } catch (e) {
       toast.error('Pool creation failed', {
         description: e instanceof Error ? e.message : String(e),
@@ -263,6 +279,19 @@ function LiquidityPageInner() {
       if (feeTxId) setLastAddFeeTx(feeTxId);
       setLastAddTx(txId);
       toast.success('Liquidity added');
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.LIQ_ADD,
+          route: '/liquidity',
+          signature: txId || feeTxId || undefined,
+          metadata: {
+            poolId: loadedPool.id,
+            feeTxId: feeTxId || undefined,
+            baseIn: addBaseIn,
+          },
+        });
+      }
     } catch (e) {
       toast.error('Add liquidity failed', {
         description: e instanceof Error ? e.message : String(e),
@@ -297,6 +326,18 @@ function LiquidityPageInner() {
       if (feeTxId) setLastRemoveFeeTx(feeTxId);
       setLastRemoveTx(txId);
       toast.success('Liquidity removed');
+      if (wallet.publicKey) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: SiteAction.LIQ_REMOVE,
+          route: '/liquidity',
+          signature: txId || feeTxId || undefined,
+          metadata: {
+            poolId: loadedPool.id,
+            feeTxId: feeTxId || undefined,
+          },
+        });
+      }
     } catch (e) {
       toast.error('Remove liquidity failed', {
         description: e instanceof Error ? e.message : String(e),

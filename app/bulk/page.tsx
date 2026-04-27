@@ -38,6 +38,7 @@ import {
 } from '@/lib/bulkSol';
 import { getStoredReferrer } from '@/lib/referral';
 import { getConnection, isFeeWalletConfigured } from '@/lib/solana';
+import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 type AssetMode = 'sol' | 'token';
 
@@ -260,6 +261,18 @@ export default function BulkSolPage() {
         toast.success(
           `${signatures.length} transaction${signatures.length > 1 ? 's' : ''} confirmed`,
         );
+        if (wallet.publicKey && signatures.length) {
+          logSolanaSiteAction({
+            wallet: wallet.publicKey.toBase58(),
+            action: SiteAction.BULK_SOL_SEND,
+            route: '/bulk',
+            signature: signatures[0],
+            metadata: {
+              txCount: signatures.length,
+              recipientRows: parsed.rows.length,
+            },
+          });
+        }
       } else {
         const need =
           platformLamports + stats.rentLamports + reserve;
@@ -281,6 +294,19 @@ export default function BulkSolPage() {
         toast.success(
           `${signatures.length} transaction${signatures.length > 1 ? 's' : ''} confirmed`,
         );
+        if (wallet.publicKey && signatures.length) {
+          logSolanaSiteAction({
+            wallet: wallet.publicKey.toBase58(),
+            action: SiteAction.BULK_TOKEN_SEND,
+            route: '/bulk',
+            signature: signatures[0],
+            metadata: {
+              txCount: signatures.length,
+              recipientRows: parsed.rows.length,
+              mint: mintInput.trim(),
+            },
+          });
+        }
       }
     } catch (e) {
       toast.error('Bulk send failed', {

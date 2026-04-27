@@ -38,6 +38,7 @@ import {
 } from '@/lib/token2022';
 import { parseSupply } from '@/lib/utils';
 import { getStoredReferrer } from '@/lib/referral';
+import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 export type ToolKind =
   | 'revoke-mint'
@@ -278,6 +279,15 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           onClick: () => window.open(explorerUrl(sig), '_blank'),
         },
       });
+      if (wallet.publicKey && sig) {
+        logSolanaSiteAction({
+          wallet: wallet.publicKey.toBase58(),
+          action: `${SiteAction.TOOL_PREFIX}${kind}`,
+          route: '/tools',
+          signature: sig,
+          metadata: { tool: kind, mint: mint.trim() },
+        });
+      }
       reset();
       onClose();
     } catch (e) {

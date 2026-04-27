@@ -3,14 +3,15 @@ import { Check, Flame, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-const ROWS = [
-  { action: 'Create SPL token + Metaplex metadata', us: '0.025 SOL', them: '0.05 – 0.10 SOL', onchain: '~0.01 SOL' },
-  { action: 'Revoke mint authority', us: '0.01 SOL', them: '0.02 – 0.05 SOL', onchain: '~0.000005 SOL' },
-  { action: 'Revoke freeze authority', us: '0.01 SOL', them: '0.02 – 0.05 SOL', onchain: '~0.000005 SOL' },
-  { action: 'Mint additional supply', us: '0.01 SOL', them: '0.02 – 0.05 SOL', onchain: '~0.000005 SOL' },
-  { action: 'Update metadata', us: '0.01 SOL', them: '0.02 – 0.10 SOL', onchain: '~0.000005 SOL' },
-];
+import {
+  CREATE_FEE_SOL,
+  ACTION_FEE_SOL,
+  LAUNCH_FEE_SOL,
+  ADD_LIQUIDITY_FEE_SOL,
+  REMOVE_LIQUIDITY_FEE_SOL,
+  RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
+} from '@/lib/solana';
+import { BULK_FEE_PER_100_SOL } from '@/lib/bulkSol';
 
 export const metadata = {
   title: 'Pricing',
@@ -18,7 +19,97 @@ export const metadata = {
     'Roughly half what every other Solana token tool charges. Pay once per action — no subscriptions.',
 };
 
+function feeSol(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0 SOL';
+  const s = n.toFixed(6).replace(/\.?0+$/, '');
+  return `${s} SOL`;
+}
+
+const POOL_SETUP_MAINNET_HINT = `~${RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL.toFixed(2)} SOL Raydium + network`;
+
+type Row = { action: string; us: string; them: string; onchain: string };
+
+function buildRows(): Row[] {
+  return [
+    {
+      action: 'Create SPL token + Metaplex metadata',
+      us: feeSol(CREATE_FEE_SOL),
+      them: '0.05 – 0.10 SOL',
+      onchain: '~0.01 SOL',
+    },
+    {
+      action: 'Revoke mint authority',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.05 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Revoke freeze authority',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.05 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Mint additional supply',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.05 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Update metadata (legacy SPL)',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.10 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Token-2022 tools (withdraw / harvest fees, update fee config)',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.08 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Burn tokens (reduce supply)',
+      us: '0 SOL',
+      them: '0.02 SOL+',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: `Create Raydium CPMM pool (RootRecord fee tx before pool)`,
+      us: feeSol(LAUNCH_FEE_SOL),
+      them: '0.05 – 0.15 SOL+',
+      onchain: POOL_SETUP_MAINNET_HINT,
+    },
+    {
+      action: 'Add liquidity to existing CPMM pool (fee tx before deposit)',
+      us: feeSol(ADD_LIQUIDITY_FEE_SOL),
+      them: '0.02 – 0.10 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: 'Remove liquidity from CPMM pool (fee tx before withdraw)',
+      us: feeSol(REMOVE_LIQUIDITY_FEE_SOL),
+      them: '0.02 – 0.10 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
+      action: `Bulk SOL or SPL sends (per 100 recipient lines, rounded up)`,
+      us: feeSol(BULK_FEE_PER_100_SOL),
+      them: 'Varies',
+      onchain: 'Network fees only',
+    },
+    {
+      action: 'Token stats dashboard (lookup / share)',
+      us: '0 SOL',
+      them: '—',
+      onchain: '—',
+    },
+  ];
+}
+
 export default function PricingPage() {
+  const ROWS = buildRows();
+  const year = new Date().getFullYear();
+
   return (
     <div className="container py-14 md:py-20">
       <div className="max-w-3xl">
@@ -44,7 +135,7 @@ export default function PricingPage() {
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-sol-green" /> Live pricing
               </CardTitle>
-              <Badge>Mainnet · January 2026</Badge>
+              <Badge>Mainnet · {year}</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -84,7 +175,7 @@ export default function PricingPage() {
           },
           {
             t: 'No upsells',
-            d: 'No premium tier for revoking authority or updating metadata. Same flat fee.',
+            d: 'No premium tier for revoking authority, liquidity, or updating metadata. Same flat fee per paid action.',
             yes: true,
           },
           {
@@ -114,6 +205,9 @@ export default function PricingPage() {
       <div className="mt-16 flex flex-wrap gap-4">
         <Button asChild size="lg">
           <Link href="/create">Create a token</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/liquidity">Liquidity</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
           <Link href="/tools">Open the toolset</Link>
