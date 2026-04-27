@@ -84,11 +84,33 @@ type OtcFinalizePayload = OtcCheckoutPayload & { checkout_tx_signature: string }
 type OtcFinalizeJson = {
   ok?: boolean;
   detail?: string;
+  /** Some hosts put errors here instead of `detail`. */
+  message?: string;
   signature?: string;
   liquidity_tx?: string | null;
   liquidity_error?: string | null;
   liquidity_notice?: string | null;
 };
+
+function parseFinalizeJson(text: string): OtcFinalizeJson | null {
+  const t = text.trim();
+  if (!t) return {};
+  try {
+    return JSON.parse(t) as OtcFinalizeJson;
+  } catch {
+    return null;
+  }
+}
+
+function finalizeErrorUserMessage(status: number, finJson: OtcFinalizeJson): string {
+  const raw =
+    finJson.detail ??
+    (typeof finJson.message === 'string' ? finJson.message : undefined);
+  if (status === 404 || raw === 'Not Found') {
+    return 'Finalize step is not deployed (404). Ship the latest build with /api/ecosystem/finalize-otc-checkout, then tap Retry finalize.';
+  }
+  return raw || `Finalize failed (${status})`;
+}
 
 type PrepareCheckoutJson = {
   ok?: boolean;
@@ -105,6 +127,8 @@ const TELEMETRY_UNAVAILABLE =
 export default function EcosystemPage() {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const [treasuryAddr, setTreasuryAddr] = useState<string | null>(null);
+  /** SPL UI string from server (same mint as OTC output). */
+  const [treasuryRootrUi, setTreasuryRootrUi] = useState<string | null>(null);
   const [retryFinalizeBody, setRetryFinalizeBody] = useState<OtcFinalizePayload | null>(null);
   const [actionHint, setActionHint] = useState<string | null>(null);
   const [fulfillLoading, setFulfillLoading] = useState(false);
@@ -161,6 +185,31 @@ export default function EcosystemPage() {
     }
   }, []);
 
+  const loadTreasuryInfo = useCallback(async () => {
+    try {
+      const r = await fetch('/api/ecosystem/otc-treasury');
+      const j = (await r.json()) as {
+        ok?: boolean;
+        treasury?: string;
+        rootr_balance_ui?: string | null;
+      };
+      if (j.ok && j.treasury) {
+        setTreasuryAddr(j.treasury);
+        setTreasuryRootrUi(
+          typeof j.rootr_balance_ui === 'string' && j.rootr_balance_ui.trim()
+            ? j.rootr_balance_ui.trim()
+            : null,
+        );
+      } else {
+        setTreasuryAddr(null);
+        setTreasuryRootrUi(null);
+      }
+    } catch {
+      setTreasuryAddr(null);
+      setTreasuryRootrUi(null);
+    }
+  }, []);
+
   const refreshPrices = useCallback(async () => {
     try {
       const r = await fetch('/api/ecosystem/jup-prices');
@@ -176,7 +225,8 @@ export default function EcosystemPage() {
     } catch {
       /* ignore */
     }
-  }, []);
+    void loadTreasuryInfo();
+  }, [loadTreasuryInfo]);
 
   useEffect(() => {
     void loadFeeds();
@@ -196,17 +246,10 @@ export default function EcosystemPage() {
   }, []);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const r = await fetch('/api/ecosystem/otc-treasury');
-        const j = (await r.json()) as { ok?: boolean; treasury?: string };
-        if (j.ok && j.treasury) setTreasuryAddr(j.treasury);
-        else setTreasuryAddr(null);
-      } catch {
-        setTreasuryAddr(null);
-      }
-    })();
-  }, []);
+    void loadTreasuryInfo();
+    const t = setInterval(() => void loadTreasuryInfo(), 25_000);
+    return () => clearInterval(t);
+  }, [loadTreasuryInfo]);
 
   const quoteDeadline = priceFetchedAt != null ? priceFetchedAt + QUOTE_TTL_MS : null;
   const secondsLeft =
@@ -377,9 +420,19 @@ export default function EcosystemPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalizeBody),
       });
-      const finJson = (await finRes.json()) as OtcFinalizeJson;
+      const finText = await finRes.text();
+      const finJson = parseFinalizeJson(finText);
+      if (finJson === null) {
+        setFulfillMsg(
+          finRes.status === 404
+            ? finalizeErrorUserMessage(404, {})
+            : 'Invalid response from finalize endpoint.',
+        );
+        setRetryFinalizeBody(finalizeBody);
+        return;
+      }
       if (!finRes.ok || !finJson.ok) {
-        setFulfillMsg(finJson.detail || `Finalize failed (${finRes.status})`);
+        setFulfillMsg(finalizeErrorUserMessage(finRes.status, finJson));
         setRetryFinalizeBody(finalizeBody);
         return;
       }
@@ -436,9 +489,18 @@ export default function EcosystemPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(retryFinalizeBody),
       });
-      const finJson = (await finRes.json()) as OtcFinalizeJson;
+      const finText = await finRes.text();
+      const finJson = parseFinalizeJson(finText);
+      if (finJson === null) {
+        setFulfillMsg(
+          finRes.status === 404
+            ? finalizeErrorUserMessage(404, {})
+            : 'Invalid response from finalize endpoint.',
+        );
+        return;
+      }
       if (!finRes.ok || !finJson.ok) {
-        setFulfillMsg(finJson.detail || `Finalize failed (${finRes.status})`);
+        setFulfillMsg(finalizeErrorUserMessage(finRes.status, finJson));
         return;
       }
       setLastOutSig(finJson.signature ?? null);
@@ -528,20 +590,34 @@ export default function EcosystemPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label>Deposit address (treasury)</Label>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-foreground">Treasury wallet</h3>
             {treasuryAddr ? (
-              <div className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
-                {treasuryAddr}{' '}
-                <a
-                  href={`https://solscan.io/account/${treasuryAddr}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sol-green hover:underline"
-                >
-                  Solscan
-                </a>
-              </div>
+              <>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  <span className="font-mono text-xs sm:text-sm break-all text-foreground/90">
+                    {treasuryAddr}
+                  </span>{' '}
+                  <a
+                    href={`https://solscan.io/account/${treasuryAddr}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sol-green hover:underline whitespace-nowrap"
+                  >
+                    Solscan
+                  </a>
+                </p>
+                {treasuryRootrUi != null ? (
+                  <p className="text-sm text-muted-foreground">
+                    <strong className="text-foreground font-medium">ROOTR</strong> in treasury:{' '}
+                    <span className="font-mono tabular-nums">{treasuryRootrUi}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    ROOTR balance not loaded (no token account yet or RPC error).
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">
                 OTC treasury wallet is not configured on the server yet.
@@ -556,23 +632,19 @@ export default function EcosystemPage() {
               onChange={(e) => setTokenAmount(e.target.value)}
             />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              variant={payWith === 'SOL' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPayWith('SOL')}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Label htmlFor="eco-pay-with" className="text-muted-foreground font-normal">
+              Pay with
+            </Label>
+            <select
+              id="eco-pay-with"
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+              value={payWith}
+              onChange={(e) => setPayWith(e.target.value as 'SOL' | 'USDC')}
             >
-              Pay with SOL
-            </Button>
-            <Button
-              type="button"
-              variant={payWith === 'USDC' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPayWith('USDC')}
-            >
-              Pay with USDC
-            </Button>
+              <option value="SOL">SOL</option>
+              <option value="USDC">USDC</option>
+            </select>
           </div>
           {payWith === 'USDC' && !ecosystemOtcUsdcAutoLpEnabled() ? (
             <p className="text-sm text-muted-foreground leading-relaxed rounded-md border border-border bg-ink-700/20 px-3 py-2">
@@ -677,17 +749,22 @@ export default function EcosystemPage() {
             <p className="text-sm text-destructive">{fulfillMsg}</p>
           ) : null}
           {lastOutSig ? (
-            <p className="text-sm text-muted-foreground">
-              Token transfer:{' '}
+            <div className="rounded-lg border border-emerald-500/35 bg-emerald-950/40 px-4 py-3 text-sm space-y-2">
+              <p className="font-medium text-emerald-100">Checkout confirmed</p>
+              <p className="text-muted-foreground leading-relaxed">
+                Your payment and token receipt are in one on-chain transaction. Use the link below to
+                open the transaction on Solscan and verify balance changes.
+              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction</p>
               <a
                 href={`https://solscan.io/tx/${lastOutSig}`}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-xs text-sol-green hover:underline"
+                className="inline-block font-mono text-[11px] sm:text-xs text-sol-green hover:underline break-all"
               >
-                {lastOutSig.slice(0, 16)}…
+                {lastOutSig}
               </a>
-            </p>
+            </div>
           ) : null}
           {lastLiquidityTx ? (
             <p className="text-sm text-muted-foreground">
