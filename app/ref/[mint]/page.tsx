@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TokenShareBar } from '@/components/token/TokenShareBar';
+import { HolderDistributionCharts } from '@/components/token/HolderDistributionCharts';
+import { RecentMintTransactions } from '@/components/token/RecentMintTransactions';
 import { loadTokenDashboard } from '@/lib/tokenDashboard';
 import {
   buildTokenDashboardShareUrl,
@@ -25,8 +27,8 @@ type PageProps = { params: { mint: string } };
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const res = await loadTokenDashboard(params.mint);
   const label =
-    res.ok && (res.data.symbol || res.data.name)
-      ? (res.data.symbol || res.data.name)!
+    res.ok && (res.data.name || res.data.symbol)
+      ? [res.data.name, res.data.symbol].filter(Boolean).join(' · ')
       : params.mint.slice(0, 4) + '…' + params.mint.slice(-4);
   const title = res.ok ? `${label} · Token stats` : 'Token stats';
   const desc = res.ok
@@ -49,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 function fmtUsd(n: number | null): string {
-  if (n == null || !Number.isFinite(n)) return '—';
+  if (n == null || !Number.isFinite(n)) return 'Price not available';
   if (n >= 1) return `$${n.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
   if (n >= 0.0001) return `$${n.toLocaleString(undefined, { maximumFractionDigits: 6 })}`;
   return `$${n.toExponential(2)}`;
@@ -120,7 +122,7 @@ export default async function RefTokenDashboardPage({ params }: PageProps) {
 
   const d = res.data;
   const title =
-    [d.symbol, d.name].filter(Boolean).join(' · ') || d.mint.slice(0, 8) + '…';
+    [d.name, d.symbol].filter(Boolean).join(' · ') || d.mint.slice(0, 8) + '…';
   const largest = d.topHolders[0];
 
   return (
@@ -152,29 +154,28 @@ export default async function RefTokenDashboardPage({ params }: PageProps) {
               {d.supplyUi}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            On-chain mint supply (raw: {d.supplyRaw}). Burns in wallets reduce balances but
-            only change this figure when supply is burned at the mint level.
-          </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
-              <LineChart className="h-4 w-4" /> Jupiter price
+              <LineChart className="h-4 w-4" /> Price
             </CardDescription>
-            <CardTitle className="text-2xl font-mono tabular-nums">
+            <CardTitle
+              className={`text-2xl font-mono tabular-nums ${d.priceUsd == null ? 'text-muted-foreground text-lg font-sans' : ''}`}
+            >
               {fmtUsd(d.priceUsd)}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground space-y-1">
-            <div>
-              Fully diluted (price × supply):{' '}
-              <span className="text-foreground font-mono">
-                {fmtFdv(d.priceUsd, d.supplyUi)}
-              </span>
-            </div>
-            <div>Source: Jupiter Price API v2 (best effort).</div>
+            {d.priceUsd != null && Number.isFinite(d.priceUsd) ? (
+              <div>
+                Fully diluted (price × supply):{' '}
+                <span className="text-foreground font-mono">
+                  {fmtFdv(d.priceUsd, d.supplyUi)}
+                </span>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -189,8 +190,7 @@ export default async function RefTokenDashboardPage({ params }: PageProps) {
                   {largest.uiAmount}
                 </CardTitle>
                 <CardDescription className="pt-1">
-                  {largest.percentOfSupply}% of supply · not necessarily the &quot;dev&quot;
-                  wallet
+                  {largest.percentOfSupply}% of supply
                 </CardDescription>
               </>
             ) : (
@@ -254,12 +254,34 @@ export default async function RefTokenDashboardPage({ params }: PageProps) {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-lg">Top token accounts</CardTitle>
+          <CardTitle className="text-lg">Distribution &amp; balances</CardTitle>
           <CardDescription>
-            From <code className="text-xs">getTokenLargestAccounts</code> — largest balances
-            held in SPL token accounts for this mint.
+            Estimated share of minted supply held in the largest SPL token accounts (top 10).
           </CardDescription>
         </CardHeader>
+        <CardContent className="space-y-8">
+          <HolderDistributionCharts holders={d.topHolders} />
+        </CardContent>
+      </Card>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent mint activity</CardTitle>
+            <CardDescription>
+              Latest transactions that reference this mint account (signatures on-chain).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RecentMintTransactions txs={d.recentTxs} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Top token accounts</CardTitle>
+            <CardDescription>Largest on-chain balances for this mint.</CardDescription>
+          </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
@@ -304,6 +326,7 @@ export default async function RefTokenDashboardPage({ params }: PageProps) {
           </table>
         </CardContent>
       </Card>
+      </div>
 
       <p className="mt-10 text-center text-sm text-muted-foreground">
         <Link href="/token-stats" className="text-sol-green hover:underline">

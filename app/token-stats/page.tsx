@@ -9,7 +9,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,10 +47,6 @@ export default function TokenStatsLandingPage() {
       <Card className="mt-10">
         <CardHeader>
           <CardTitle>Mint address</CardTitle>
-          <CardDescription>
-            Uses your site&apos;s configured RPC cluster (
-            <code className="text-xs">NEXT_PUBLIC_SOLANA_NETWORK</code>).
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">

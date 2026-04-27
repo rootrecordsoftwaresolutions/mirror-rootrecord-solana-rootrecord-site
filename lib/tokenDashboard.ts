@@ -1,5 +1,11 @@
 import { Metadata as MetaplexMetadata } from '@metaplex-foundation/mpl-token-metadata';
-import { getMint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import {
+  getMint,
+  getTokenMetadata,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+} from '@solana/spl-token';
+import type { Commitment, Connection } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 import { cache } from 'react';
 
@@ -11,6 +17,13 @@ export type TokenHolderRow = {
   amountRaw: string;
   uiAmount: string;
   percentOfSupply: string;
+};
+
+export type RecentMintTx = {
+  signature: string;
+  blockTime: number | null;
+  slot: number;
+  err: string | null;
 };
 
 export type TokenDashboardData = {
@@ -28,6 +41,7 @@ export type TokenDashboardData = {
   updateAuthority: string | null;
   priceUsd: number | null;
   topHolders: TokenHolderRow[];
+  recentTxs: RecentMintTx[];
 };
 
 function formatUiAmount(raw: bigint, decimals: number): string {
@@ -62,12 +76,111 @@ async function fetchJupiterPriceUsd(mint: string): Promise<number | null> {
       };
       const p = json.data?.[mint]?.price;
       const n = typeof p === 'number' ? p : parseFloat(String(p ?? ''));
-      if (Number.isFinite(n)) return n;
+      if (Number.isFinite(n) && n > 0) return n;
     } catch {
       /* try next */
     }
   }
   return null;
+}
+
+type DexPair = {
+  priceUsd?: string;
+  liquidity?: { usd?: number };
+  baseToken?: { address?: string; name?: string; symbol?: string };
+  quoteToken?: { address?: string; name?: string; symbol?: string };
+};
+
+async function fetchDexScreenerSnapshot(mint: string): Promise<{
+  priceUsd: number | null;
+  name: string | null;
+  symbol: string | null;
+}> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(mint)}`,
+      { next: { revalidate: 60 } },
+    );
+    if (!res.ok) return { priceUsd: null, name: null, symbol: null };
+    const json = (await res.json()) as { pairs?: DexPair[] };
+    const pairs = json.pairs ?? [];
+    const hit = pairs.filter(
+      (p) => p.baseToken?.address === mint || p.quoteToken?.address === mint,
+    );
+    const pool = hit.length ? hit : pairs;
+    const sorted = [...pool].sort((a, b) => {
+      const la = a.liquidity?.usd ?? 0;
+      const lb = b.liquidity?.usd ?? 0;
+      return lb - la;
+    });
+    const pick = sorted[0];
+    if (!pick) return { priceUsd: null, name: null, symbol: null };
+    const rawPx = pick.priceUsd != null ? parseFloat(String(pick.priceUsd)) : NaN;
+    const priceUsd = Number.isFinite(rawPx) && rawPx > 0 ? rawPx : null;
+    const side =
+      pick.baseToken?.address === mint
+        ? pick.baseToken
+        : pick.quoteToken?.address === mint
+          ? pick.quoteToken
+          : pick.baseToken;
+    return {
+      priceUsd,
+      name: side?.name?.trim() || null,
+      symbol: side?.symbol?.trim() || null,
+    };
+  } catch {
+    return { priceUsd: null, name: null, symbol: null };
+  }
+}
+
+async function fetchCoinGeckoPriceUsd(mint: string): Promise<number | null> {
+  try {
+    const url = `https://api.coingecko.com/api/v3/simple/token_price/solana?contract_addresses=${encodeURIComponent(mint)}&vs_currencies=usd`;
+    const res = await fetch(url, { next: { revalidate: 120 } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as Record<string, { usd?: number } | undefined>;
+    const key = Object.keys(json).find((k) => k.toLowerCase() === mint.toLowerCase());
+    const row = key ? json[key] : undefined;
+    const u = row?.usd;
+    return typeof u === 'number' && Number.isFinite(u) && u > 0 ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePriceUsd(mint: string, dexPrice: number | null): Promise<number | null> {
+  const j = await fetchJupiterPriceUsd(mint);
+  if (j != null) return j;
+  if (dexPrice != null) return dexPrice;
+  return fetchCoinGeckoPriceUsd(mint);
+}
+
+async function enrichMetadataFromOffchainJson(meta: {
+  name: string | null;
+  symbol: string | null;
+  uri: string | null;
+  updateAuthority: string | null;
+}): Promise<typeof meta> {
+  if ((meta.name && meta.symbol) || !meta.uri) return meta;
+  const u = meta.uri.trim();
+  if (!/^https?:\/\//i.test(u)) return meta;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch(u, { signal: ctrl.signal, next: { revalidate: 300 } });
+    clearTimeout(t);
+    if (!res.ok) return meta;
+    const j = (await res.json()) as Record<string, unknown>;
+    const jn = typeof j.name === 'string' ? j.name.trim() : null;
+    const js = typeof j.symbol === 'string' ? j.symbol.trim() : null;
+    return {
+      ...meta,
+      name: meta.name || (jn || null),
+      symbol: meta.symbol || (js || null),
+    };
+  } catch {
+    return meta;
+  }
 }
 
 async function readMetaplexMetadata(mint: PublicKey): Promise<{
@@ -84,14 +197,78 @@ async function readMetaplexMetadata(mint: PublicKey): Promise<{
       'confirmed',
     );
     const { name, symbol, uri } = meta.data;
+    const ua = meta.updateAuthority;
+    const uaStr =
+      ua && !ua.equals(PublicKey.default)
+        ? ua.toBase58()
+        : null;
     return {
       name: name.replace(/\0/g, '').trim() || null,
       symbol: symbol.replace(/\0/g, '').trim() || null,
       uri: uri.replace(/\0/g, '').trim() || null,
-      updateAuthority: meta.updateAuthority.toBase58(),
+      updateAuthority: uaStr,
     };
   } catch {
     return { name: null, symbol: null, uri: null, updateAuthority: null };
+  }
+}
+
+async function readToken2022MintMetadataFull(
+  connection: Connection,
+  mint: PublicKey,
+  commitment: Commitment,
+): Promise<{
+  name: string | null;
+  symbol: string | null;
+  uri: string | null;
+  updateAuthority: string | null;
+}> {
+  try {
+    const tm = await getTokenMetadata(connection, mint, commitment, TOKEN_2022_PROGRAM_ID);
+    if (!tm) return { name: null, symbol: null, uri: null, updateAuthority: null };
+    const ua =
+      tm.updateAuthority && !tm.updateAuthority.equals(PublicKey.default)
+        ? tm.updateAuthority.toBase58()
+        : null;
+    return {
+      name: tm.name?.replace(/\0/g, '').trim() || null,
+      symbol: tm.symbol?.replace(/\0/g, '').trim() || null,
+      uri: tm.uri?.replace(/\0/g, '').trim() || null,
+      updateAuthority: ua,
+    };
+  } catch {
+    return { name: null, symbol: null, uri: null, updateAuthority: null };
+  }
+}
+
+function mergeMeta(
+  a: { name: string | null; symbol: string | null; uri: string | null; updateAuthority: string | null },
+  b: { name: string | null; symbol: string | null; uri: string | null },
+  t202Ua: string | null,
+): typeof a {
+  return {
+    name: a.name || b.name,
+    symbol: a.symbol || b.symbol,
+    uri: a.uri || b.uri,
+    updateAuthority: a.updateAuthority || t202Ua,
+  };
+}
+
+async function fetchRecentMintSignatures(
+  connection: Connection,
+  mint: PublicKey,
+  limit = 20,
+): Promise<RecentMintTx[]> {
+  try {
+    const sigs = await connection.getSignaturesForAddress(mint, { limit });
+    return sigs.map((s) => ({
+      signature: s.signature,
+      blockTime: s.blockTime ?? null,
+      slot: s.slot,
+      err: s.err ? JSON.stringify(s.err) : null,
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -132,14 +309,32 @@ async function loadTokenDashboardUncached(
 
   const supply = mintData.supply;
   const decimals = mintData.decimals;
-  const meta = await readMetaplexMetadata(mint);
 
-  const [priceUsd, largestRes] = await Promise.all([
-    fetchJupiterPriceUsd(mint.toBase58()),
+  const metaplex = await readMetaplexMetadata(mint);
+  const t202 = is2022 ? await readToken2022MintMetadataFull(connection, mint, 'confirmed') : null;
+  let merged = mergeMeta(
+    metaplex,
+    {
+      name: t202?.name ?? null,
+      symbol: t202?.symbol ?? null,
+      uri: t202?.uri ?? null,
+    },
+    t202?.updateAuthority ?? null,
+  );
+  merged = await enrichMetadataFromOffchainJson(merged);
+
+  const [dexSnap, largestRes, recentTxs] = await Promise.all([
+    fetchDexScreenerSnapshot(mint.toBase58()),
     connection.getTokenLargestAccounts(mint, 'confirmed'),
+    fetchRecentMintSignatures(connection, mint, 20),
   ]);
 
-  const top = largestRes.value.slice(0, 12);
+  const priceUsd = await resolvePriceUsd(mint.toBase58(), dexSnap.priceUsd);
+
+  if (!merged.name && dexSnap.name) merged = { ...merged, name: dexSnap.name };
+  if (!merged.symbol && dexSnap.symbol) merged = { ...merged, symbol: dexSnap.symbol };
+
+  const top = largestRes.value.slice(0, 10);
   const topHolders: TokenHolderRow[] = top.map((row) => {
     const raw = BigInt(row.amount);
     return {
@@ -162,12 +357,13 @@ async function loadTokenDashboardUncached(
       freezeAuthority: mintData.freezeAuthority
         ? mintData.freezeAuthority.toBase58()
         : null,
-      name: meta.name,
-      symbol: meta.symbol,
-      metadataUri: meta.uri,
-      updateAuthority: meta.updateAuthority,
+      name: merged.name,
+      symbol: merged.symbol,
+      metadataUri: merged.uri,
+      updateAuthority: merged.updateAuthority,
       priceUsd,
       topHolders,
+      recentTxs,
     },
   };
 }
