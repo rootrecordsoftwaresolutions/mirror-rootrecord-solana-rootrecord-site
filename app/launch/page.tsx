@@ -134,14 +134,15 @@ function LaunchPageInner() {
       {!isDevnet && LAUNCH_FEE_SOL > 0 && (
         <p className="mt-4 text-sm text-muted-foreground leading-relaxed rounded-lg border border-border bg-ink-700/25 px-4 py-3">
           <strong className="text-foreground">Mainnet fixed charges (before your liquidity):</strong>{' '}
-          Raydium’s pool-creation fee is about{' '}
-          <strong className="text-foreground">{RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL</strong>{' '}
-          (same on-chain cost as creating the pool on raydium.io). RootRecord adds a{' '}
-          <strong className="text-foreground">{LAUNCH_FEE_SOL} SOL</strong> service charge for
-          this tool — so you’re looking at roughly{' '}
+          Raydium’s on-chain pool-creation total is about{' '}
+          <strong className="text-foreground">{RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL</strong>
+          —the same overall amount you would pay on raydium.io for that transaction. This
+          launcher adds a{' '}
+          <strong className="text-foreground">{LAUNCH_FEE_SOL} SOL</strong> RootRecord service
+          fee, so plan on roughly{' '}
           <strong className="text-foreground">{mainnetFixedTotal?.toFixed(2)} SOL</strong> in
-          protocol + service fees, plus tiny Solana network fees and whatever liquidity you
-          deposit.
+          fixed fees before your liquidity, plus small Solana network fees and the liquidity
+          you deposit.
         </p>
       )}
 
@@ -187,8 +188,9 @@ function LaunchPageInner() {
                 {!isDevnet && mainnetFixedTotal != null ? (
                   <>
                     {' '}
-                    On mainnet, Raydium’s pool-creation fee (~
-                    {RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL) plus this charge is about{' '}
+                    On mainnet, Raydium’s pool-creation total (~
+                    {RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL, same as raydium.io) plus this
+                    fee is about{' '}
                     <strong className="text-foreground">
                       {mainnetFixedTotal.toFixed(2)} SOL
                     </strong>{' '}

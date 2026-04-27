@@ -31,7 +31,7 @@ import {
   RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
 } from '@/lib/solana';
 
-const LAUNCH_POOL_CARD_DESC = `Create a CPMM pool vs SOL, USDC, or another mint from here — same ~${RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL Raydium pool fee as on raydium.io, plus a ${LAUNCH_FEE_SOL} SOL RootRecord service charge (~${(RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL).toFixed(2)} SOL fixed before liquidity).`;
+const LAUNCH_POOL_CARD_DESC = `Create a CPMM pool vs SOL, USDC, or another mint from here — Raydium’s ~${RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL on-chain total matches raydium.io; this launcher adds ${LAUNCH_FEE_SOL} SOL (~${(RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL).toFixed(2)} SOL fixed before liquidity).`;
 
 const TOOLS: (
   | {
