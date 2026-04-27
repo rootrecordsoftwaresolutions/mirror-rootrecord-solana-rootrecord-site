@@ -183,8 +183,7 @@ function LaunchPageInner() {
                 Service charge:{' '}
                 <strong className="text-foreground">
                   {LAUNCH_FEE_SOL > 0 ? `${LAUNCH_FEE_SOL} SOL` : 'none'}
-                </strong>{' '}
-                (when fee wallet is configured).
+                </strong>.
                 {!isDevnet && mainnetFixedTotal != null ? (
                   <>
                     {' '}
@@ -228,7 +227,7 @@ function LaunchPageInner() {
                 setQuoteKind(e.target.value as LaunchQuoteKind)
               }
             >
-              <option value="wsol">SOL (wrapped)</option>
+              <option value="wsol">SOL</option>
               <option value="usdc">USDC</option>
               <option value="custom">Other token (mint)</option>
             </select>
