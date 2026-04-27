@@ -128,7 +128,7 @@ export function SuccessDialog({
           data-testid="bring-to-market-btn"
         >
           <Link
-            href={`/launch?mint=${encodeURIComponent(payload.mint)}`}
+            href={`/liquidity?mint=${encodeURIComponent(payload.mint)}`}
             onClick={onClose}
           >
             <Rocket className="h-4 w-4" />

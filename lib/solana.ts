@@ -86,6 +86,12 @@ export const LAUNCH_FEE_SOL = parseFeeSol(
   0.05,
 );
 
+/** RootRecord service charge for adding liquidity to an existing CPMM pool (first tx, before Raydium deposit). */
+export const ADD_LIQUIDITY_FEE_SOL = parseFeeSol(
+  process.env.NEXT_PUBLIC_ADD_LIQUIDITY_FEE_SOL,
+  0.005,
+);
+
 /** Raydium mainnet CPMM pool-creation fee (SOL); informational — from Raydium public `createPoolFee`. */
 export const RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL = 0.15;
 

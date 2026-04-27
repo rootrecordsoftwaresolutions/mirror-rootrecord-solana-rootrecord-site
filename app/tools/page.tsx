@@ -31,7 +31,7 @@ import {
   RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
 } from '@/lib/solana';
 
-const LAUNCH_POOL_CARD_DESC = `Create a CPMM pool vs SOL, USDC, or another mint. Mainnet: ~${(RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL).toFixed(2)} SOL setup + liquidity (same as Raydium).`;
+const LAUNCH_POOL_CARD_DESC = `Create a CPMM pool or add liquidity to an existing one. Mainnet new pool: ~${(RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL).toFixed(2)} SOL setup + liquidity (same as Raydium).`;
 
 const TOOLS: (
   | {
@@ -111,8 +111,8 @@ const TOOLS: (
     t2022: true,
   },
   {
-    href: '/launch',
-    title: 'Launch Raydium pool',
+    href: '/liquidity',
+    title: 'Liquidity (Raydium CPMM)',
     desc: LAUNCH_POOL_CARD_DESC,
     icon: Rocket,
     tone: 'green',
@@ -157,7 +157,7 @@ function ToolsInner() {
         <p className="mt-5 text-muted-foreground max-w-2xl">
           Standalone, on-chain actions you might run before, during, or after a
           launch. Most tools are one signed transaction; bulk sends and Raydium
-          pool creation may batch or chain as required.
+          liquidity flows may batch or chain as required.
         </p>
       </div>
 

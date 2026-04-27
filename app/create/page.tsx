@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { FundingWarning } from '@/components/FundingWarning';
 import { ImageDropzone } from '@/components/create/ImageDropzone';
 import { SuccessDialog, type SuccessPayload } from '@/components/create/SuccessDialog';
 
@@ -443,6 +444,8 @@ export default function CreateTokenPage() {
                     </div>
                   )}
                 </div>
+
+                <FundingWarning />
               </form>
             </CardContent>
           </Card>

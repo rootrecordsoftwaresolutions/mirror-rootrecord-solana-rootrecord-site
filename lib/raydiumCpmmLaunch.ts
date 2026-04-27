@@ -3,15 +3,19 @@ import {
   CREATE_CPMM_POOL_FEE_ACC,
   CREATE_CPMM_POOL_PROGRAM,
   DEVNET_PROGRAM_ID,
+  Percent,
   Raydium,
   TxVersion,
   getCpmmPdaAmmConfigId,
+  type ApiV3PoolInfoItem,
+  type ApiV3PoolInfoStandardItemCpmm,
 } from '@raydium-io/raydium-sdk-v2';
 import { getMint, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import type {
-  Transaction,
-  TransactionInstruction,
-  VersionedTransaction,
+import {
+  PublicKey,
+  type Transaction,
+  type TransactionInstruction,
+  type VersionedTransaction,
 } from '@solana/web3.js';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 
@@ -25,6 +29,7 @@ import {
   feeTransferIx,
   sendSimpleTx,
   confirmSignatureSucceeded,
+  ADD_LIQUIDITY_FEE_SOL,
   LAUNCH_FEE_SOL,
 } from '@/lib/solana';
 
@@ -45,6 +50,17 @@ export type LaunchQuoteKind = 'wsol' | 'usdc' | 'custom';
 
 function toRaydiumCluster(): 'mainnet' | 'devnet' {
   return SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet';
+}
+
+const CPMM_PROGRAM_IDS = new Set([
+  CREATE_CPMM_POOL_PROGRAM.toBase58(),
+  DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM.toBase58(),
+]);
+
+function isCpmmPoolItem(
+  pool: ApiV3PoolInfoItem,
+): pool is ApiV3PoolInfoStandardItemCpmm {
+  return CPMM_PROGRAM_IDS.has(pool.programId);
 }
 
 function wrapSignAllTransactions(wallet: WalletContextState) {
@@ -124,12 +140,13 @@ function orderCpmmPair(
   throw new Error('Cannot create a pool between a mint and itself');
 }
 
-async function sendLaunchPlatformFee(
+async function sendPlatformFeeSol(
   wallet: WalletContextState,
+  amountSol: number,
   referrer: string | null | undefined,
 ): Promise<string | null> {
-  if (!wallet.publicKey || LAUNCH_FEE_SOL <= 0) return null;
-  const feeIx = feeTransferIx(wallet.publicKey, LAUNCH_FEE_SOL);
+  if (!wallet.publicKey || amountSol <= 0) return null;
+  const feeIx = feeTransferIx(wallet.publicKey, amountSol);
   const ixs: TransactionInstruction[] = [];
   if (feeIx) ixs.push(feeIx);
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrer ?? null);
@@ -137,10 +154,120 @@ async function sendLaunchPlatformFee(
   return sendSimpleTx(wallet, ixs);
 }
 
+async function sendLaunchPlatformFee(
+  wallet: WalletContextState,
+  referrer: string | null | undefined,
+): Promise<string | null> {
+  return sendPlatformFeeSol(wallet, LAUNCH_FEE_SOL, referrer);
+}
+
+async function sendAddLiquidityPlatformFee(
+  wallet: WalletContextState,
+  referrer: string | null | undefined,
+): Promise<string | null> {
+  return sendPlatformFeeSol(wallet, ADD_LIQUIDITY_FEE_SOL, referrer);
+}
+
 /**
  * Create a Raydium CPMM pool: your base mint vs SOL, USDC, or another SPL / Token-2022 mint.
  * Optionally sends a prior legacy tx for the RootRecord launch fee + referral memo.
  */
+async function loadRaydiumForOwner(wallet: WalletContextState) {
+  if (!wallet.publicKey) {
+    throw new Error('Connect your wallet first');
+  }
+  const signAll = wrapSignAllTransactions(wallet);
+  if (!signAll) {
+    throw new Error('Wallet must support signing transactions');
+  }
+  const connection = getConnection();
+  const cluster = toRaydiumCluster();
+  const raydium = await Raydium.load({
+    connection,
+    cluster,
+    owner: wallet.publicKey,
+    signAllTransactions: signAll,
+    disableLoadToken: true,
+  });
+  return { raydium, connection, cluster, signAll };
+}
+
+/** Resolve a Raydium CPMM pool from the public API (pool id = pool state address). */
+export async function fetchCpmmPoolById(
+  wallet: WalletContextState,
+  poolId: string,
+): Promise<ApiV3PoolInfoStandardItemCpmm> {
+  const { raydium } = await loadRaydiumForOwner(wallet);
+  const trimmed = poolId.trim();
+  if (!trimmed) throw new Error('Enter a pool address');
+  try {
+    new PublicKey(trimmed);
+  } catch {
+    throw new Error('Invalid pool address');
+  }
+  const list = await raydium.api.fetchPoolById({ ids: trimmed });
+  const pool = list.find(isCpmmPoolItem);
+  if (!pool) {
+    throw new Error(
+      'Pool not found or not a Raydium CPMM pool on this cluster — check the address and network.',
+    );
+  }
+  return pool;
+}
+
+/** Add liquidity to an existing Raydium CPMM pool (same program as “create pool”). */
+export async function addCpmmLiquidity(
+  wallet: WalletContextState,
+  params: {
+    poolId: string;
+    /** Human amount for the side indicated by baseIn */
+    amountHuman: string;
+    /** true = amount is mint A, false = mint B (Raydium lexicographic order) */
+    baseIn: boolean;
+    /** Slippage in basis points (default 50 = 0.5%) */
+    slippageBps?: number;
+    referrer?: string | null;
+  },
+): Promise<{ feeTxId: string | null; txId: string }> {
+  const feeTxId = await sendAddLiquidityPlatformFee(wallet, params.referrer);
+
+  const { raydium } = await loadRaydiumForOwner(wallet);
+  const trimmed = params.poolId.trim();
+  if (!trimmed) throw new Error('Enter a pool address');
+  try {
+    new PublicKey(trimmed);
+  } catch {
+    throw new Error('Invalid pool address');
+  }
+  const list = await raydium.api.fetchPoolById({ ids: trimmed });
+  const poolInfo = list.find(isCpmmPoolItem);
+  if (!poolInfo) {
+    throw new Error(
+      'Pool not found or not a Raydium CPMM pool on this cluster — check the address and network.',
+    );
+  }
+  const dec = poolInfo[params.baseIn ? 'mintA' : 'mintB'].decimals;
+  const raw = decimalStringToRawAmount(params.amountHuman.trim(), dec);
+  const inputAmount = new BN(raw.toString());
+  if (inputAmount.lte(new BN(0))) {
+    throw new Error('Enter a positive amount');
+  }
+  const bps = params.slippageBps ?? 50;
+  const slippage = new Percent(new BN(bps), new BN(10_000));
+
+  const { execute } = await raydium.cpmm.addLiquidity({
+    poolInfo,
+    inputAmount,
+    baseIn: params.baseIn,
+    slippage,
+    txVersion: TxVersion.V0,
+  });
+  const { txId } = await execute({ sendAndConfirm: true });
+  if (!txId) throw new Error('Add-liquidity transaction was not submitted');
+  await confirmSignatureSucceeded(txId, 'confirmed');
+  return { feeTxId, txId };
+}
+
 export async function createCpmmPoolWithQuote(
   wallet: WalletContextState,
   params: {
@@ -154,26 +281,9 @@ export async function createCpmmPoolWithQuote(
     referrer?: string | null;
   },
 ): Promise<{ feeTxId: string | null; poolTxId: string; poolId: string }> {
-  if (!wallet.publicKey) {
-    throw new Error('Connect your wallet first');
-  }
-  const signAll = wrapSignAllTransactions(wallet);
-  if (!signAll) {
-    throw new Error('Wallet must support signing transactions');
-  }
-
   const feeTxId = await sendLaunchPlatformFee(wallet, params.referrer);
 
-  const connection = getConnection();
-  const cluster = toRaydiumCluster();
-
-  const raydium = await Raydium.load({
-    connection,
-    cluster,
-    owner: wallet.publicKey,
-    signAllTransactions: signAll,
-    disableLoadToken: true,
-  });
+  const { raydium, connection, cluster } = await loadRaydiumForOwner(wallet);
 
   const base = await mintToCpmmPick(params.baseMint.trim());
   const quote = await quotePickForKind(params.quoteKind, params.quoteMint);

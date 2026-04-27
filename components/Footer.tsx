@@ -35,8 +35,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/launch" className="hover:text-sol-green">
-                  Launch pool
+                <Link href="/liquidity" className="hover:text-sol-green">
+                  Liquidity
                 </Link>
               </li>
               <li>
