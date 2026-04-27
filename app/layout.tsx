@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Instrument_Serif } from 'next/font/google';
 import Script from 'next/script';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { SolanaProviders } from '@/components/providers/SolanaProviders';
 import { Header } from '@/components/Header';
@@ -139,6 +140,7 @@ export default function RootLayout({
           strategy="afterInteractive"
           data-cf-beacon={JSON.stringify({ token: CF_WEB_ANALYTICS_TOKEN })}
         />
+        <Analytics />
       </body>
     </html>
   );
