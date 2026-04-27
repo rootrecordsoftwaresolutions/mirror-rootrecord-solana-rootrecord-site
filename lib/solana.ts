@@ -364,7 +364,43 @@ export async function sendSimpleTx(
     { signature, blockhash, lastValidBlockHeight },
     'confirmed',
   );
+  await assertSignatureNoProgramError(connection, signature);
   return signature;
+}
+
+/**
+ * After `sendTransaction`, wait for RPC confirmation and throw if the cluster
+ * reports an on-chain error. Raydium SDK V0 + wallet often skips this step.
+ */
+export async function confirmSignatureSucceeded(
+  signature: string,
+  commitment: 'confirmed' | 'finalized' = 'confirmed',
+): Promise<void> {
+  const connection = getConnection();
+  await connection.confirmTransaction(signature, commitment);
+  await assertSignatureNoProgramError(connection, signature);
+}
+
+async function assertSignatureNoProgramError(
+  connection: Connection,
+  signature: string,
+): Promise<void> {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const { value } = await connection.getSignatureStatuses([signature], {
+      searchTransactionHistory: true,
+    });
+    const st = value[0];
+    if (st?.err) {
+      throw new Error(
+        `Transaction failed on-chain: ${JSON.stringify(st.err)} — signature ${signature}`,
+      );
+    }
+    if (st) return;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(
+    `Could not verify transaction status for signature ${signature}`,
+  );
 }
 
 export async function revokeMintAuthority(

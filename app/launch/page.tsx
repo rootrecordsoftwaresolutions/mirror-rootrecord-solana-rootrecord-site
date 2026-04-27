@@ -110,10 +110,9 @@ function LaunchPageInner() {
   };
 
   const isDevnet = SOLANA_NETWORK === 'devnet';
-  const mainnetFixedTotal =
-    !isDevnet && LAUNCH_FEE_SOL > 0
-      ? RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL
-      : null;
+  /** Raydium pool-creation fixed cost + optional RootRecord launcher fee (mainnet, SOL). */
+  const mainnetSetupFixedSol =
+    RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL;
 
   return (
     <div className="container py-14 md:py-20 max-w-2xl">
@@ -131,18 +130,13 @@ function LaunchPageInner() {
         transaction.
       </p>
 
-      {!isDevnet && LAUNCH_FEE_SOL > 0 && (
+      {!isDevnet && (
         <p className="mt-4 text-sm text-muted-foreground leading-relaxed rounded-lg border border-border bg-ink-700/25 px-4 py-3">
-          <strong className="text-foreground">Mainnet fixed charges (before your liquidity):</strong>{' '}
-          Raydium’s on-chain pool-creation total is about{' '}
-          <strong className="text-foreground">{RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL</strong>
-          —the same overall amount you would pay on raydium.io for that transaction. This
-          launcher adds a{' '}
-          <strong className="text-foreground">{LAUNCH_FEE_SOL} SOL</strong> RootRecord service
-          fee, so plan on roughly{' '}
-          <strong className="text-foreground">{mainnetFixedTotal?.toFixed(2)} SOL</strong> in
-          fixed fees before your liquidity, plus small Solana network fees and the liquidity
-          you deposit.
+          <strong className="text-foreground">Mainnet:</strong> Total setup is about{' '}
+          <strong className="text-foreground">
+            {mainnetSetupFixedSol.toFixed(2)} SOL
+          </strong>{' '}
+          plus the liquidity you deposit (same as Raydium). Small Solana network fees apply.
         </p>
       )}
 
@@ -150,9 +144,8 @@ function LaunchPageInner() {
         <Info className="h-4 w-4 mt-0.5 shrink-0 text-sol-purple" />
         <div className="space-y-2">
           <p>
-            You must already hold both sides in your wallet (ATAs). SOL can be spent from
-            your native balance for the WSOL leg. Raydium charges an on-chain pool-creation
-            fee; you also pay Solana network fees.
+            You must already hold both sides in your wallet (ATAs). For SOL, you can use
+            your native balance; small Solana network fees apply on each signed transaction.
           </p>
           <p>
             This flow is for{' '}
@@ -181,24 +174,11 @@ function LaunchPageInner() {
                 New CPMM pool
               </CardTitle>
               <CardDescription className="mt-2">
-                Service charge:{' '}
-                <strong className="text-foreground">
-                  {LAUNCH_FEE_SOL > 0 ? `${LAUNCH_FEE_SOL} SOL` : 'none'}
-                </strong>.
-                {!isDevnet && mainnetFixedTotal != null ? (
+                {isDevnet ? (
                   <>
-                    {' '}
-                    On mainnet, Raydium’s pool-creation total (~
-                    {RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL, same as raydium.io) plus this
-                    fee is about{' '}
-                    <strong className="text-foreground">
-                      {mainnetFixedTotal.toFixed(2)} SOL
-                    </strong>{' '}
-                    before your liquidity.
+                    Devnet Raydium fees differ; check your simulate result before signing.{' '}
                   </>
-                ) : isDevnet ? (
-                  <> Devnet Raydium fees differ; check your simulate result before signing.</>
-                ) : null}{' '}
+                ) : null}
                 Mint order for the pool is handled automatically.
               </CardDescription>
             </div>
@@ -277,7 +257,7 @@ function LaunchPageInner() {
               disabled={busy}
               onClick={onLaunch}
             >
-              {busy ? 'Signing…' : 'Pay fee (if any) & create pool'}
+              {busy ? 'Signing…' : 'Create Pool'}
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href="/create">Create token</Link>

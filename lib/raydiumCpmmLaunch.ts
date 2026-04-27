@@ -24,6 +24,7 @@ import {
   explorerUrl,
   feeTransferIx,
   sendSimpleTx,
+  confirmSignatureSucceeded,
   LAUNCH_FEE_SOL,
 } from '@/lib/solana';
 
@@ -239,6 +240,12 @@ export async function createCpmmPoolWithQuote(
   });
 
   const { txId: poolTxId } = await execute({ sendAndConfirm: true });
+  if (!poolTxId) {
+    throw new Error('Pool transaction was not submitted');
+  }
+  // Raydium SDK V0 + wallet: `execute` sends but does not wait or surface errors.
+  await confirmSignatureSucceeded(poolTxId, 'confirmed');
+
   return {
     feeTxId,
     poolTxId,
