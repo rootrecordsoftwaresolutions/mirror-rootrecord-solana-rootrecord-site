@@ -56,6 +56,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/ecosystem" className="hover:text-sol-green">
+                  Purpose
+                </Link>
+              </li>
+              <li>
                 <Link href="/bulk" className="hover:text-sol-green">
                   Bulk SOL
                 </Link>

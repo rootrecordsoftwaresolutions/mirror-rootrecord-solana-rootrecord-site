@@ -575,29 +575,26 @@ export default function EcosystemPage() {
     <div className="container py-14 md:py-20 max-w-4xl space-y-10">
       <div>
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-          Program (unlisted)
+          Interactive whitepaper
         </div>
-        <h1 className="font-display text-4xl md:text-5xl tracking-tight">
-          RootRecord (ROOTR) — ecosystem &amp; OTC
-        </h1>
+        <h1 className="font-display text-4xl md:text-5xl tracking-tight">Purpose</h1>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          One-page overview: how the token is meant to work, where fees go, and the in-house
-          treasury checkout below. Not linked in the main nav while we iterate.
+          ROOTR on Solana: why the token exists, how fees and treasury liquidity fit together, and a
+          live treasury OTC checkout on the same page—read first, then act on-chain.
         </p>
       </div>
 
       <Card id="tokenomics" className="scroll-mt-24">
         <CardHeader>
-          <CardTitle className="text-xl md:text-2xl">RootRecord (ROOTR) — tokenomics</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">ROOTR — tokenomics &amp; mechanics</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            From the developer: how fees, treasury, the Raydium pool, and OTC fit together. This is
-            descriptive only — <strong className="text-foreground">not financial advice</strong>. Do
-            your own research.
+            From the developer: economics, wallets, pool, and OTC. Descriptive only —{' '}
+            <strong className="text-foreground">not financial advice</strong>. Do your own research.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-8 leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-base font-semibold text-foreground">Purpose</h2>
+            <h2 className="text-base font-semibold text-foreground">Why ROOTR</h2>
             <p>
               ROOTR is meant to stand for <strong className="text-foreground">growth</strong> and
               to build value for customers and holders—not a memecoin, but a{' '}

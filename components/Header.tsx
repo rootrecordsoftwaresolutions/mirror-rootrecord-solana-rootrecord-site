@@ -13,6 +13,7 @@ const NAV = [
   { href: '/tools', label: 'Tools' },
   { href: '/contracts', label: 'Contracts' },
   { href: '/token-stats', label: 'Token Stats' },
+  { href: '/ecosystem', label: 'Purpose' },
   { href: '/bulk', label: 'Bulk SOL' },
   { href: '/my-actions', label: 'My Actions' },
   { href: '/pricing', label: 'Pricing' },
@@ -49,7 +50,8 @@ export function Header() {
           {nav.map((n) => {
             const active =
               pathname === n.href ||
-              (n.href === '/token-stats' && pathname.startsWith('/ref/'));
+              (n.href === '/token-stats' && pathname.startsWith('/ref/')) ||
+              (n.href === '/ecosystem' && pathname.startsWith('/ecosystem'));
             return (
               <Link
                 key={n.href}

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Liquidity & ecosystem program | RootRecord Solana',
+  title: 'Purpose — ROOTR interactive whitepaper | RootRecord Solana',
   description:
-    'How RootRecord uses tooling fees and automated pool mirroring to deepen liquidity and keep OTC reference pricing transparent.',
-  robots: { index: false, follow: false },
+    'ROOTR token purpose, fee and treasury mechanics, Solana pool context, and live treasury OTC checkout in one page.',
+  robots: { index: true, follow: true },
 };
 
 export default function EcosystemLayout({ children }: { children: React.ReactNode }) {
