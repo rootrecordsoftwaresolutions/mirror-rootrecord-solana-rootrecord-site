@@ -972,11 +972,8 @@ export default function EcosystemPage() {
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-lg">OTC checkout history</CardTitle>
-            <CardDescription>
-              Each row: quote deposited to treasury, ROOTR withdrawn to the buyer, checkout and LP tx
-              links. Data from Worker D1 after finalize.
-            </CardDescription>
+            <CardTitle className="text-lg">Treasury Checkout History</CardTitle>
+            <CardDescription>A log of all direct transfers.</CardDescription>
           </div>
           <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void loadOtcHistory()}>
             Refresh history
