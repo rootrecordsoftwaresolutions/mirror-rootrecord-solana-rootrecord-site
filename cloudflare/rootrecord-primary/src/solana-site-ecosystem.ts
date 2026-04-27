@@ -193,3 +193,125 @@ export async function handleEcosystemReinvestPending(
     return json({ ok: false, detail: msg }, 500);
   }
 }
+
+/** POST /api/solana-site/ecosystem-otc-reserve — Bearer; insert lock before treasury transfer. */
+export async function handleEcosystemOtcReserve(
+  request: Request,
+  env: SolanaSiteEcosystemEnv,
+): Promise<Response> {
+  const deny = assertBearer(request, env);
+  if (deny) return deny;
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return json({ ok: false, detail: "Invalid JSON" }, 400);
+  }
+
+  const payment_tx_signature = String(body.payment_tx_signature || "").trim().slice(0, 128);
+  const buyer = String(body.buyer || "").trim().slice(0, 64);
+  const token_mint = String(body.token_mint || "").trim().slice(0, 64);
+  const amount_raw = String(body.amount_raw || "").trim().slice(0, 80);
+  const pay_with = String(body.pay_with || "").trim().toUpperCase().slice(0, 8);
+  if (!payment_tx_signature || !buyer || !token_mint || !amount_raw) {
+    return json({ ok: false, detail: "Missing required fields" }, 400);
+  }
+  if (pay_with !== "SOL" && pay_with !== "USDC") {
+    return json({ ok: false, detail: "pay_with must be SOL or USDC" }, 400);
+  }
+
+  try {
+    await env.DB.prepare(
+      `INSERT INTO ecosystem_otc_fulfillments (payment_tx_signature, buyer, token_mint, amount_raw, pay_with, out_tx)
+       VALUES (?, ?, ?, ?, ?, NULL)`,
+    )
+      .bind(payment_tx_signature, buyer, token_mint, amount_raw, pay_with)
+      .run();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "insert failed";
+    if (/unique|UNIQUE|constraint/i.test(msg)) {
+      return json({ ok: false, detail: "payment_tx_already_used" }, 409);
+    }
+    return json({ ok: false, detail: msg }, 500);
+  }
+
+  return json({ ok: true }, 201);
+}
+
+/** POST /api/solana-site/ecosystem-otc-release — Bearer; delete pending lock after failed transfer. */
+export async function handleEcosystemOtcRelease(
+  request: Request,
+  env: SolanaSiteEcosystemEnv,
+): Promise<Response> {
+  const deny = assertBearer(request, env);
+  if (deny) return deny;
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return json({ ok: false, detail: "Invalid JSON" }, 400);
+  }
+
+  const payment_tx_signature = String(body.payment_tx_signature || "").trim().slice(0, 128);
+  if (!payment_tx_signature) {
+    return json({ ok: false, detail: "Missing payment_tx_signature" }, 400);
+  }
+
+  try {
+    await env.DB.prepare(
+      `DELETE FROM ecosystem_otc_fulfillments WHERE payment_tx_signature = ? AND out_tx IS NULL`,
+    )
+      .bind(payment_tx_signature)
+      .run();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "delete failed";
+    return json({ ok: false, detail: msg }, 500);
+  }
+
+  return json({ ok: true }, 200);
+}
+
+/** POST /api/solana-site/ecosystem-otc-complete — Bearer; record outbound token transfer signature. */
+export async function handleEcosystemOtcComplete(
+  request: Request,
+  env: SolanaSiteEcosystemEnv,
+): Promise<Response> {
+  const deny = assertBearer(request, env);
+  if (deny) return deny;
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return json({ ok: false, detail: "Invalid JSON" }, 400);
+  }
+
+  const payment_tx_signature = String(body.payment_tx_signature || "").trim().slice(0, 128);
+  const out_tx = String(body.out_tx || "").trim().slice(0, 128);
+  if (!payment_tx_signature || !out_tx) {
+    return json({ ok: false, detail: "Missing payment_tx_signature or out_tx" }, 400);
+  }
+
+  try {
+    const pending = await env.DB.prepare(
+      `SELECT payment_tx_signature FROM ecosystem_otc_fulfillments WHERE payment_tx_signature = ? AND out_tx IS NULL`,
+    )
+      .bind(payment_tx_signature)
+      .first<{ payment_tx_signature: string }>();
+    if (!pending) {
+      return json({ ok: false, detail: "No matching pending row" }, 409);
+    }
+    await env.DB.prepare(
+      `UPDATE ecosystem_otc_fulfillments SET out_tx = ? WHERE payment_tx_signature = ? AND out_tx IS NULL`,
+    )
+      .bind(out_tx, payment_tx_signature)
+      .run();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "update failed";
+    return json({ ok: false, detail: msg }, 500);
+  }
+
+  return json({ ok: true }, 200);
+}

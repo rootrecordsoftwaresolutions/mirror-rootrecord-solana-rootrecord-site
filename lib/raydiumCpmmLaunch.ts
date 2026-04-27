@@ -12,10 +12,11 @@ import {
 } from '@raydium-io/raydium-sdk-v2';
 import { getMint, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
+  Keypair,
   PublicKey,
-  type Transaction,
+  Transaction,
   type TransactionInstruction,
-  type VersionedTransaction,
+  VersionedTransaction,
 } from '@solana/web3.js';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 
@@ -58,7 +59,7 @@ const CPMM_PROGRAM_IDS = new Set([
   DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM.toBase58(),
 ]);
 
-function isCpmmPoolItem(
+export function isCpmmPoolItem(
   pool: ApiV3PoolInfoItem,
 ): pool is ApiV3PoolInfoStandardItemCpmm {
   return CPMM_PROGRAM_IDS.has(pool.programId);
@@ -198,6 +199,78 @@ async function loadRaydiumForOwner(wallet: WalletContextState) {
     disableLoadToken: true,
   });
   return { raydium, connection, cluster, signAll };
+}
+
+/** Raydium SDK with a local keypair (server-side treasury). */
+export async function loadRaydiumForKeypair(owner: Keypair) {
+  const connection = getConnection();
+  const cluster = toRaydiumCluster();
+  const signAllTransactions = async <T extends Transaction | VersionedTransaction>(
+    txs: T[],
+  ): Promise<T[]> => {
+    for (const tx of txs) {
+      if (tx instanceof VersionedTransaction) {
+        tx.sign([owner]);
+      } else {
+        tx.partialSign(owner);
+      }
+    }
+    return txs;
+  };
+  const raydium = await Raydium.load({
+    connection,
+    cluster,
+    owner: owner.publicKey,
+    signAllTransactions,
+    disableLoadToken: true,
+  });
+  return { raydium, connection, cluster };
+}
+
+/**
+ * Add CPMM liquidity signed by a keypair (no RootRecord add-liquidity platform fee — for OTC auto-LP).
+ */
+export async function addCpmmLiquidityWithKeypair(
+  owner: Keypair,
+  params: {
+    poolId: string;
+    inputAmount: BN;
+    baseIn: boolean;
+    slippageBps?: number;
+  },
+): Promise<{ txId: string }> {
+  const { raydium } = await loadRaydiumForKeypair(owner);
+  const trimmed = params.poolId.trim();
+  if (!trimmed) throw new Error('Enter a pool address');
+  try {
+    new PublicKey(trimmed);
+  } catch {
+    throw new Error('Invalid pool address');
+  }
+  const list = await raydium.api.fetchPoolById({ ids: trimmed });
+  const poolInfo = list.find(isCpmmPoolItem);
+  if (!poolInfo) {
+    throw new Error(
+      'Pool not found or not a Raydium CPMM pool on this cluster — check the address and network.',
+    );
+  }
+  if (params.inputAmount.lte(new BN(0))) {
+    throw new Error('Liquidity input amount must be positive');
+  }
+  const bps = params.slippageBps ?? 100;
+  const slippage = new Percent(new BN(bps), new BN(10_000));
+
+  const { execute } = await raydium.cpmm.addLiquidity({
+    poolInfo,
+    inputAmount: params.inputAmount,
+    baseIn: params.baseIn,
+    slippage,
+    txVersion: TxVersion.V0,
+  });
+  const { txId } = await execute({ sendAndConfirm: true });
+  if (!txId) throw new Error('Add-liquidity transaction was not submitted');
+  await confirmSignatureSucceeded(txId, 'confirmed');
+  return { txId };
 }
 
 /** Resolve a Raydium CPMM pool from the public API (pool id = pool state address). */

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { VersionedTransaction } from '@solana/web3.js';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,14 +16,25 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const WSOL = 'So11111111111111111111111111111111111111112';
-const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-/** System token (output side of OTC Jupiter link). Override only via build env if needed. */
-const SYSTEM_TOKEN_MINT =
-  process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
-  '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT';
-const OTC_USD_PER_TOKEN = 0.00001;
+import {
+  ECOSYSTEM_OTC_TOKEN_MINT,
+  OTC_USD_PER_TOKEN,
+  ecosystemOtcQuoteRetainPercentLabel,
+  ecosystemOtcUsdcAutoLpEnabled,
+  ecosystemOtcUsdcLpResumeLabel,
+} from '@/lib/ecosystemOtcConstants';
+import { getConnection } from '@/lib/solana';
+
 const QUOTE_TTL_MS = 30_000;
+
+function base64ToUint8Array(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    out[i] = bin.charCodeAt(i);
+  }
+  return out;
+}
 
 type BotEvent = {
   id: number;
@@ -47,7 +60,30 @@ type ReinvestRow = {
   metadata: string | null;
 };
 
+function parseJsonRecord(text: string): Record<string, unknown> | null {
+  try {
+    const v = JSON.parse(text) as unknown;
+    return v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+const TELEMETRY_404_HELP =
+  'No telemetry API (404). Deploy rootrecord-primary with the ecosystem routes and apply D1 migration 0011 so GET /api/solana-site/ecosystem-bot-events exists.';
+
 export default function EcosystemPage() {
+  const { publicKey, signTransaction } = useWallet();
+  const [treasuryAddr, setTreasuryAddr] = useState<string | null>(null);
+  const [buyerWallet, setBuyerWallet] = useState('');
+  const [paymentSig, setPaymentSig] = useState('');
+  const [fulfillLoading, setFulfillLoading] = useState(false);
+  const [fulfillMsg, setFulfillMsg] = useState<string | null>(null);
+  const [lastOutSig, setLastOutSig] = useState<string | null>(null);
+  const [lastLiquidityTx, setLastLiquidityTx] = useState<string | null>(null);
+  const [lastLiquidityErr, setLastLiquidityErr] = useState<string | null>(null);
+  const [lastLiquidityNotice, setLastLiquidityNotice] = useState<string | null>(null);
+
   const [events, setEvents] = useState<BotEvent[]>([]);
   const [eventsErr, setEventsErr] = useState<string | null>(null);
   const [reinvest, setReinvest] = useState<ReinvestRow[]>([]);
@@ -64,15 +100,30 @@ export default function EcosystemPage() {
         fetch('/api/solana-site/ecosystem-bot-events?limit=100'),
         fetch('/api/solana-site/ecosystem-reinvest-pending?limit=40'),
       ]);
-      const eJson = (await eRes.json()) as { ok?: boolean; events?: BotEvent[]; detail?: string };
-      if (!eRes.ok || !eJson.ok) {
-        setEventsErr(eJson.detail || 'Could not load bot events');
-        setEvents([]);
-      } else {
+      const eText = await eRes.text();
+      const eParsed = parseJsonRecord(eText);
+      const eJson = (eParsed ?? {}) as { ok?: boolean; events?: BotEvent[]; detail?: string; skipped?: boolean };
+      if (eRes.ok && eJson.ok) {
         setEventsErr(null);
         setEvents(eJson.events ?? []);
+      } else {
+        const detailStr =
+          typeof eJson.detail === 'string' ? eJson.detail.trim() : '';
+        const bodySnippet = !eParsed && eText.trim() ? eText.trim().slice(0, 200) : '';
+        let msg =
+          detailStr ||
+          bodySnippet ||
+          `Could not load bot events (HTTP ${eRes.status}).`;
+        if (eRes.status === 404 || /^not found$/i.test(msg.trim())) {
+          msg = TELEMETRY_404_HELP;
+        }
+        setEventsErr(msg);
+        setEvents([]);
       }
-      const rJson = (await rRes.json()) as { ok?: boolean; rows?: ReinvestRow[] };
+
+      const rText = await rRes.text();
+      const rParsed = parseJsonRecord(rText);
+      const rJson = (rParsed ?? {}) as { ok?: boolean; rows?: ReinvestRow[] };
       if (rRes.ok && rJson.ok) setReinvest(rJson.rows ?? []);
     } catch {
       setEventsErr('Network error loading feed');
@@ -115,39 +166,136 @@ export default function EcosystemPage() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch('/api/ecosystem/otc-treasury');
+        const j = (await r.json()) as { ok?: boolean; treasury?: string };
+        if (j.ok && j.treasury) setTreasuryAddr(j.treasury);
+        else setTreasuryAddr(null);
+      } catch {
+        setTreasuryAddr(null);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (publicKey) setBuyerWallet(publicKey.toBase58());
+  }, [publicKey]);
+
   const quoteDeadline = priceFetchedAt != null ? priceFetchedAt + QUOTE_TTL_MS : null;
   const secondsLeft =
     quoteDeadline != null ? Math.max(0, Math.ceil((quoteDeadline - now) / 1000)) : null;
   const quoteStale = secondsLeft === 0;
 
   const otc = useMemo(() => {
-    const n = parseFloat(tokenAmount.replace(/,/g, ''));
-    if (!Number.isFinite(n) || n <= 0 || !solUsd) {
-      return { usdTotal: null as number | null, sol: null as number | null, usdc: null as number | null };
+    const parsed = parseFloat(tokenAmount.replace(/,/g, ''));
+    if (!Number.isFinite(parsed) || parsed <= 0 || !solUsd) {
+      return {
+        tokensWhole: null as number | null,
+        usdTotal: null as number | null,
+        solIdeal: null as number | null,
+        usdcIdeal: null as number | null,
+        solLamports: null as number | null,
+        usdcMicro: null as number | null,
+      };
     }
-    const usdTotal = n * OTC_USD_PER_TOKEN;
-    const sol = usdTotal / solUsd;
+    const tokensWhole = Math.max(1, Math.ceil(parsed));
+    const usdTotal = tokensWhole * OTC_USD_PER_TOKEN;
+    const solIdeal = usdTotal / solUsd;
     const uusd = usdcUsd && usdcUsd > 0 ? usdcUsd : 1;
-    const usdc = usdTotal / uusd;
-    return { usdTotal, sol, usdc };
+    const usdcIdeal = usdTotal / uusd;
+    const solLamports = Math.max(1, Math.ceil(solIdeal * 1e9));
+    const usdcMicro = Math.max(1, Math.ceil(usdcIdeal * 1e6));
+    return { tokensWhole, usdTotal, solIdeal, usdcIdeal, solLamports, usdcMicro };
   }, [tokenAmount, solUsd, usdcUsd]);
 
-  const jupiterUrl = useMemo(() => {
-    const inputMint = payWith === 'SOL' ? WSOL : USDC;
-    const params = new URLSearchParams({
-      inputMint,
-      outputMint: SYSTEM_TOKEN_MINT,
-    });
-    if (payWith === 'SOL' && otc.sol != null && otc.sol > 0) {
-      const lamports = Math.max(1, Math.floor(otc.sol * 1e9));
-      params.set('amount', String(lamports));
+  const claimTokens = useCallback(async () => {
+    setFulfillMsg(null);
+    setLastOutSig(null);
+    setLastLiquidityTx(null);
+    setLastLiquidityErr(null);
+    setLastLiquidityNotice(null);
+    if (otc.tokensWhole == null || quoteStale || priceFetchedAt == null) {
+      setFulfillMsg('Refresh prices and stay within the quote window.');
+      return;
     }
-    if (payWith === 'USDC' && otc.usdc != null && otc.usdc > 0) {
-      const micro = Math.max(1, Math.floor(otc.usdc * 1e6));
-      params.set('amount', String(micro));
+    const pw = paymentSig.trim();
+    const buyer = buyerWallet.trim();
+    if (!buyer || !pw) {
+      setFulfillMsg('Enter buyer wallet and payment transaction signature.');
+      return;
     }
-    return `https://jup.ag/swap?${params.toString()}`;
-  }, [payWith, otc.sol, otc.usdc]);
+    const body = {
+      buyer_wallet: buyer,
+      pay_with: payWith,
+      tokens_whole: otc.tokensWhole,
+      quoted_at_ms: priceFetchedAt,
+      payment_tx_signature: pw,
+    };
+    setFulfillLoading(true);
+    try {
+      let r = await fetch('/api/ecosystem/fulfill-otc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      type FulfillJson = {
+        ok?: boolean;
+        detail?: string;
+        signature?: string;
+        code?: string;
+        unsigned_tx_b64?: string;
+        liquidity_tx?: string | null;
+        liquidity_error?: string | null;
+        liquidity_notice?: string | null;
+      };
+      let j = (await r.json()) as FulfillJson;
+
+      if (r.status === 428 && j.code === 'needs_ata') {
+        if (!signTransaction || !j.unsigned_tx_b64) {
+          setFulfillMsg(
+            j.detail ||
+              'Connect a wallet that can sign transactions so you can pay the token account rent.',
+          );
+          return;
+        }
+        const vtx = VersionedTransaction.deserialize(base64ToUint8Array(j.unsigned_tx_b64));
+        const signed = await signTransaction(vtx);
+        const conn = getConnection();
+        const latest = await conn.getLatestBlockhash('confirmed');
+        const ataSig = await conn.sendRawTransaction(signed.serialize(), {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+        await conn.confirmTransaction(
+          { signature: ataSig, ...latest },
+          'confirmed',
+        );
+        r = await fetch('/api/ecosystem/fulfill-otc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        j = (await r.json()) as FulfillJson;
+      }
+
+      if (!r.ok || !j.ok) {
+        setFulfillMsg(j.detail || `Request failed (${r.status})`);
+        return;
+      }
+      setLastOutSig(j.signature ?? null);
+      setLastLiquidityTx(j.liquidity_tx ?? null);
+      setLastLiquidityErr(j.liquidity_error ?? null);
+      setLastLiquidityNotice(j.liquidity_notice ?? null);
+      setFulfillMsg(null);
+      setPaymentSig('');
+    } catch {
+      setFulfillMsg('Network error');
+    } finally {
+      setFulfillLoading(false);
+    }
+  }, [otc.tokensWhole, payWith, paymentSig, buyerWallet, priceFetchedAt, quoteStale, signTransaction]);
 
   return (
     <div className="container py-14 md:py-20 max-w-4xl space-y-10">
@@ -200,25 +348,58 @@ export default function EcosystemPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">OTC reference — $0.00001 USD per token</CardTitle>
+          <CardTitle className="text-lg">OTC — $0.00001 USD per token (treasury)</CardTitle>
           <CardDescription>
-            Indicative only. We show a live SOL / USDC USD mark from Jupiter&apos;s public price API,
-            compute how much you would pay for a chosen token amount at{' '}
-            <strong>${OTC_USD_PER_TOKEN.toFixed(5)}</strong> per token, then open Jupiter with those
-            mints prefilled. You should{' '}
-            <strong className="text-foreground">sign within {QUOTE_TTL_MS / 1000}s</strong> of a
-            fresh quote or refresh prices before swapping.
+            Live SOL / USDC marks from Jupiter&apos;s public price API. Fractional token counts round{' '}
+            <strong className="text-foreground">up</strong> to the next whole token; SOL and USDC
+            deposit amounts round <strong className="text-foreground">up</strong> to the next whole
+            lamport or micro-USDC. Send that amount <strong className="text-foreground">from the
+            same wallet that will receive tokens</strong> (fee payer must match), then paste the
+            payment signature. If you do not already have an ATA for this mint, your wallet signs a
+            one-time create (you pay rent). The server then transfers tokens from the treasury and,
+            when <code className="text-[11px]">ECOSYSTEM_OTC_CPMM_POOL_ID</code> is set, deposits the
+            SOL or USDC quote into that Raydium CPMM pool minus a{' '}
+            <strong className="text-foreground">{ecosystemOtcQuoteRetainPercentLabel()}</strong>{' '}
+            treasury reserve (default 1%;{' '}
+            <code className="text-[11px]">ECOSYSTEM_OTC_QUOTE_RETAIN_BPS</code> or{' '}
+            <code className="text-[11px]">NEXT_PUBLIC_ECOSYSTEM_OTC_QUOTE_RETAIN_BPS</code>)
+            for transfer fees and later LP adds, with paired project token (no RootRecord add-liquidity
+            fee on that step). <strong className="text-foreground">USDC</strong>{' '}
+            OTC payments through <strong className="text-foreground">{ecosystemOtcUsdcLpResumeLabel()}</strong>{' '}
+            stay in treasury for the initial USDC pair seed (auto-deposit resumes after that window
+            unless configured otherwise). Claim while the quote window is green.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
+            <Label>Deposit address (treasury)</Label>
+            {treasuryAddr ? (
+              <div className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
+                {treasuryAddr}{' '}
+                <a
+                  href={`https://solscan.io/account/${treasuryAddr}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sol-green hover:underline"
+                >
+                  Solscan
+                </a>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Treasury not configured (set <code className="text-[11px]">ECOSYSTEM_OTC_TREASURY_PRIVATE_KEY</code>{' '}
+                on the server).
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2">
             <Label>Token mint (output)</Label>
             <div className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
-              {SYSTEM_TOKEN_MINT}
+              {ECOSYSTEM_OTC_TOKEN_MINT}
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="eco-amt">Token amount (human, whole or fractional)</Label>
+            <Label htmlFor="eco-amt">Token amount (fractions round up to whole tokens)</Label>
             <Input
               id="eco-amt"
               value={tokenAmount}
@@ -243,7 +424,18 @@ export default function EcosystemPage() {
               Pay with USDC
             </Button>
           </div>
+          {payWith === 'USDC' && !ecosystemOtcUsdcAutoLpEnabled() ? (
+            <p className="text-sm text-muted-foreground leading-relaxed rounded-md border border-border bg-ink-700/20 px-3 py-2">
+              USDC pool-side deposits are paused until the USDC CPMM LP exists. Until{' '}
+              <strong className="text-foreground">{ecosystemOtcUsdcLpResumeLabel()}</strong>, your
+              USDC payment is held for the initial seed; token delivery still runs as usual.
+            </p>
+          ) : null}
           <div className="rounded-lg border border-border bg-ink-700/30 px-4 py-3 text-sm space-y-1">
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Tokens (rounded up)</span>
+              <span className="font-mono">{otc.tokensWhole != null ? String(otc.tokensWhole) : '—'}</span>
+            </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Notional @ {OTC_USD_PER_TOKEN} USD / token</span>
               <span className="font-mono">
@@ -252,13 +444,21 @@ export default function EcosystemPage() {
             </div>
             {payWith === 'SOL' ? (
               <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">≈ SOL @ {solUsd ? `$${solUsd.toFixed(4)}` : '…'}</span>
-                <span className="font-mono">{otc.sol != null ? `${otc.sol.toFixed(8)} SOL` : '—'}</span>
+                <span className="text-muted-foreground">SOL to send (rounded up)</span>
+                <span className="font-mono">
+                  {otc.solLamports != null
+                    ? `${(otc.solLamports / 1e9).toFixed(9)} SOL`
+                    : '—'}
+                </span>
               </div>
             ) : (
               <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">≈ USDC</span>
-                <span className="font-mono">{otc.usdc != null ? `${otc.usdc.toFixed(6)} USDC` : '—'}</span>
+                <span className="text-muted-foreground">USDC to send (rounded up)</span>
+                <span className="font-mono">
+                  {otc.usdcMicro != null
+                    ? `${(otc.usdcMicro / 1e6).toFixed(6)} USDC`
+                    : '—'}
+                </span>
               </div>
             )}
             <div className="flex justify-between gap-4 text-xs text-muted-foreground">
@@ -272,20 +472,80 @@ export default function EcosystemPage() {
               </span>
             </div>
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="eco-buyer">Buyer wallet (receives tokens; must be payment fee payer)</Label>
+            <Input
+              id="eco-buyer"
+              className="font-mono text-xs"
+              value={buyerWallet}
+              onChange={(e) => setBuyerWallet(e.target.value.trim())}
+              placeholder="Connect wallet or paste address"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="eco-pay-sig">Payment transaction signature</Label>
+            <Input
+              id="eco-pay-sig"
+              className="font-mono text-xs"
+              value={paymentSig}
+              onChange={(e) => setPaymentSig(e.target.value.trim())}
+              placeholder="After you send SOL or USDC to the treasury…"
+            />
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" size="sm" onClick={() => void refreshPrices()}>
               Refresh prices
             </Button>
-            <Button type="button" size="sm" asChild disabled={!jupiterUrl || quoteStale}>
-              <a href={jupiterUrl || '#'} target="_blank" rel="noreferrer">
-                Open Jupiter (prefilled)
-              </a>
+            <Button
+              type="button"
+              size="sm"
+              disabled={
+                fulfillLoading ||
+                !treasuryAddr ||
+                quoteStale ||
+                otc.tokensWhole == null ||
+                priceFetchedAt == null
+              }
+              onClick={() => void claimTokens()}
+            >
+              {fulfillLoading ? 'Sending tokens…' : 'Claim tokens (server transfer)'}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Jupiter routes across venues; slippage and final fill may differ from this reference.
-            Always verify the preview in your wallet before signing.
-          </p>
+          {fulfillMsg ? (
+            <p className="text-sm text-destructive">{fulfillMsg}</p>
+          ) : null}
+          {lastOutSig ? (
+            <p className="text-sm text-muted-foreground">
+              Token transfer:{' '}
+              <a
+                href={`https://solscan.io/tx/${lastOutSig}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-xs text-sol-green hover:underline"
+              >
+                {lastOutSig.slice(0, 16)}…
+              </a>
+            </p>
+          ) : null}
+          {lastLiquidityTx ? (
+            <p className="text-sm text-muted-foreground">
+              Pool deposit:{' '}
+              <a
+                href={`https://solscan.io/tx/${lastLiquidityTx}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-xs text-sol-green hover:underline"
+              >
+                {lastLiquidityTx.slice(0, 16)}…
+              </a>
+            </p>
+          ) : null}
+          {lastLiquidityErr ? (
+            <p className="text-sm text-amber-600/90">Liquidity step: {lastLiquidityErr}</p>
+          ) : null}
+          {lastLiquidityNotice ? (
+            <p className="text-sm text-muted-foreground leading-relaxed">{lastLiquidityNotice}</p>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -384,11 +644,6 @@ export default function EcosystemPage() {
           )}
         </CardContent>
       </Card>
-
-      <p className="text-xs text-muted-foreground">
-        Configure <code className="text-[11px]">NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT</code> in Vercel to
-        change the default mint on this OTC form.
-      </p>
     </div>
   );
 }

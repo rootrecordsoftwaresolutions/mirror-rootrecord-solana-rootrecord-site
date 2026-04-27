@@ -46,6 +46,12 @@ import {
 
   handleEcosystemBotEvents,
 
+  handleEcosystemOtcComplete,
+
+  handleEcosystemOtcRelease,
+
+  handleEcosystemOtcReserve,
+
   handleEcosystemReinvest,
 
   handleEcosystemReinvestPending,
@@ -467,6 +473,24 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   if (method === "GET" && sub === "/solana-site/ecosystem-reinvest-pending") {
 
     return handleEcosystemReinvestPending(request, env);
+
+  }
+
+  if (method === "POST" && sub === "/solana-site/ecosystem-otc-reserve") {
+
+    return handleEcosystemOtcReserve(request, env);
+
+  }
+
+  if (method === "POST" && sub === "/solana-site/ecosystem-otc-release") {
+
+    return handleEcosystemOtcRelease(request, env);
+
+  }
+
+  if (method === "POST" && sub === "/solana-site/ecosystem-otc-complete") {
+
+    return handleEcosystemOtcComplete(request, env);
 
   }
 
