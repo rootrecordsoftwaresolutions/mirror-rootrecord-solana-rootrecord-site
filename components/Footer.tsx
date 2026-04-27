@@ -45,6 +45,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/token-stats" className="hover:text-sol-green">
+                  Token stats
+                </Link>
+              </li>
+              <li>
                 <Link href="/bulk" className="hover:text-sol-green">
                   Bulk SOL
                 </Link>

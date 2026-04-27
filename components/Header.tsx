@@ -10,6 +10,7 @@ const NAV = [
   { href: '/create', label: 'Create Token' },
   { href: '/liquidity', label: 'Liquidity' },
   { href: '/tools', label: 'Tools' },
+  { href: '/token-stats', label: 'Token Stats' },
   { href: '/bulk', label: 'Bulk SOL' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
@@ -41,7 +42,9 @@ export function Header() {
           className="hidden md:flex items-center gap-7 text-sm"
         >
           {NAV.map((n) => {
-            const active = pathname === n.href;
+            const active =
+              pathname === n.href ||
+              (n.href === '/token-stats' && pathname.startsWith('/ref/'));
             return (
               <Link
                 key={n.href}
