@@ -16,6 +16,7 @@ export const tokenSchema = z.object({
   website: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   twitter: z.string().optional().or(z.literal('')),
   telegram: z.string().optional().or(z.literal('')),
+  discord: z.string().optional().or(z.literal('')),
 });
 
 export type TokenFormValues = z.infer<typeof tokenSchema>;

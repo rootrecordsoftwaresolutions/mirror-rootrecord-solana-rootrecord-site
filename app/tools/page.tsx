@@ -17,6 +17,7 @@ import {
   Coins,
   Flame,
   Pencil,
+  FileLock2,
   ArrowRight,
   Banknote,
   Wand2,
@@ -85,6 +86,13 @@ const TOOLS: (
     desc: 'Same fields as create—name, symbol, description, website, socials, logo, and listing link. On-chain edits must still be allowed.',
     icon: Pencil,
     tone: 'purple',
+  },
+  {
+    kind: 'lock-metadata',
+    title: 'Lock listing metadata (legacy)',
+    desc: 'Permanently freeze listing edits on-chain (name, symbol, listing link). Requires the listing update authority wallet — standard SPL + Metaplex only.',
+    icon: FileLock2,
+    tone: 'green',
   },
   {
     kind: 'withdraw-fees',

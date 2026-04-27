@@ -576,6 +576,9 @@ export async function updateTokenMetadata(
     metadata,
     'confirmed',
   );
+  if (!existing.isMutable) {
+    throw new Error('Listing metadata is locked — on-chain listing details cannot be changed anymore.');
+  }
   const d = existing.data;
   const ix = createUpdateMetadataAccountV2Instruction(
     {
@@ -596,6 +599,65 @@ export async function updateTokenMetadata(
         updateAuthority: wallet.publicKey,
         primarySaleHappened: null,
         isMutable: null,
+      },
+    },
+  );
+  const ixs: TransactionInstruction[] = [ix];
+  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
+  if (fee) ixs.push(fee);
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
+  return sendSimpleTx(wallet, ixs);
+}
+
+/**
+ * Set Metaplex metadata `isMutable` to false so name, symbol, and URI can no longer be updated.
+ * The connected wallet must be the metadata update authority. Legacy SPL + Metaplex only.
+ */
+export async function lockLegacyListingMetadata(
+  wallet: WalletContextState,
+  mintAddress: string,
+  referrerWallet?: string | null,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error('Wallet not connected');
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  if (programId.equals(TOKEN_2022_PROGRAM_ID)) {
+    throw new Error(
+      'This tool only applies to standard SPL tokens with Metaplex listing metadata. Token-2022 uses different metadata rules.',
+    );
+  }
+  const connection = getConnection();
+  const metadata = metadataPda(mint);
+  let existing: MetaplexMetadata;
+  try {
+    existing = await MetaplexMetadata.fromAccountAddress(connection, metadata, 'confirmed');
+  } catch {
+    throw new Error('No listing metadata account found for this mint.');
+  }
+  if (!existing.isMutable) {
+    throw new Error('Listing metadata is already locked — listing details can no longer be edited.');
+  }
+  const ua = existing.updateAuthority;
+  if (ua.equals(PublicKey.default)) {
+    throw new Error(
+      'This mint has no listing update authority on record, so listing details cannot be changed from here.',
+    );
+  }
+  if (!ua.equals(wallet.publicKey)) {
+    throw new Error(
+      'Connect the wallet that is the listing metadata update authority (the same wallet that can edit listing details).',
+    );
+  }
+  const ix = createUpdateMetadataAccountV2Instruction(
+    {
+      metadata,
+      updateAuthority: wallet.publicKey,
+    },
+    {
+      updateMetadataAccountArgsV2: {
+        data: null,
+        updateAuthority: null,
+        primarySaleHappened: null,
+        isMutable: false,
       },
     },
   );

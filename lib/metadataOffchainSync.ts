@@ -55,6 +55,7 @@ export type ListingFormValues = {
   website: string;
   twitter: string;
   telegram: string;
+  discord: string;
 };
 
 export function parseListingFieldsFromJson(json: Record<string, unknown>): ListingFormValues {
@@ -68,7 +69,8 @@ export function parseListingFieldsFromJson(json: Record<string, unknown>): Listi
   const website = external || extWeb;
   const twitter = typeof ext.twitter === 'string' ? ext.twitter : '';
   const telegram = typeof ext.telegram === 'string' ? ext.telegram : '';
-  return { description, website, twitter, telegram };
+  const discord = typeof ext.discord === 'string' ? ext.discord : '';
+  return { description, website, twitter, telegram, discord };
 }
 
 export type ListingImageMerge =
@@ -78,7 +80,7 @@ export type ListingImageMerge =
 
 /**
  * Merge listing JSON like the create-token tool: name, symbol, description, external_url,
- * extensions (website / twitter / telegram), and optional image (omit empty image like create).
+ * extensions (website / twitter / telegram / discord), and optional image (omit empty image like create).
  */
 export function mergeFullTokenListingJson(
   base: Record<string, unknown>,
@@ -97,8 +99,10 @@ export function mergeFullTokenListingJson(
   if (web) ext.website = web;
   const tw = listing.twitter.trim();
   const tg = listing.telegram.trim();
+  const dc = listing.discord.trim();
   if (tw) ext.twitter = tw;
   if (tg) ext.telegram = tg;
+  if (dc) ext.discord = dc;
   out.extensions = ext;
 
   if (image.mode === 'remove') {

@@ -26,6 +26,7 @@ import {
   mintMore,
   burnTokens,
   updateTokenMetadata,
+  lockLegacyListingMetadata,
   ACTION_FEE_SOL,
   explorerUrl,
   getConnection,
@@ -43,6 +44,8 @@ import {
   readMintInfo,
 } from '@/lib/token2022';
 import { cn, parseSupply } from '@/lib/utils';
+import { getStoredReferrer } from '@/lib/referral';
+import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 function assertOptionalHttpUrl(raw: string) {
   const t = raw.trim();
@@ -54,8 +57,6 @@ function assertOptionalHttpUrl(raw: string) {
     throw new Error('Website must be a valid http(s) URL or left blank');
   }
 }
-import { getStoredReferrer } from '@/lib/referral';
-import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 export type ToolKind =
   | 'revoke-mint'
@@ -63,6 +64,7 @@ export type ToolKind =
   | 'mint-more'
   | 'burn-tokens'
   | 'update-metadata'
+  | 'lock-metadata'
   | 'withdraw-fees'
   | 'harvest-fees'
   | 'update-fee-config';
@@ -97,6 +99,12 @@ const META: Record<
     desc:
       'Edit the same listing details as the token creator: name, symbol, description, website, socials, optional new logo, and listing file link. Updates must still be allowed on-chain. When file hosting is enabled here, we rebuild the listing file so explorers match what you enter.',
     cta: `Update · ${ACTION_FEE_SOL} SOL`,
+  },
+  'lock-metadata': {
+    title: 'Lock listing metadata (legacy)',
+    desc:
+      'Permanently turn off further edits to listing name, symbol, and listing file link on-chain (Metaplex “immutable”). Your connected wallet must be the listing update authority. Standard SPL only — not Token-2022.',
+    cta: `Lock listing · ${ACTION_FEE_SOL} SOL`,
   },
   'withdraw-fees': {
     title: 'Withdraw transfer fees',
@@ -136,6 +144,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   const [website, setWebsite] = useState('');
   const [twitter, setTwitter] = useState('');
   const [telegram, setTelegram] = useState('');
+  const [discord, setDiscord] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [clearListingImage, setClearListingImage] = useState(false);
   const [currentListingImageUrl, setCurrentListingImageUrl] = useState('');
@@ -165,6 +174,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setWebsite('');
     setTwitter('');
     setTelegram('');
+    setDiscord('');
     setLogoFile(null);
     setClearListingImage(false);
     setCurrentListingImageUrl('');
@@ -291,6 +301,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           setWebsite('');
           setTwitter('');
           setTelegram('');
+          setDiscord('');
           setCurrentListingImageUrl('');
           return;
         }
@@ -310,6 +321,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           setWebsite('');
           setTwitter('');
           setTelegram('');
+          setDiscord('');
           setCurrentListingImageUrl('');
           return;
         }
@@ -319,6 +331,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
         setWebsite(listing.website);
         setTwitter(listing.twitter);
         setTelegram(listing.telegram);
+        setDiscord(listing.discord);
         const img = typeof rec.image === 'string' ? rec.image.trim() : '';
         setCurrentListingImageUrl(img);
       } catch {
@@ -349,9 +362,11 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       const ref = getStoredReferrer();
       let sig = '';
       if (kind === 'revoke-mint') sig = await revokeMintAuthority(wallet, mint, ref);
-      else if (kind === 'revoke-freeze')
+      else if (kind === 'revoke-freeze') {
         sig = await revokeFreezeAuthority(wallet, mint, ref);
-      else if (kind === 'mint-more') {
+      } else if (kind === 'lock-metadata') {
+        sig = await lockLegacyListingMetadata(wallet, mint, ref);
+      } else if (kind === 'mint-more') {
         if (!amount) throw new Error('Amount is required');
         sig = await mintMore(
           wallet,
@@ -422,7 +437,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             parsed as Record<string, unknown>,
             name,
             symbol,
-            { description, website, twitter, telegram },
+            { description, website, twitter, telegram, discord },
             imageMerge,
           );
           const up = await uploadJsonToPinata(merged, `metadata-${mint.trim().slice(0, 8)}.json`);
@@ -528,6 +543,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               'revoke-mint',
               'revoke-freeze',
               'update-metadata',
+              'lock-metadata',
               'withdraw-fees',
               'harvest-fees',
               'update-fee-config',
@@ -537,12 +553,20 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                 Solscan or your launch dialog — not your wallet.
                 {meta.t2022
                   ? ' Must be a Token-2022 mint.'
-                  : kind === 'update-metadata'
+                  : kind === 'update-metadata' || kind === 'lock-metadata'
                     ? ' Standard SPL tokens with on-chain listing metadata only (not Token-2022).'
                     : ''}
               </p>
             )}
           </div>
+
+          {kind === 'lock-metadata' ? (
+            <p className="text-xs text-amber-200/95 border border-amber-500/30 rounded-lg px-3 py-2 leading-relaxed">
+              This cannot be undone on-chain: after locking, listing name, symbol, and listing file
+              link can no longer be edited with the update tool. Use only when you are finished with
+              listing changes.
+            </p>
+          ) : null}
 
           {meta.t2022 && mintPreview && (
             <div
@@ -694,6 +718,16 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                   />
                 </div>
               </div>
+              <div className="grid gap-2">
+                <Label>Discord</Label>
+                <Input
+                  data-testid="tool-discord-input"
+                  placeholder="discord.gg/yourserver or invite URL"
+                  value={discord}
+                  disabled={listingHostReady === false}
+                  onChange={(e) => setDiscord(e.target.value)}
+                />
+              </div>
               <div className={cn('grid gap-2', listingHostReady === false && 'pointer-events-none opacity-50')}>
                 <Label>Logo (optional)</Label>
                 <ImageDropzone
@@ -827,7 +861,9 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             onClick={handle}
             disabled={busy}
             variant={
-              kind.startsWith('revoke') || kind === 'burn-tokens'
+              kind.startsWith('revoke') ||
+              kind === 'burn-tokens' ||
+              kind === 'lock-metadata'
                 ? 'destructive'
                 : 'default'
             }

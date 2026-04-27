@@ -62,6 +62,7 @@ export default function CreateTokenPage() {
       website: '',
       twitter: '',
       telegram: '',
+      discord: '',
     },
   });
 
@@ -113,6 +114,7 @@ export default function CreateTokenPage() {
             website: values.website || undefined,
             twitter: values.twitter || undefined,
             telegram: values.telegram || undefined,
+            discord: values.discord || undefined,
           },
         };
         // Empty `image` breaks explorers (e.g. "IMAGE FAILED"); omit unless we have a URL.
@@ -140,6 +142,7 @@ export default function CreateTokenPage() {
         if (values.website) additional.push(['website', values.website]);
         if (values.twitter) additional.push(['twitter', values.twitter]);
         if (values.telegram) additional.push(['telegram', values.telegram]);
+        if (values.discord) additional.push(['discord', values.discord]);
         if (imageUri) additional.push(['image', imageUri]);
 
         result = await createToken2022(
@@ -420,6 +423,13 @@ export default function CreateTokenPage() {
                         data-testid="input-telegram"
                         placeholder="t.me/yourchannel"
                         {...form.register('telegram')}
+                      />
+                    </Field>
+                    <Field label="Discord">
+                      <Input
+                        data-testid="input-discord"
+                        placeholder="discord.gg/yourserver"
+                        {...form.register('discord')}
                       />
                     </Field>
                   </div>

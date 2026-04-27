@@ -62,6 +62,12 @@ function buildRows(): Row[] {
       onchain: '~0.000005 SOL',
     },
     {
+      action: 'Lock listing metadata (immutable, legacy SPL)',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.10 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
       action: 'Token-2022 tools (withdraw / harvest fees, update fee config)',
       us: feeSol(ACTION_FEE_SOL),
       them: '0.02 – 0.08 SOL',
