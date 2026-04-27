@@ -759,15 +759,12 @@ export default function EcosystemPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">OTC — $0.00001 USD per token (treasury)</CardTitle>
+          <CardTitle className="text-lg">Treasury Transfer Tool</CardTitle>
           <CardDescription className="leading-relaxed">
-            You buy <strong className="text-foreground">whole tokens</strong> at this USD price;
-            token count and payment round <strong className="text-foreground">up</strong>. SOL/USD
-            comes from <strong className="text-foreground">Jupiter</strong>. You sign{' '}
-            <strong className="text-foreground">one</strong> transaction: pay the treasury and
-            receive tokens in the same tx. If you need a token account first, the site will ask for a
-            small extra signature (you pay rent). Finish while the quote is still{' '}
-            <strong className="text-foreground">green</strong>.
+            <span className="block">Purchase tokens directly from the treasury.</span>
+            <span className="block mt-1.5">
+              RootRecord matches your transfer into the liquidity pool automatically.
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
