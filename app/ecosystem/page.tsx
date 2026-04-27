@@ -583,34 +583,26 @@ export default function EcosystemPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Stable reference &amp; pool depth</CardTitle>
+          <CardTitle className="text-lg">Treasury &amp; pool depth</CardTitle>
           <CardDescription className="leading-relaxed">
-            Automated mirror bots watch our Raydium CPMM pool and react to organic flow in small,
-            time-bucketed clips so we do not move the market in a single print. Operator wallets use
-            Jupiter for execution; caps on each leg keep sales proportional to pool inventory and to
-            the size of third-party trades. Together with manual treasury policy, this is designed
-            to recycle flow back into the pair over time instead of concentrating volatility in one
-            block.
+            Small, capped mirror trades on our Raydium CPMM pool (Jupiter for execution) follow real
+            flow instead of moving the book in one hit.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
           <p>
-            <strong className="text-foreground">Creation &amp; management fees</strong> collected
-            from token creation, metadata, liquidity, and bulk-send flows on{' '}
+            <strong className="text-foreground">Site fees</strong> from{' '}
             <Link href="/" className="text-sol-green hover:underline">
               solana.rootrecord.info
             </Link>{' '}
-            are retained in treasury wallets. A portion is earmarked for{' '}
-            <strong className="text-foreground">Raydium CPMM add-liquidity</strong> when the
-            cumulative USD value crosses thresholds (for example $20 tranches). Those adds are
-            executed the same way you would from the Liquidity page: deposit TOKEN + quote side into
-            the existing pool so total value locked grows with real usage.
+            (create, liquidity, bulk, etc.) sit in treasury; past USD thresholds we add{' '}
+            <strong className="text-foreground">TOKEN + quote</strong> to the same pool—same pattern
+            as the Liquidity page.
           </p>
           <p>
-            <strong className="text-foreground">Scraped mirror profits</strong> from the pool-mirror
-            bots are treated the same way: they are not an exit to zero-sum drain — the default
-            configuration caps each sell, throttles buy-backs when we already hold most of the
-            supply, and can aggregate per-minute so Jupiter and RPC spend stay predictable.
+            <strong className="text-foreground">Mirror profits</strong> follow the same idea:
+            limited sells, slower buy-backs when we already hold a lot, and batched trades so costs
+            stay sane.
           </p>
         </CardContent>
       </Card>
