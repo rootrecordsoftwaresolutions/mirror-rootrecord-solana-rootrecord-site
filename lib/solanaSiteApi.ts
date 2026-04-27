@@ -51,3 +51,23 @@ export async function fetchSolanaWorker(
     body: JSON.stringify(jsonBody),
   });
 }
+
+/** GET from Worker (public solana-site reads; no Bearer). */
+export async function fetchSolanaWorkerGet(path: string): Promise<Response> {
+  const origin = solanaWorkerOrigin();
+  if (!origin) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        skipped: true,
+        detail: 'SOLANA_SITE_LOG_URL is not set (needed for Worker origin).',
+      }),
+      {
+        status: 503,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      },
+    );
+  }
+  const url = `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  return fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
+}

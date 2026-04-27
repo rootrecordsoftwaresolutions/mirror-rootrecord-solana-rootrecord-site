@@ -40,6 +40,18 @@ import { handleSolanaSiteLog } from "./solana-site-log";
 
 import { handleSolanaSiteChallenge, handleSolanaSiteMyActions } from "./solana-site-read";
 
+import {
+
+  handleEcosystemBotEvent,
+
+  handleEcosystemBotEvents,
+
+  handleEcosystemReinvest,
+
+  handleEcosystemReinvestPending,
+
+} from "./solana-site-ecosystem";
+
 
 
 export interface Env {
@@ -431,6 +443,30 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   if (method === "POST" && sub === "/solana-site/my-actions") {
 
     return handleSolanaSiteMyActions(request, env);
+
+  }
+
+  if (method === "POST" && sub === "/solana-site/ecosystem-bot-event") {
+
+    return handleEcosystemBotEvent(request, env);
+
+  }
+
+  if (method === "GET" && sub === "/solana-site/ecosystem-bot-events") {
+
+    return handleEcosystemBotEvents(request, env);
+
+  }
+
+  if (method === "POST" && sub === "/solana-site/ecosystem-reinvest") {
+
+    return handleEcosystemReinvest(request, env);
+
+  }
+
+  if (method === "GET" && sub === "/solana-site/ecosystem-reinvest-pending") {
+
+    return handleEcosystemReinvestPending(request, env);
 
   }
 
