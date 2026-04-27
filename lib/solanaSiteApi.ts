@@ -26,10 +26,20 @@ export async function fetchSolanaWorker(
   const origin = solanaWorkerOrigin();
   const secret = solanaWorkerSecret();
   if (!origin || !secret) {
-    return new Response(JSON.stringify({ ok: false, skipped: true }), {
-      status: 503,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    });
+    const missing: string[] = [];
+    if (!origin) missing.push('SOLANA_SITE_LOG_URL');
+    if (!secret) missing.push('SOLANA_SITE_LOG_SECRET');
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        skipped: true,
+        detail: `Server env not set: ${missing.join(', ')}. Use the Worker log URL origin and the same Bearer secret as on the Worker (see .env.example).`,
+      }),
+      {
+        status: 503,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      },
+    );
   }
   const url = `${origin}${path.startsWith('/') ? path : `/${path}`}`;
   return fetch(url, {

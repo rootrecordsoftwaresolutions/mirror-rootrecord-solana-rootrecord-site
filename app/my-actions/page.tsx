@@ -73,7 +73,10 @@ export default function MyActionsPage() {
       const chJson = (await chRes.json()) as { ok?: boolean; message?: string; detail?: string; skipped?: boolean };
 
       if (chRes.status === 503 || chJson.skipped) {
-        throw new Error('Action history is not configured on this deployment yet.');
+        throw new Error(
+          chJson.detail ||
+            'Action history is not configured on this deployment yet.',
+        );
       }
       if (!chRes.ok || !chJson.message) {
         throw new Error(chJson.detail || 'Could not start wallet check');
@@ -102,7 +105,10 @@ export default function MyActionsPage() {
       };
 
       if (listRes.status === 503 || listJson.skipped) {
-        throw new Error('Action history is not configured on this deployment yet.');
+        throw new Error(
+          listJson.detail ||
+            'Action history is not configured on this deployment yet.',
+        );
       }
       if (!listRes.ok || !listJson.ok) {
         throw new Error(listJson.detail || 'Could not load actions');
