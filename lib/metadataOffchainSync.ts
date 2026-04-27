@@ -49,14 +49,67 @@ export function isAllowedPublicMetadataUrl(urlStr: string): boolean {
   return false;
 }
 
-export function mergeTokenMetadataJsonFields(
-  parsed: Record<string, unknown>,
+/** Fields mirrored from the create-token listing JSON shape. */
+export type ListingFormValues = {
+  description: string;
+  website: string;
+  twitter: string;
+  telegram: string;
+};
+
+export function parseListingFieldsFromJson(json: Record<string, unknown>): ListingFormValues {
+  const description = typeof json.description === 'string' ? json.description : '';
+  const ext =
+    json.extensions && typeof json.extensions === 'object' && !Array.isArray(json.extensions)
+      ? (json.extensions as Record<string, unknown>)
+      : {};
+  const external = typeof json.external_url === 'string' ? json.external_url.trim() : '';
+  const extWeb = typeof ext.website === 'string' ? ext.website.trim() : '';
+  const website = external || extWeb;
+  const twitter = typeof ext.twitter === 'string' ? ext.twitter : '';
+  const telegram = typeof ext.telegram === 'string' ? ext.telegram : '';
+  return { description, website, twitter, telegram };
+}
+
+export type ListingImageMerge =
+  | { mode: 'keep' }
+  | { mode: 'set'; url: string }
+  | { mode: 'remove' };
+
+/**
+ * Merge listing JSON like the create-token tool: name, symbol, description, external_url,
+ * extensions (website / twitter / telegram), and optional image (omit empty image like create).
+ */
+export function mergeFullTokenListingJson(
+  base: Record<string, unknown>,
   name: string,
   symbol: string,
+  listing: ListingFormValues,
+  image: ListingImageMerge,
 ): Record<string, unknown> {
-  return {
-    ...parsed,
-    name: name.slice(0, 32),
-    symbol: symbol.slice(0, 10),
-  };
+  const out: Record<string, unknown> = { ...base };
+  out.name = name.slice(0, 32);
+  out.symbol = symbol.slice(0, 10);
+  out.description = listing.description.slice(0, 500);
+  const web = listing.website.trim();
+  out.external_url = web;
+  const ext: Record<string, unknown> = {};
+  if (web) ext.website = web;
+  const tw = listing.twitter.trim();
+  const tg = listing.telegram.trim();
+  if (tw) ext.twitter = tw;
+  if (tg) ext.telegram = tg;
+  out.extensions = ext;
+
+  if (image.mode === 'remove') {
+    delete out.image;
+  } else if (image.mode === 'set' && image.url.trim()) {
+    out.image = image.url.trim();
+  } else {
+    const prev =
+      typeof base.image === 'string' && base.image.trim() ? base.image.trim() : undefined;
+    if (prev) out.image = prev;
+    else delete out.image;
+  }
+  return out;
 }

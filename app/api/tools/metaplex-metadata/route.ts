@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     });
   } catch {
     return NextResponse.json(
-      { ok: false, error: 'No Metaplex metadata account for this mint on this cluster' },
+      { ok: false, error: 'No listing metadata found for this mint on this network' },
       { status: 404 },
     );
   }

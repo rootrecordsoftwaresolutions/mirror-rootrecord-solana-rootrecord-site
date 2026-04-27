@@ -82,7 +82,7 @@ const TOOLS: (
   {
     kind: 'update-metadata',
     title: 'Update metadata (legacy)',
-    desc: 'Fix a typo, rebrand, or repoint to a new IPFS URI. Requires mutable Metaplex metadata.',
+    desc: 'Same fields as create—name, symbol, description, website, socials, logo, and listing link. On-chain edits must still be allowed.',
     icon: Pencil,
     tone: 'purple',
   },

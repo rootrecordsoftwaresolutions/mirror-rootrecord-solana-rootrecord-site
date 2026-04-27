@@ -17,7 +17,11 @@ export async function GET(req: Request) {
   const httpUrl = resolveMetadataJsonHttpUrl(raw);
   if (!httpUrl || !isAllowedPublicMetadataUrl(httpUrl)) {
     return NextResponse.json(
-      { ok: false, error: 'URL is not allowed or unsupported (use https IPFS gateway or arweave.net)' },
+      {
+        ok: false,
+        error:
+          'That link type is not supported here. Use a standard https link to your listing file (for example a public IPFS gateway or arweave.net).',
+      },
       { status: 400 },
     );
   }

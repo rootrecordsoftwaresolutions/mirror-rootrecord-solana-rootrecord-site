@@ -30,15 +30,30 @@ import {
   explorerUrl,
   getConnection,
 } from '@/lib/solana';
-import { isPinataConfigured, uploadJsonToPinata } from '@/lib/pinata';
-import { mergeTokenMetadataJsonFields } from '@/lib/metadataOffchainSync';
+import { isPinataConfigured, uploadFileToPinata, uploadJsonToPinata } from '@/lib/pinata';
+import {
+  mergeFullTokenListingJson,
+  parseListingFieldsFromJson,
+} from '@/lib/metadataOffchainSync';
+import { ImageDropzone } from '@/components/create/ImageDropzone';
 import {
   withdrawWithheldFromMint,
   harvestWithheldToMint,
   updateTransferFee,
   readMintInfo,
 } from '@/lib/token2022';
-import { parseSupply } from '@/lib/utils';
+import { cn, parseSupply } from '@/lib/utils';
+
+function assertOptionalHttpUrl(raw: string) {
+  const t = raw.trim();
+  if (!t) return;
+  try {
+    const u = new URL(t);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error();
+  } catch {
+    throw new Error('Website must be a valid http(s) URL or left blank');
+  }
+}
 import { getStoredReferrer } from '@/lib/referral';
 import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
@@ -80,7 +95,7 @@ const META: Record<
   'update-metadata': {
     title: 'Update metadata (legacy)',
     desc:
-      'Change the name, symbol, or off-chain JSON URI for a legacy SPL token. Requires the metadata to be mutable. When PINATA_JWT is set on the server, we download the current JSON from the on-chain URI (or the URI you paste), merge the new name/symbol, re-pin to IPFS, and set the Metaplex URI to the new file so explorers and wallets stay aligned.',
+      'Edit the same listing details as the token creator: name, symbol, description, website, socials, optional new logo, and listing file link. Updates must still be allowed on-chain. When file hosting is enabled here, we rebuild the listing file so explorers match what you enter.',
     cta: `Update · ${ACTION_FEE_SOL} SOL`,
   },
   'withdraw-fees': {
@@ -117,6 +132,14 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [uri, setUri] = useState('');
+  const [description, setDescription] = useState('');
+  const [website, setWebsite] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [telegram, setTelegram] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [clearListingImage, setClearListingImage] = useState(false);
+  const [currentListingImageUrl, setCurrentListingImageUrl] = useState('');
+  const [listingHostReady, setListingHostReady] = useState<boolean | null>(null);
   const [destination, setDestination] = useState('');
   const [accountList, setAccountList] = useState('');
   const [feeBps, setFeeBps] = useState('500');
@@ -138,6 +161,14 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setName('');
     setSymbol('');
     setUri('');
+    setDescription('');
+    setWebsite('');
+    setTwitter('');
+    setTelegram('');
+    setLogoFile(null);
+    setClearListingImage(false);
+    setCurrentListingImageUrl('');
+    setListingHostReady(null);
     setDestination('');
     setAccountList('');
     setFeeBps('500');
@@ -213,6 +244,20 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   }, [kind, mint]);
 
   useEffect(() => {
+    if (kind !== 'update-metadata') {
+      setListingHostReady(null);
+      return;
+    }
+    let cancelled = false;
+    void isPinataConfigured().then((v) => {
+      if (!cancelled) setListingHostReady(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [kind]);
+
+  useEffect(() => {
     if (kind !== 'update-metadata') return;
     const trimmed = mint.trim();
     if (!trimmed) return;
@@ -235,9 +280,47 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           uri?: string;
         };
         if (cancelled || !r.ok || !j.ok) return;
-        setName((n) => (n.trim() ? n : j.name ?? ''));
-        setSymbol((s) => (s.trim() ? s : (j.symbol ?? '').toUpperCase().slice(0, 10)));
-        setUri((u) => (u.trim() ? u : j.uri ?? ''));
+        setName(j.name ?? '');
+        setSymbol((j.symbol ?? '').toUpperCase().slice(0, 10));
+        setUri(j.uri ?? '');
+        setLogoFile(null);
+        setClearListingImage(false);
+        const uriForJson = (j.uri ?? '').trim();
+        if (!uriForJson) {
+          setDescription('');
+          setWebsite('');
+          setTwitter('');
+          setTelegram('');
+          setCurrentListingImageUrl('');
+          return;
+        }
+        const jr = await fetch(
+          `/api/tools/metadata-json?url=${encodeURIComponent(uriForJson)}`,
+          { cache: 'no-store' },
+        );
+        const parsed: unknown = await jr.json().catch(() => null);
+        if (
+          cancelled ||
+          !jr.ok ||
+          parsed === null ||
+          typeof parsed !== 'object' ||
+          Array.isArray(parsed)
+        ) {
+          setDescription('');
+          setWebsite('');
+          setTwitter('');
+          setTelegram('');
+          setCurrentListingImageUrl('');
+          return;
+        }
+        const rec = parsed as Record<string, unknown>;
+        const listing = parseListingFieldsFromJson(rec);
+        setDescription(listing.description);
+        setWebsite(listing.website);
+        setTwitter(listing.twitter);
+        setTelegram(listing.telegram);
+        const img = typeof rec.image === 'string' ? rec.image.trim() : '';
+        setCurrentListingImageUrl(img);
       } catch {
         /* ignore */
       }
@@ -286,8 +369,11 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           parseInt(decimals, 10) || 9,
         );
       } else if (kind === 'update-metadata') {
-        if (!name || !symbol)
+        if (!name.trim() || !symbol.trim())
           throw new Error('Name and symbol are required');
+        if (!/^[A-Za-z0-9]+$/.test(symbol.trim())) {
+          throw new Error('Symbol must be letters and numbers only');
+        }
         let finalUri = uri.trim();
         const pinReady = await isPinataConfigured();
         if (pinReady) {
@@ -297,12 +383,12 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           );
           const mj = (await mr.json()) as { ok?: boolean; uri?: string; error?: string };
           if (!mr.ok || !mj.ok) {
-            throw new Error(mj.error || 'Could not read on-chain Metaplex metadata for this mint');
+            throw new Error(mj.error || 'Could not read listing metadata for this mint');
           }
           const sourceUri = finalUri || (typeof mj.uri === 'string' ? mj.uri : '');
           if (!sourceUri.trim()) {
             throw new Error(
-              'No metadata URI is set on-chain. Paste the JSON metadata URI, or create metadata for this mint first.',
+              'No listing link is saved for this token yet. Paste the link to your token’s listing file, or add listing details to this mint first.',
             );
           }
           const jRes = await fetch(
@@ -317,10 +403,28 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               !Array.isArray(parsed) &&
               typeof (parsed as { error?: string }).error === 'string'
                 ? (parsed as { error: string }).error
-                : `Could not download metadata JSON (HTTP ${jRes.status}). Check the URI is reachable.`;
+                : `Could not load the listing file from that link (HTTP ${jRes.status}). Check the URL or try again later.`;
             throw new Error(err);
           }
-          const merged = mergeTokenMetadataJsonFields(parsed as Record<string, unknown>, name, symbol);
+          assertOptionalHttpUrl(website);
+          let uploadedLogoUrl: string | undefined;
+          if (logoFile) {
+            const imgRes = await uploadFileToPinata(logoFile);
+            uploadedLogoUrl = imgRes.gatewayUrl;
+          }
+          const imageMerge =
+            clearListingImage && !logoFile
+              ? ({ mode: 'remove' } as const)
+              : uploadedLogoUrl
+                ? ({ mode: 'set', url: uploadedLogoUrl } as const)
+                : ({ mode: 'keep' } as const);
+          const merged = mergeFullTokenListingJson(
+            parsed as Record<string, unknown>,
+            name,
+            symbol,
+            { description, website, twitter, telegram },
+            imageMerge,
+          );
           const up = await uploadJsonToPinata(merged, `metadata-${mint.trim().slice(0, 8)}.json`);
           finalUri = up.gatewayUrl;
           repinnedMetadataJson = true;
@@ -335,7 +439,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           }
           if (!finalUri) {
             throw new Error(
-              'Metadata URI is required when Pinata is not configured. Paste the HTTPS JSON link, or set PINATA_JWT on the server to re-pin merged JSON from the existing on-chain URI automatically.',
+              'Paste the HTTPS link to your token’s listing file, or use a deployment where automatic listing-file sync is enabled.',
             );
           }
         }
@@ -366,9 +470,9 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       toast.success('Transaction confirmed', {
         description:
           kind === 'update-metadata' && repinnedMetadataJson
-            ? 'Metaplex metadata updated; off-chain JSON was re-pinned to match name/symbol. View on Solscan'
+            ? 'On-chain listing updated and the public detail file refreshed to match. View on Solscan'
             : kind === 'update-metadata'
-              ? 'Metaplex metadata updated. Set PINATA_JWT to also re-pin merged JSON from the URI. View on Solscan'
+              ? 'On-chain listing updated. View on Solscan'
               : 'View on Solscan',
         action: {
           label: 'Open',
@@ -399,7 +503,10 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         data-testid={`tool-dialog-${kind}`}
-        className="max-w-md max-h-[90vh] overflow-y-auto"
+        className={cn(
+          'max-h-[90vh] overflow-y-auto',
+          kind === 'update-metadata' ? 'max-w-lg' : 'max-w-md',
+        )}
       >
         <DialogHeader>
           <DialogTitle>{meta.title}</DialogTitle>
@@ -431,7 +538,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                 {meta.t2022
                   ? ' Must be a Token-2022 mint.'
                   : kind === 'update-metadata'
-                    ? ' Legacy Metaplex metadata on standard SPL mints only.'
+                    ? ' Standard SPL tokens with on-chain listing metadata only (not Token-2022).'
                     : ''}
               </p>
             )}
@@ -515,34 +622,137 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
 
           {kind === 'update-metadata' && (
             <>
+              {listingHostReady === false ? (
+                <p className="text-xs text-muted-foreground leading-relaxed rounded-md border border-border/80 bg-ink-800/40 px-3 py-2">
+                  Listing file hosting is not enabled on this deployment. Only name, symbol, and
+                  the listing file link below are saved on-chain; description, socials, and logo
+                  changes need hosting or a manual file update.
+                </p>
+              ) : null}
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="grid gap-2">
-                  <Label>New name</Label>
+                  <Label>Token name</Label>
                   <Input
                     data-testid="tool-name-input"
                     value={name}
+                    maxLength={32}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label>New symbol</Label>
+                  <Label>Symbol</Label>
                   <Input
                     data-testid="tool-symbol-input"
                     value={symbol}
                     onChange={(e) =>
-                      setSymbol(e.target.value.toUpperCase().slice(0, 10))
+                      setSymbol(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10))
                     }
                   />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Metadata URI</Label>
+                <Label>Description</Label>
+                <Textarea
+                  data-testid="tool-description-input"
+                  rows={3}
+                  placeholder="Short description (optional)"
+                  value={description}
+                  maxLength={500}
+                  disabled={listingHostReady === false}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Website</Label>
+                <Input
+                  data-testid="tool-website-input"
+                  placeholder="https://…"
+                  value={website}
+                  disabled={listingHostReady === false}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Twitter / X</Label>
+                  <Input
+                    data-testid="tool-twitter-input"
+                    placeholder="@handle or URL"
+                    value={twitter}
+                    disabled={listingHostReady === false}
+                    onChange={(e) => setTwitter(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Telegram</Label>
+                  <Input
+                    data-testid="tool-telegram-input"
+                    placeholder="@handle or URL"
+                    value={telegram}
+                    disabled={listingHostReady === false}
+                    onChange={(e) => setTelegram(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className={cn('grid gap-2', listingHostReady === false && 'pointer-events-none opacity-50')}>
+                <Label>Logo (optional)</Label>
+                <ImageDropzone
+                  key={`um-logo-${mint.trim() || 'none'}`}
+                  file={logoFile}
+                  onChange={(f) => {
+                    setLogoFile(f);
+                    if (f) setClearListingImage(false);
+                  }}
+                />
+                {currentListingImageUrl && !logoFile ? (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={clearListingImage}
+                      onChange={(e) => setClearListingImage(e.target.checked)}
+                      disabled={listingHostReady === false}
+                      className="rounded border-border"
+                    />
+                    Remove current logo from the listing file
+                  </label>
+                ) : null}
+                {currentListingImageUrl && !logoFile && !clearListingImage ? (
+                  <p className="text-[11px] text-muted-foreground break-all">
+                    Current logo URL:{' '}
+                    <a
+                      href={currentListingImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sol-green hover:underline"
+                    >
+                      {currentListingImageUrl.length > 72
+                        ? `${currentListingImageUrl.slice(0, 72)}…`
+                        : currentListingImageUrl}
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+              <div className="grid gap-2">
+                <Label>Starting listing file URL (optional)</Label>
                 <Input
                   data-testid="tool-uri-input"
-                  placeholder="https://gateway.pinata.cloud/ipfs/…"
+                  placeholder="Leave blank: load from the link already saved on-chain"
                   value={uri}
                   onChange={(e) => setUri(e.target.value)}
                 />
+                {listingHostReady === true ? (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Each successful run uploads a new listing file and updates the mint’s saved
+                    link to that new address. Use this field only to load starting JSON from a URL
+                    other than the one already stored (leave blank to use the stored link).
+                  </p>
+                ) : listingHostReady === false ? (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Without file hosting, this URL is written on-chain as the listing link (blank =
+                    keep the link already on the mint). This site does not upload a new listing file
+                    in that mode.
+                  </p>
+                ) : null}
               </div>
             </>
           )}

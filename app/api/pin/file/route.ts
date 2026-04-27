@@ -8,7 +8,7 @@ const PINATA_JWT = process.env.PINATA_JWT;
 export async function POST(req: Request) {
   if (!PINATA_JWT) {
     return NextResponse.json(
-      { error: 'PINATA_JWT not configured on server' },
+      { error: 'File hosting is not configured on this server' },
       { status: 503 },
     );
   }
