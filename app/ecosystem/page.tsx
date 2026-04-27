@@ -144,6 +144,17 @@ function parseFinalizeJson(text: string): OtcFinalizeJson | null {
   }
 }
 
+/** Worker returned 401 when Next called D1-backed OTC routes with a mismatched Bearer. */
+function otcWorkerBearerMismatchHint(status: number, detail: string | undefined): string | null {
+  const d = typeof detail === 'string' ? detail.trim() : '';
+  if (status !== 401 || !/^unauthorized$/i.test(d)) return null;
+  return (
+    'Cloudflare Worker rejected the server Bearer token (401). In Vercel, set SOLANA_SITE_LOG_SECRET to the exact ' +
+    'same value as on the rootrecord-primary Worker (`wrangler secret put` / credentials.env), set SOLANA_SITE_LOG_URL ' +
+    'to https://rootrecord-primary.rootrecord.workers.dev/api/solana-site/log, redeploy the site, then try again.'
+  );
+}
+
 function finalizeErrorUserMessage(status: number, finJson: OtcFinalizeJson): string {
   const raw =
     finJson.detail ??
@@ -151,7 +162,7 @@ function finalizeErrorUserMessage(status: number, finJson: OtcFinalizeJson): str
   if (status === 404 || raw === 'Not Found') {
     return 'Finalize returned 404 (often Cloudflare rootrecord-primary in front of /api with no handler). Fix: redeploy Next so the route exists, or set SOLANA_TOOLS_API_FORWARD_URL on that Worker to your Vercel app origin (no trailing slash), redeploy the Worker, then Retry finalize.';
   }
-  return raw || `Finalize failed (${status})`;
+  return otcWorkerBearerMismatchHint(status, raw) ?? raw?.trim() ?? `Finalize failed (${status})`;
 }
 
 type PrepareCheckoutJson = {
@@ -416,7 +427,11 @@ export default function EcosystemPage() {
       }
 
       if (!prepRes.ok || !prepJson.ok || !prepJson.checkout_tx_b64) {
-        setFulfillMsg(prepJson.detail || `Prepare failed (${prepRes.status})`);
+        setFulfillMsg(
+          otcWorkerBearerMismatchHint(prepRes.status, prepJson.detail) ??
+            prepJson.detail ??
+            `Prepare failed (${prepRes.status})`,
+        );
         return;
       }
 
