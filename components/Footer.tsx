@@ -60,6 +60,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/my-actions" className="hover:text-sol-green">
+                  My actions
+                </Link>
+              </li>
+              <li>
                 <Link href="/pricing" className="hover:text-sol-green">
                   Pricing
                 </Link>

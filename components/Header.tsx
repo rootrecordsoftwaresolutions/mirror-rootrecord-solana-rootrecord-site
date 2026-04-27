@@ -13,6 +13,7 @@ const NAV = [
   { href: '/contracts', label: 'Contracts' },
   { href: '/token-stats', label: 'Token Stats' },
   { href: '/bulk', label: 'Bulk SOL' },
+  { href: '/my-actions', label: 'My Actions' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
 ];
