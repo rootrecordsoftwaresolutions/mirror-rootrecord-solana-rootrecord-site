@@ -181,7 +181,7 @@ export function verifyOtcPaymentTx(params: {
   return { ok: true, receivedSol: 0n, receivedUsdc: got };
 }
 
-async function workerOtcReserve(body: {
+export async function workerOtcReserve(body: {
   payment_tx_signature: string;
   buyer: string;
   token_mint: string;
@@ -202,7 +202,7 @@ async function workerOtcReserve(body: {
   return { ok: true };
 }
 
-async function workerOtcRelease(payment_tx_signature: string): Promise<void> {
+export async function workerOtcRelease(payment_tx_signature: string): Promise<void> {
   try {
     await fetchSolanaWorker('/api/solana-site/ecosystem-otc-release', { payment_tx_signature });
   } catch {
@@ -210,7 +210,7 @@ async function workerOtcRelease(payment_tx_signature: string): Promise<void> {
   }
 }
 
-async function workerOtcComplete(payment_tx_signature: string, out_tx: string): Promise<void> {
+export async function workerOtcComplete(payment_tx_signature: string, out_tx: string): Promise<void> {
   await fetchSolanaWorker('/api/solana-site/ecosystem-otc-complete', {
     payment_tx_signature,
     out_tx,
@@ -218,7 +218,7 @@ async function workerOtcComplete(payment_tx_signature: string, out_tx: string): 
 }
 
 /** Ledger USDC for initial seed (D1 bot feed); best-effort. */
-async function logUsdcDeferredSeedLedger(params: {
+export async function logUsdcDeferredSeedLedger(params: {
   payment_tx: string;
   fulfill_tx: string;
   buyer: string;

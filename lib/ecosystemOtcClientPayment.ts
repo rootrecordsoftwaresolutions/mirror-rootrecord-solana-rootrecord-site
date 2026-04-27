@@ -1,6 +1,7 @@
 import {
   PublicKey,
   SystemProgram,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
   type Connection,
@@ -16,6 +17,17 @@ import {
 
 import { ecosystemOtcUsdcMint } from '@/lib/ecosystemOtcConstants';
 
+/** Same on-chain memo program as referral tags (UTF-8 payload; visible in wallets / explorers). */
+const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
+const MEMO_MAX_UTF8_BYTES = 566;
+
+/** UTF-8 memo visible in wallets (same program as referral memos). */
+export function ecosystemOtcMemoInstruction(utf8: string): TransactionInstruction | null {
+  const data = Buffer.from(utf8, 'utf8');
+  if (data.length > MEMO_MAX_UTF8_BYTES) return null;
+  return new TransactionInstruction({ programId: MEMO_PROGRAM_ID, keys: [], data });
+}
+
 export type OtcClientPaymentParams = {
   connection: Connection;
   buyer: PublicKey;
@@ -23,6 +35,8 @@ export type OtcClientPaymentParams = {
   payWith: 'SOL' | 'USDC';
   solLamports: bigint;
   usdcMicro: bigint;
+  /** Shown in wallet as a memo instruction (incoming SPL is a separate server tx). */
+  memoUtf8?: string;
 };
 
 export type OtcClientPaymentBuilt = {
@@ -37,18 +51,21 @@ export type OtcClientPaymentBuilt = {
 export async function buildOtcTreasuryPaymentTx(
   params: OtcClientPaymentParams,
 ): Promise<OtcClientPaymentBuilt> {
-  const { connection, buyer, treasury, payWith, solLamports, usdcMicro } = params;
+  const { connection, buyer, treasury, payWith, solLamports, usdcMicro, memoUtf8 } = params;
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
   if (payWith === 'SOL') {
     if (solLamports <= 0n) throw new Error('Invalid SOL amount');
-    const ixs = [
+    const ixs: TransactionInstruction[] = [];
+    const memoIx = memoUtf8 ? ecosystemOtcMemoInstruction(memoUtf8.trim()) : null;
+    if (memoIx) ixs.push(memoIx);
+    ixs.push(
       SystemProgram.transfer({
         fromPubkey: buyer,
         toPubkey: treasury,
         lamports: solLamports,
       }),
-    ];
+    );
     const msg = new TransactionMessage({
       payerKey: buyer,
       recentBlockhash: blockhash,
@@ -70,7 +87,9 @@ export async function buildOtcTreasuryPaymentTx(
   const sourceAta = await getAssociatedTokenAddress(mintPk, buyer, false, tokenProgramId);
   const destAta = await getAssociatedTokenAddress(mintPk, treasury, false, tokenProgramId);
 
-  const ixs = [];
+  const ixs: TransactionInstruction[] = [];
+  const memoIx = memoUtf8 ? ecosystemOtcMemoInstruction(memoUtf8.trim()) : null;
+  if (memoIx) ixs.push(memoIx);
 
   const srcInfo = await connection.getAccountInfo(sourceAta);
   if (!srcInfo) {
