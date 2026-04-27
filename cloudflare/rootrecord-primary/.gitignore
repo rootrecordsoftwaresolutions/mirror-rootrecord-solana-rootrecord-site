@@ -2,3 +2,4 @@ node_modules/
 .wrangler/
 .dev.vars
 .deploy-jwt
+.deploy-solana-site-log-secret

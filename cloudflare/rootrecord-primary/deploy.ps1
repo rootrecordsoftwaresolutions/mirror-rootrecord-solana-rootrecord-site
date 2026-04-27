@@ -82,5 +82,23 @@ if ($stripeSecret -match '^sk_(live|test)_' -and $stripeSecret.Length -gt 30) {
   Write-Host "Uploaded STRIPE_SECRET_KEY to Worker (from credentials.env)."
 }
 
+# Bearer for Next.js /api/solana-site/* → Worker (log, ecosystem-otc-history, etc.). Same value as Vercel SOLANA_SITE_LOG_SECRET.
+$solanaLogFile = Join-Path $PSScriptRoot ".deploy-solana-site-log-secret"
+$solanaLogSecret = [string]$env:SOLANA_SITE_LOG_SECRET
+if (-not $solanaLogSecret -or $solanaLogSecret.Length -lt 16) {
+  if (Test-Path -LiteralPath $solanaLogFile) {
+    $solanaLogSecret = (Get-Content -LiteralPath $solanaLogFile -Raw).Trim()
+  }
+}
+if (-not $solanaLogSecret -or $solanaLogSecret.Length -lt 16) {
+  $bytes = New-Object byte[] 32
+  [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+  $solanaLogSecret = [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+", "").Replace("/", "")
+  Set-Content -LiteralPath $solanaLogFile -Value $solanaLogSecret -NoNewline
+  Write-Host "Generated SOLANA_SITE_LOG_SECRET in .deploy-solana-site-log-secret (gitignored). Add the same value to credentials.env as SOLANA_SITE_LOG_SECRET=... and to Vercel."
+}
+$solanaLogSecret | npx wrangler secret put SOLANA_SITE_LOG_SECRET
+Write-Host "Uploaded SOLANA_SITE_LOG_SECRET to Worker."
+
 npx wrangler d1 migrations apply root-record --remote
 npx wrangler deploy

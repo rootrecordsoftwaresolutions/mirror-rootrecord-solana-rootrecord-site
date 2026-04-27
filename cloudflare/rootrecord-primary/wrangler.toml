@@ -1,5 +1,5 @@
 # Single Worker + single D1 (`root-record` only). Auth lives in this Worker (JWT + license_accounts).
-# Secret: JWT_SECRET (set by deploy.ps1 from ROOTRECORD_PRIMARY_JWT_SECRET or .deploy-jwt).
+# Secrets: JWT_SECRET + SOLANA_SITE_LOG_SECRET (set by deploy.ps1 from credentials.env and/or gitignored .deploy-* files).
 #
 # Cloudflare account: set CLOUDFLARE_ACCOUNT_ID in repo-root credentials.env (loaded by deploy.ps1), or run `wrangler login`.
 # New D1 in a new account: `npx wrangler d1 create root-record` → paste database_id here and in credentials.env (D1_DATABASE_ID) and rootrecord-license/wrangler.toml.
@@ -29,10 +29,12 @@ STRIPE_PUBLISHABLE_KEY = "pk_live_51T3sezIaRpbMiAov6SUJgKLGR1igmRGOYg1rY1hKJPAWx
 #   wrangler secret put FCM_SERVICE_ACCOUNT_JSON
 # (paste your Firebase service account JSON — one secret; optional split vars still supported)
 #
-# Solana tools action log (POST /api/solana-site/log from Next.js with Bearer token):
-#   wrangler secret put SOLANA_SITE_LOG_SECRET
-# Apply migrations 0009_solana_site.sql + 0010_solana_site_challenges.sql to D1, then set the same
-# secret in Vercel as SOLANA_SITE_LOG_SECRET and SOLANA_SITE_LOG_URL to this Worker's public URL + `/api/solana-site/log`.
+# Solana site → Worker (Bearer): deploy.ps1 uploads SOLANA_SITE_LOG_SECRET from credentials.env, or generates
+# `.deploy-solana-site-log-secret` (gitignored) on first run — copy that value to Vercel + local Next `.env`.
+# If you already set this secret manually on the Worker, put the same value in credentials.env before running deploy.ps1
+# so it is not regenerated.
+# Manual: wrangler secret put SOLANA_SITE_LOG_SECRET
+# Apply migrations 0009+ to D1; set Vercel SOLANA_SITE_LOG_URL to this Worker + `/api/solana-site/log`.
 #
 # If solana.rootrecord.info routes /api/* through this Worker, OTC routes live on Next/Vercel only.
 # Forward them: wrangler secret put SOLANA_TOOLS_API_FORWARD_URL
