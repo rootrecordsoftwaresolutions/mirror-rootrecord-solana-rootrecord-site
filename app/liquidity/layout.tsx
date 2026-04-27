@@ -11,7 +11,7 @@ const launchMetaFixed = (
 
 export const metadata: Metadata = {
   title: 'Liquidity (Raydium CPMM)',
-  description: `Create a Raydium CPMM pool or add liquidity to an existing one. On mainnet, new pool setup is ~${launchMetaFixed} SOL plus liquidity (same as Raydium).`,
+  description: `Create a Raydium CPMM pool, add liquidity, or remove liquidity (burn LP). On mainnet, new pool setup is ~${launchMetaFixed} SOL plus liquidity (same as Raydium).`,
 };
 
 export default function LiquidityLayout({

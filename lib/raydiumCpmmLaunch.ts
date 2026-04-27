@@ -31,6 +31,7 @@ import {
   confirmSignatureSucceeded,
   ADD_LIQUIDITY_FEE_SOL,
   LAUNCH_FEE_SOL,
+  REMOVE_LIQUIDITY_FEE_SOL,
 } from '@/lib/solana';
 
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
@@ -168,6 +169,13 @@ async function sendAddLiquidityPlatformFee(
   return sendPlatformFeeSol(wallet, ADD_LIQUIDITY_FEE_SOL, referrer);
 }
 
+async function sendRemoveLiquidityPlatformFee(
+  wallet: WalletContextState,
+  referrer: string | null | undefined,
+): Promise<string | null> {
+  return sendPlatformFeeSol(wallet, REMOVE_LIQUIDITY_FEE_SOL, referrer);
+}
+
 /**
  * Create a Raydium CPMM pool: your base mint vs SOL, USDC, or another SPL / Token-2022 mint.
  * Optionally sends a prior legacy tx for the RootRecord launch fee + referral memo.
@@ -264,6 +272,55 @@ export async function addCpmmLiquidity(
   });
   const { txId } = await execute({ sendAndConfirm: true });
   if (!txId) throw new Error('Add-liquidity transaction was not submitted');
+  await confirmSignatureSucceeded(txId, 'confirmed');
+  return { feeTxId, txId };
+}
+
+/** Remove liquidity by burning LP from an existing Raydium CPMM pool. */
+export async function removeCpmmLiquidity(
+  wallet: WalletContextState,
+  params: {
+    poolId: string;
+    /** Human amount of LP tokens to burn (pool LP mint decimals). */
+    lpAmountHuman: string;
+    slippageBps?: number;
+    referrer?: string | null;
+  },
+): Promise<{ feeTxId: string | null; txId: string }> {
+  const feeTxId = await sendRemoveLiquidityPlatformFee(wallet, params.referrer);
+
+  const { raydium } = await loadRaydiumForOwner(wallet);
+  const trimmed = params.poolId.trim();
+  if (!trimmed) throw new Error('Enter a pool address');
+  try {
+    new PublicKey(trimmed);
+  } catch {
+    throw new Error('Invalid pool address');
+  }
+  const list = await raydium.api.fetchPoolById({ ids: trimmed });
+  const poolInfo = list.find(isCpmmPoolItem);
+  if (!poolInfo) {
+    throw new Error(
+      'Pool not found or not a Raydium CPMM pool on this cluster — check the address and network.',
+    );
+  }
+  const dec = poolInfo.lpMint.decimals;
+  const raw = decimalStringToRawAmount(params.lpAmountHuman.trim(), dec);
+  const lpAmount = new BN(raw.toString());
+  if (lpAmount.lte(new BN(0))) {
+    throw new Error('Enter a positive LP amount');
+  }
+  const bps = params.slippageBps ?? 50;
+  const slippage = new Percent(new BN(bps), new BN(10_000));
+
+  const { execute } = await raydium.cpmm.withdrawLiquidity({
+    poolInfo,
+    lpAmount,
+    slippage,
+    txVersion: TxVersion.V0,
+  });
+  const { txId } = await execute({ sendAndConfirm: true });
+  if (!txId) throw new Error('Remove-liquidity transaction was not submitted');
   await confirmSignatureSucceeded(txId, 'confirmed');
   return { feeTxId, txId };
 }

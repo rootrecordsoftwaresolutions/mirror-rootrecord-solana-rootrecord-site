@@ -92,6 +92,12 @@ export const ADD_LIQUIDITY_FEE_SOL = parseFeeSol(
   0.005,
 );
 
+/** RootRecord service charge for removing liquidity from an existing CPMM pool (first tx, before Raydium withdraw). */
+export const REMOVE_LIQUIDITY_FEE_SOL = parseFeeSol(
+  process.env.NEXT_PUBLIC_REMOVE_LIQUIDITY_FEE_SOL,
+  0.005,
+);
+
 /** Raydium mainnet CPMM pool-creation fee (SOL); informational — from Raydium public `createPoolFee`. */
 export const RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL = 0.15;
 
