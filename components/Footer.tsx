@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
+import { FooterMyActionsLink } from '@/components/FooterMyActionsLink';
 import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
 
 export function Footer() {
@@ -59,11 +60,7 @@ export function Footer() {
                   Bulk SOL
                 </Link>
               </li>
-              <li>
-                <Link href="/my-actions" className="hover:text-sol-green">
-                  My actions
-                </Link>
-              </li>
+              <FooterMyActionsLink />
               <li>
                 <Link href="/pricing" className="hover:text-sol-green">
                   Pricing

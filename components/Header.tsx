@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { cn } from '@/lib/utils';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { ReferralPill } from '@/components/ReferralPill';
@@ -20,6 +21,8 @@ const NAV = [
 
 export function Header() {
   const pathname = usePathname();
+  const { connected } = useWallet();
+  const nav = NAV.filter((n) => n.href !== '/my-actions' || connected);
   return (
     <header
       data-testid="site-header"
@@ -43,7 +46,7 @@ export function Header() {
           data-testid="primary-nav"
           className="hidden md:flex items-center gap-7 text-sm"
         >
-          {NAV.map((n) => {
+          {nav.map((n) => {
             const active =
               pathname === n.href ||
               (n.href === '/token-stats' && pathname.startsWith('/ref/'));
