@@ -17,7 +17,10 @@ import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { explorerUrl } from '@/lib/solana';
 
 type ActionRow = {
-  id: number;
+  /** `solana_site.id` or synthetic `otc:<payment_sig>`. */
+  id: number | string;
+  /** Present when row comes from `ecosystem_otc_fulfillments` (merged in Worker). */
+  source?: 'site' | 'otc_purchase';
   created_at: string;
   wallet: string;
   action: string;
@@ -45,6 +48,17 @@ function formatMeta(meta: unknown): string {
     }
   }
   return String(meta);
+}
+
+function actionDisplayLabel(row: ActionRow): string {
+  if (row.source === 'otc_purchase' || row.action === 'otc_checkout') {
+    return 'OTC purchase';
+  }
+  return row.action;
+}
+
+function rowReactKey(row: ActionRow): string {
+  return typeof row.id === 'number' ? `site-${row.id}` : String(row.id);
 }
 
 export default function MyActionsPage() {
@@ -133,7 +147,8 @@ export default function MyActionsPage() {
           <h1 className="font-display text-4xl md:text-5xl tracking-tight">My actions</h1>
           <p className="mt-4 text-muted-foreground max-w-xl leading-relaxed">
             We never see your private key. You sign a short text once per refresh to prove you
-            control the wallet — then we show rows we previously logged for that address.
+            control the wallet — then we show tool activity and{' '}
+            <strong className="text-foreground">ecosystem OTC purchases</strong> for that address.
           </p>
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3 shrink-0">
@@ -177,8 +192,8 @@ export default function MyActionsPage() {
             </p>
           ) : rows.length === 0 ? (
             <p className="px-6 py-10 text-sm text-muted-foreground text-center">
-              No logged actions for this wallet yet. Create a token, use tools, liquidity, or bulk
-              sends — then try again.
+              No logged activity for this wallet yet. Use create, tools, liquidity, bulk sends, or
+              an ecosystem OTC checkout — then try again.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -194,11 +209,11 @@ export default function MyActionsPage() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id} className="border-t border-border/70">
+                    <tr key={rowReactKey(r)} className="border-t border-border/70">
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap align-top">
                         {r.created_at}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs align-top">{r.action}</td>
+                      <td className="px-4 py-3 font-mono text-xs align-top">{actionDisplayLabel(r)}</td>
                       <td className="px-4 py-3 text-xs align-top text-muted-foreground">
                         {r.route || '—'}
                       </td>

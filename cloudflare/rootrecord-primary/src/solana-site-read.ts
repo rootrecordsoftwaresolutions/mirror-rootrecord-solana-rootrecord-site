@@ -191,7 +191,7 @@ export async function handleSolanaSiteMyActions(request: Request, env: SolanaSit
       return json({ ok: false, detail: "Challenge missing, expired, or already used" }, 401);
     }
 
-    const { results } = await env.DB.prepare(
+    const siteQ = await env.DB.prepare(
       `SELECT id, created_at, wallet, action, network, route, signature, metadata
        FROM solana_site
        WHERE wallet = ?
@@ -210,7 +210,43 @@ export async function handleSolanaSiteMyActions(request: Request, env: SolanaSit
         metadata: string | null;
       }>();
 
-    const actions = (results || []).map((r) => ({
+    const otcQ = await env.DB.prepare(
+      `SELECT payment_tx_signature, buyer, token_mint, amount_raw, pay_with, out_tx, created_at,
+              liquidity_tx, quote_received_raw, tokens_whole, token_decimals
+       FROM ecosystem_otc_fulfillments
+       WHERE buyer = ?
+       ORDER BY datetime(created_at) DESC
+       LIMIT ?`,
+    )
+      .bind(wallet, limit)
+      .all<{
+        payment_tx_signature: string;
+        buyer: string;
+        token_mint: string;
+        amount_raw: string;
+        pay_with: string;
+        out_tx: string | null;
+        created_at: string;
+        liquidity_tx: string | null;
+        quote_received_raw: string | null;
+        tokens_whole: string | null;
+        token_decimals: string | null;
+      }>();
+
+    type MyActionRow = {
+      source: "site" | "otc_purchase";
+      id: number | string;
+      created_at: string;
+      wallet: string;
+      action: string;
+      network: string | null;
+      route: string | null;
+      signature: string | null;
+      metadata: unknown;
+    };
+
+    const siteRows: MyActionRow[] = (siteQ.results || []).map((r) => ({
+      source: "site",
       id: r.id,
       created_at: r.created_at,
       wallet: r.wallet,
@@ -220,6 +256,41 @@ export async function handleSolanaSiteMyActions(request: Request, env: SolanaSit
       signature: r.signature,
       metadata: r.metadata ? safeJsonParse(r.metadata) : null,
     }));
+
+    const otcRows: MyActionRow[] = (otcQ.results || []).map((r) => ({
+      source: "otc_purchase",
+      id: `otc:${r.payment_tx_signature}`,
+      created_at: r.created_at,
+      wallet: r.buyer,
+      action: "otc_checkout",
+      network: null,
+      route: "/ecosystem",
+      signature: r.payment_tx_signature,
+      metadata: {
+        kind: "otc_purchase",
+        token_mint: r.token_mint,
+        amount_raw: r.amount_raw,
+        pay_with: r.pay_with,
+        out_tx: r.out_tx,
+        liquidity_tx: r.liquidity_tx,
+        quote_received_raw: r.quote_received_raw,
+        tokens_whole: r.tokens_whole,
+        token_decimals: r.token_decimals,
+      },
+    }));
+
+    const rowTimeMs = (created: string): number => {
+      const s = created.trim();
+      const isoLike = s.includes("T") ? s : s.replace(" ", "T");
+      const withZ = isoLike.endsWith("Z") ? isoLike : `${isoLike}Z`;
+      let ms = Date.parse(withZ);
+      if (!Number.isFinite(ms)) ms = Date.parse(s);
+      return Number.isFinite(ms) ? ms : 0;
+    };
+
+    const actions = [...siteRows, ...otcRows]
+      .sort((a, b) => rowTimeMs(b.created_at) - rowTimeMs(a.created_at))
+      .slice(0, limit);
 
     return json({ ok: true, actions }, 200);
   } catch (e) {
