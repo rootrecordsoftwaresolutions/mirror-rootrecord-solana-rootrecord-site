@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
   OTC_USD_PER_TOKEN,
+  ecosystemOtcQuoteRetainPercentLabel,
   ecosystemOtcUsdcAutoLpEnabled,
   ecosystemOtcUsdcLpResumeLabel,
 } from '@/lib/ecosystemOtcConstants';
@@ -26,6 +27,9 @@ import { getConnection } from '@/lib/solana';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 
 const QUOTE_TTL_MS = 30_000;
+
+const OTC_POOL_ID = process.env.NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID?.trim() ?? '';
+const OTC_POOL_SOLSCAN_HREF = OTC_POOL_ID ? `https://solscan.io/account/${OTC_POOL_ID}` : '';
 
 function base64ToUint8Array(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -573,37 +577,174 @@ export default function EcosystemPage() {
           Program (unlisted)
         </div>
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">
-          Liquidity &amp; ecosystem transparency
+          RootRecord (ROOTR) — ecosystem &amp; OTC
         </h1>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          This page documents how RootRecord Solana tooling ties on-chain activity to deeper pool
-          liquidity. It is not linked in the main navigation while we iterate.
+          One-page overview: how the token is meant to work, where fees go, and the in-house
+          treasury checkout below. Not linked in the main nav while we iterate.
         </p>
       </div>
 
-      <Card>
+      <Card id="tokenomics" className="scroll-mt-24">
         <CardHeader>
-          <CardTitle className="text-lg">Treasury &amp; pool depth</CardTitle>
-          <CardDescription className="leading-relaxed">
-            Small, capped mirror trades on our Raydium CPMM pool (Jupiter for execution) follow real
-            flow instead of moving the book in one hit.
+          <CardTitle className="text-xl md:text-2xl">RootRecord (ROOTR) — tokenomics</CardTitle>
+          <CardDescription className="text-base leading-relaxed">
+            From the developer: how fees, treasury, the Raydium pool, and OTC fit together. This is
+            descriptive only — <strong className="text-foreground">not financial advice</strong>. Do
+            your own research.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
-          <p>
-            <strong className="text-foreground">Site fees</strong> from{' '}
-            <Link href="/" className="text-sol-green hover:underline">
-              solana.rootrecord.info
-            </Link>{' '}
-            (create, liquidity, bulk, etc.) sit in treasury; past USD thresholds we add{' '}
-            <strong className="text-foreground">TOKEN + quote</strong> to the same pool—same pattern
-            as the Liquidity page.
-          </p>
-          <p>
-            <strong className="text-foreground">Mirror profits</strong> follow the same idea:
-            limited sells, slower buy-backs when we already hold a lot, and batched trades so costs
-            stay sane.
-          </p>
+        <CardContent className="text-sm text-muted-foreground space-y-8 leading-relaxed">
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Purpose</h2>
+            <p>
+              ROOTR is meant to stand for <strong className="text-foreground">growth</strong> and
+              to build value for customers and holders—not a memecoin, but a{' '}
+              <strong className="text-foreground">utility</strong> layer on{' '}
+              <a
+                href="https://solana.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sol-green hover:underline"
+              >
+                Solana
+              </a>{' '}
+              that backs RootRecord Software Solutions operations.
+            </p>
+            <p>
+              Whenever our{' '}
+              <Link href="/" className="text-sol-green hover:underline">
+                Solana tools
+              </Link>{' '}
+              are used, small fees are collected on each action. They are designed to stay cheap;
+              over time they add up. The goal is a system where value accrues to the community and
+              holders—not only to the developer.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Key terms</h2>
+            <ul className="list-disc pl-5 space-y-2 marker:text-muted-foreground">
+              <li>
+                <a href="#ecosystem-treasury" className="text-sol-green hover:underline font-medium">
+                  Treasury
+                </a>{' '}
+                — automated wallet(s) that hold tokens and sale proceeds until they are deployed
+                (OTC, LP adds, reserves).
+              </li>
+              <li>
+                {OTC_POOL_SOLSCAN_HREF ? (
+                  <a
+                    href={OTC_POOL_SOLSCAN_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sol-green hover:underline font-medium"
+                  >
+                    Liquidity pool (LP)
+                  </a>
+                ) : (
+                  <Link href="/liquidity" className="text-sol-green hover:underline font-medium">
+                    Liquidity pool (LP)
+                  </Link>
+                )}{' '}
+                — the public Raydium CPMM pool where paired ROOTR + quote sit and trade.
+              </li>
+              <li>
+                <Link href="/docs" className="text-sol-green hover:underline font-medium">
+                  Operations / stabilization
+                </Link>{' '}
+                — automated flows (including small, capped mirror-style trades on the pool, often
+                via Jupiter) that react gradually instead of printing everything in one block. See{' '}
+                <Link href="/docs" className="text-sol-green hover:underline">
+                  Docs
+                </Link>{' '}
+                for product-level detail.
+              </li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Fees → liquidity</h2>
+            <p>
+              Fees from RootRecord services on{' '}
+              <Link href="/" className="text-sol-green hover:underline">
+                solana.rootrecord.info
+              </Link>{' '}
+              (token create, metadata,{' '}
+              <Link href="/liquidity" className="text-sol-green hover:underline">
+                liquidity
+              </Link>
+              , bulk sends, and related flows) are routed into automation that prioritizes growing
+              the Raydium LP—same mental model as using the Liquidity page: deposit project token +
+              quote so TVL reflects real usage. Additional funds from other products can be
+              transferred in when the operator chooses.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Treasury &amp; long-term plan</h2>
+            <p>
+              The treasury holds unused ROOTR and related reserves; it is the largest inventory
+              account and funds fair, systemic growth. It can also hold LP positions—the keys to
+              withdrawing liquidity when needed for infrastructure, servers, and longer-term goals
+              (for example off-grid property work the team has described publicly).
+            </p>
+            <p>
+              Long term, the aim is to <strong className="text-foreground">distribute tokens</strong>{' '}
+              and grow the pool to a solid baseline. After treasury inventory is fully deployed into
+              distribution / LP as planned, system emphasis can shift from “add to LP” toward{' '}
+              <strong className="text-foreground">buybacks</strong> funded by ongoing usage—so
+              continued tool use supports holders while others trade in the open pool.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Peg &amp; pool stabilization</h2>
+            <p>
+              While minted supply is still being distributed or placed into the LP, an in-house
+              program targets a <strong className="text-foreground">flat OTC reference</strong> of{' '}
+              <strong className="text-foreground">${OTC_USD_PER_TOKEN} USD per whole token</strong>{' '}
+              on the treasury checkout below. Directionally: when buys hit the LP, treasury-side
+              flows can sell into strength; when sells hit the LP, flows can buy to support the
+              reference—always subject to inventory, caps, and on-chain reality (not a guarantee of
+              price).
+            </p>
+            <p>
+              Small, capped mirror-style activity on the Raydium CPMM (often executed with Jupiter)
+              is designed to follow real flow instead of moving the book in a single print. Mirror
+              profits are treated like other treasury resources: limited sells, throttled buy-backs
+              when inventory is already large, and batched trades so RPC and swap costs stay
+              predictable.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">OTC checkout (below)</h2>
+            <p>
+              The in-house transfer tool offers ROOTR at a predictable USD rate for whole tokens.
+              If the open market is far from that reference, arbitrageurs may appear—that can help
+              realign pricing when automation alone cannot pin the pool.
+            </p>
+            <p>
+              On each OTC checkout, received SOL/USDC is split for automation: about{' '}
+              <strong className="text-foreground">{ecosystemOtcQuoteRetainPercentLabel()}</strong> of
+              the quote can remain in treasury for fees, reserves, and stabilization; the rest
+              follows the deployment&apos;s CPMM add-liquidity path (see site notices for USDC seed
+              windows). Numbers are enforced on-chain and in worker logic—not a promise of a fixed
+              APY.
+            </p>
+            <p className="text-xs text-muted-foreground/90 border-t border-border/60 pt-4">
+              Token mint on Solana:{' '}
+              <a
+                href={`https://solscan.io/token/${ECOSYSTEM_OTC_TOKEN_MINT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-sol-green hover:underline break-all"
+              >
+                {ECOSYSTEM_OTC_TOKEN_MINT}
+              </a>
+            </p>
+          </section>
         </CardContent>
       </Card>
 
@@ -621,7 +762,7 @@ export default function EcosystemPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2" id="ecosystem-treasury">
             <h3 className="text-sm font-medium text-foreground">Treasury wallet</h3>
             {treasuryAddr ? (
               <>
