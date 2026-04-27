@@ -1,0 +1,35 @@
+# Single Worker + single D1 (`root-record` only). Auth lives in this Worker (JWT + license_accounts).
+# Secret: JWT_SECRET (set by deploy.ps1 from ROOTRECORD_PRIMARY_JWT_SECRET or .deploy-jwt).
+#
+# Cloudflare account: set CLOUDFLARE_ACCOUNT_ID in repo-root credentials.env (loaded by deploy.ps1), or run `wrangler login`.
+# New D1 in a new account: `npx wrangler d1 create root-record` → paste database_id here and in credentials.env (D1_DATABASE_ID) and rootrecord-license/wrangler.toml.
+name = "rootrecord-primary"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "root-record"
+database_id = "0b49c598-1f91-4a09-84a8-6ba8241c6df3"
+
+[vars]
+SITE_URL = "https://rootrecord.info"
+# Dashboard D1 cache: seconds before refetching NWS/USGS for same user + grid.
+WEATHER_DATA_TTL_SEC = "600"
+# Stripe Checkout: create a Product + recurring Price in Dashboard → copy Price id (`price_...`).
+# Also run: wrangler secret put STRIPE_SECRET_KEY  (use `sk_live_...` or `sk_test_...` from credentials.env via deploy.ps1)
+# Stripe webhooks live on license: https://rootrecord-license.rootrecord.workers.dev/v1/billing/webhook
+STRIPE_PRICE_ID = "price_REPLACE_WITH_YOUR_STRIPE_PRICE_ID"
+# Stripe Pricing Table (same ids as rootrecord-website Pages Billing; optional here for parity / future use).
+STRIPE_PRICING_TABLE_ID = "prctbl_1TQJ0kIaRpbMiAovAUe3X3QJ"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51T3sezIaRpbMiAov6SUJgKLGR1igmRGOYg1rY1hKJPAWxLXDgJR7kRNSBSM8sJ2Wat1zuC56iE4TCTyPfqmEfTT600cR21LwYA"
+
+# All-device FCM broadcast (POST /api/internal/push-broadcast):
+#   wrangler secret put RR_PUSH_ADMIN_SECRET
+#   wrangler secret put FCM_SERVICE_ACCOUNT_JSON
+# (paste your Firebase service account JSON — one secret; optional split vars still supported)
+#
+# Solana tools action log (POST /api/solana-site/log from Next.js with Bearer token):
+#   wrangler secret put SOLANA_SITE_LOG_SECRET
+# Apply migrations 0009_solana_site.sql + 0010_solana_site_challenges.sql to D1, then set the same
+# secret in Vercel as SOLANA_SITE_LOG_SECRET and SOLANA_SITE_LOG_URL to this Worker's public URL + `/api/solana-site/log`.

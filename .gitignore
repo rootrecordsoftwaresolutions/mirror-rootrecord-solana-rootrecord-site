@@ -20,3 +20,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Cloudflare Worker mirror (npm in that folder is local only)
+cloudflare/rootrecord-primary/node_modules/
+cloudflare/rootrecord-primary/.wrangler/
