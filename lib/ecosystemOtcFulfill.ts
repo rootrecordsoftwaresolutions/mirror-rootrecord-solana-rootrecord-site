@@ -245,11 +245,16 @@ async function logUsdcDeferredSeedLedger(params: {
   }
 }
 
+/** Max relative drift between client-locked SOL/USD and live Jupiter (anti-gaming). */
+const QUOTED_SOL_USD_MAX_REL_DRIFT = 0.05;
+
 export type FulfillOtcInput = {
   buyer_wallet: string;
   pay_with: 'SOL' | 'USDC';
   tokens_whole: number;
   quoted_at_ms: number;
+  /** SOL/USD shown when the user built the payment tx; used for min SOL/USDC (must track live within QUOTED_SOL_USD_MAX_REL_DRIFT). */
+  quoted_sol_usd: number;
   payment_tx_signature: string;
 };
 
@@ -302,6 +307,15 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
     };
   }
 
+  if (buyer.equals(treasury.publicKey)) {
+    return {
+      ok: false,
+      status: 400,
+      detail:
+        'Connected wallet cannot be the OTC treasury. Use another wallet to pay and receive tokens.',
+    };
+  }
+
   const mintPk = new PublicKey(ECOSYSTEM_OTC_TOKEN_MINT);
   const connection = getConnection();
 
@@ -316,7 +330,21 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
     };
   }
 
-  const rounded = computeOtcPayAmounts(input.tokens_whole, prices.solUsd, prices.usdcUsd);
+  const q = input.quoted_sol_usd;
+  if (!Number.isFinite(q) || q <= 0) {
+    return { ok: false, status: 400, detail: 'Missing or invalid quoted SOL mark.' };
+  }
+  const live = prices.solUsd;
+  const drift = Math.abs(q - live) / live;
+  if (drift > QUOTED_SOL_USD_MAX_REL_DRIFT) {
+    return {
+      ok: false,
+      status: 400,
+      detail: 'SOL mark moved vs your quote. Refresh prices and try again within the window.',
+    };
+  }
+
+  const rounded = computeOtcPayAmounts(input.tokens_whole, q, prices.usdcUsd);
   const minLamports = rounded.solLamports;
   const minUsdcMicro = rounded.usdcMicro;
 

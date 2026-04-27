@@ -75,6 +75,8 @@ type OtcFulfillBody = {
   pay_with: 'SOL' | 'USDC';
   tokens_whole: number;
   quoted_at_ms: number;
+  /** SOL/USD used for the payment tx and min receive check (must match server drift bound). */
+  quoted_sol_usd: number;
   payment_tx_signature: string;
 };
 
@@ -132,8 +134,9 @@ async function postFulfillOtc(
   return { ok: true, json: j };
 }
 
-const TELEMETRY_404_HELP =
-  'No telemetry API (404). Deploy rootrecord-primary with the ecosystem routes and apply D1 migration 0011 so GET /api/solana-site/ecosystem-bot-events exists.';
+/** Shown when the bot-events upstream is missing or not wired; neutral copy (no deploy/env names). */
+const TELEMETRY_UNAVAILABLE =
+  'No bot events to show yet. This table fills in when live telemetry is connected to the site.';
 
 export default function EcosystemPage() {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
@@ -177,8 +180,9 @@ export default function EcosystemPage() {
           detailStr ||
           bodySnippet ||
           `Could not load bot events (HTTP ${eRes.status}).`;
-        if (eRes.status === 404 || /^not found$/i.test(msg.trim())) {
-          msg = TELEMETRY_404_HELP;
+        const skipped = eJson.skipped === true;
+        if (skipped || eRes.status === 404 || /^not found$/i.test(msg.trim())) {
+          msg = TELEMETRY_UNAVAILABLE;
         }
         setEventsErr(msg);
         setEvents([]);
@@ -245,6 +249,16 @@ export default function EcosystemPage() {
     quoteDeadline != null ? Math.max(0, Math.ceil((quoteDeadline - now) / 1000)) : null;
   const quoteStale = secondsLeft === 0;
 
+  const walletIsTreasury = useMemo(
+    () =>
+      Boolean(
+        publicKey &&
+          treasuryAddr &&
+          publicKey.toBase58() === treasuryAddr.trim(),
+      ),
+    [publicKey, treasuryAddr],
+  );
+
   const otc = useMemo(() => {
     const parsed = parseFloat(tokenAmount.replace(/,/g, ''));
     if (!Number.isFinite(parsed) || parsed <= 0 || !solUsd) {
@@ -286,12 +300,22 @@ export default function EcosystemPage() {
       setFulfillMsg('Treasury is not configured yet.');
       return;
     }
+    if (publicKey.toBase58() === treasuryAddr.trim()) {
+      setFulfillMsg(
+        'Your connected wallet is the OTC treasury. Switch to a different wallet to pay and receive tokens.',
+      );
+      return;
+    }
     if (!signTransaction && !sendTransaction) {
       setFulfillMsg('Your wallet cannot sign transactions from this page.');
       return;
     }
     if (otc.solLamports == null || otc.usdcMicro == null) {
       setFulfillMsg('Invalid amount.');
+      return;
+    }
+    if (solUsd == null || !Number.isFinite(solUsd) || solUsd <= 0) {
+      setFulfillMsg('SOL price not loaded; tap Refresh prices.');
       return;
     }
 
@@ -334,6 +358,7 @@ export default function EcosystemPage() {
         pay_with: payWith,
         tokens_whole: otc.tokensWhole,
         quoted_at_ms: priceFetchedAt,
+        quoted_sol_usd: solUsd,
         payment_tx_signature: paySig,
       };
 
@@ -373,14 +398,26 @@ export default function EcosystemPage() {
     payWith,
     priceFetchedAt,
     publicKey,
+    solUsd,
     quoteStale,
     sendTransaction,
     signTransaction,
     treasuryAddr,
+    walletIsTreasury,
   ]);
 
   const retryClaimOnly = useCallback(async () => {
     if (!retryFulfillBody) return;
+    if (
+      publicKey &&
+      treasuryAddr &&
+      publicKey.toBase58() === treasuryAddr.trim()
+    ) {
+      setFulfillMsg(
+        'Your connected wallet is the OTC treasury. Switch to a different wallet to retry.',
+      );
+      return;
+    }
     setFulfillMsg(null);
     setFulfillLoading(true);
     try {
@@ -401,7 +438,7 @@ export default function EcosystemPage() {
     } finally {
       setFulfillLoading(false);
     }
-  }, [retryFulfillBody, signTransaction]);
+  }, [publicKey, retryFulfillBody, signTransaction, treasuryAddr]);
 
   return (
     <div className="container py-14 md:py-20 max-w-4xl space-y-10">
@@ -578,6 +615,13 @@ export default function EcosystemPage() {
               Connect the wallet that will sign the treasury payment and receive the tokens.
             </p>
           ) : null}
+          {walletIsTreasury ? (
+            <p className="text-sm text-destructive leading-relaxed">
+              This wallet is the deposit treasury. OTC needs a <strong className="text-foreground">different</strong>{' '}
+              wallet to send SOL or USDC and receive the project tokens; paying from the treasury
+              only pays the network fee and does not credit a purchase.
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" size="sm" onClick={() => void refreshPrices()}>
               Refresh prices
@@ -589,6 +633,7 @@ export default function EcosystemPage() {
                 fulfillLoading ||
                 !treasuryAddr ||
                 !publicKey ||
+                walletIsTreasury ||
                 quoteStale ||
                 otc.tokensWhole == null ||
                 priceFetchedAt == null
@@ -602,7 +647,7 @@ export default function EcosystemPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={fulfillLoading}
+                disabled={fulfillLoading || walletIsTreasury}
                 onClick={() => void retryClaimOnly()}
               >
                 Retry claim (same payment)
@@ -691,15 +736,22 @@ export default function EcosystemPage() {
         <CardHeader>
           <CardTitle className="text-lg">Bot telemetry (D1)</CardTitle>
           <CardDescription>
-            Latest events ingested from mirror scripts into{' '}
-            <code className="text-xs">ecosystem_bot_events</code>. Each row is append-only.
+            Latest events from pool mirror scripts. Each row is append-only.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {eventsErr ? (
-            <p className="text-sm text-destructive">{eventsErr}</p>
+            <p
+              className={
+                eventsErr === TELEMETRY_UNAVAILABLE
+                  ? 'text-sm text-muted-foreground leading-relaxed'
+                  : 'text-sm text-destructive'
+              }
+            >
+              {eventsErr}
+            </p>
           ) : events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events yet (or Worker env not wired).</p>
+            <p className="text-sm text-muted-foreground">No events yet.</p>
           ) : (
             <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
               <table className="w-full text-sm">

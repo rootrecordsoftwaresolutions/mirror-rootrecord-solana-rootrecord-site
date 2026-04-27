@@ -10,6 +10,7 @@ const BodySchema = z.object({
   pay_with: z.enum(['SOL', 'USDC']),
   tokens_whole: z.number().finite().positive(),
   quoted_at_ms: z.number().finite(),
+  quoted_sol_usd: z.number().finite().positive(),
   payment_tx_signature: z.string().min(80).max(128),
 });
 
