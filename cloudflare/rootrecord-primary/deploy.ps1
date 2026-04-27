@@ -1,11 +1,24 @@
-# Load C:\Users\Admin\RootRecord\credentials.env into process env, then D1 migrate + deploy.
+# Load credentials.env (walk up from this script until RootRecord/credentials.env is found), then D1 migrate + deploy.
 $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
-$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$repoRoot = $null
+$probe = $PSScriptRoot
+for ($i = 0; $i -le 12; $i++) {
+    $tryCred = Join-Path $probe "credentials.env"
+    if (Test-Path -LiteralPath $tryCred) {
+        $repoRoot = $probe
+        break
+    }
+    $parent = Split-Path $probe -Parent
+    if (-not $parent -or $parent -eq $probe) { break }
+    $probe = $parent
+}
+if (-not $repoRoot) {
+    throw "credentials.env not found (searched parents of $PSScriptRoot)."
+}
 $rootCred = Join-Path $repoRoot "credentials.env"
-if (-not (Test-Path -LiteralPath $rootCred)) { throw "Missing credentials file: $rootCred" }
 Get-Content $rootCred | ForEach-Object {
     $line = $_.Trim()
     if (-not $line -or $line.StartsWith("#")) { return }
