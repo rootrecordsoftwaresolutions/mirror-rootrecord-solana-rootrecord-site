@@ -89,7 +89,7 @@ export default function CreateTokenPage() {
       if (logoFile) {
         if (!pinataReady) {
           toast.warning(
-            'Pinata not configured — token will be created without an image. Set PINATA_JWT on the server to enable IPFS uploads.',
+            'IPFS logo upload isn’t available on this deployment — the token will be created without an image.',
           );
         } else {
           setStage('Uploading logo to IPFS…');
@@ -260,10 +260,9 @@ export default function CreateTokenPage() {
         >
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
-            <strong>Heads up:</strong> the platform fee wallet hasn&apos;t been set
-            yet. Token creation will still work — it just won&apos;t charge a
-            platform fee. Set <code>NEXT_PUBLIC_FEE_WALLET</code> in{' '}
-            <code>.env.local</code> to enable monetization.
+            <strong>Heads up:</strong> the platform fee destination isn&apos;t configured
+            on this deployment yet. Token creation still works — it just won&apos;t collect a
+            platform fee until that is enabled.
           </div>
         </div>
       )}

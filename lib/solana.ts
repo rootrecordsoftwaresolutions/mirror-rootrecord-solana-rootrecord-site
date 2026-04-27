@@ -80,11 +80,14 @@ export const ACTION_FEE_SOL = parseFeeSol(
   process.env.NEXT_PUBLIC_ACTION_FEE_SOL,
   0.01,
 );
-/** RootRecord fee for the Raydium pool launch tool (first tx, before pool creation). */
+/** RootRecord service charge for the Raydium pool launch tool (first tx, before pool creation). */
 export const LAUNCH_FEE_SOL = parseFeeSol(
   process.env.NEXT_PUBLIC_LAUNCH_FEE_SOL,
-  0.01,
+  0.05,
 );
+
+/** Raydium mainnet CPMM pool-creation fee (SOL); informational — from Raydium public `createPoolFee`. */
+export const RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL = 0.15;
 
 export function getConnection(): Connection {
   return new Connection(RPC_URL, 'confirmed');

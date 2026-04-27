@@ -24,7 +24,7 @@ const instrument = Instrument_Serif({
 
 const SITE_URL_FALLBACK = 'https://solana.rootrecord.info';
 
-/** NEXT_PUBLIC_SITE_URL must be absolute for metadataBase; host-only values are normalized. */
+/** Public site URL for OpenGraph / metadataBase; host-only values are normalized. */
 function metadataBaseUrl(): URL {
   const trimmed = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (!trimmed) return new URL(SITE_URL_FALLBACK);

@@ -26,6 +26,12 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
+import {
+  LAUNCH_FEE_SOL,
+  RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
+} from '@/lib/solana';
+
+const LAUNCH_POOL_CARD_DESC = `Create a CPMM pool vs SOL, USDC, or another mint from here — same ~${RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL Raydium pool fee as on raydium.io, plus a ${LAUNCH_FEE_SOL} SOL RootRecord service charge (~${(RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL).toFixed(2)} SOL fixed before liquidity).`;
 
 const TOOLS: (
   | {
@@ -107,7 +113,7 @@ const TOOLS: (
   {
     href: '/launch',
     title: 'Launch Raydium pool',
-    desc: 'Create a CPMM pool vs SOL, USDC, or another mint, seed liquidity, and pay a small RootRecord launch fee — without raydium.io.',
+    desc: LAUNCH_POOL_CARD_DESC,
     icon: Rocket,
     tone: 'green',
   },

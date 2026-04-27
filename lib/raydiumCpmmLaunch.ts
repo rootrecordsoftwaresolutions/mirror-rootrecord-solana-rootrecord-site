@@ -31,7 +31,7 @@ const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 
 /** Mainnet USDC (legacy SPL). */
 const MAINNET_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-/** Common devnet USDC mint (override with NEXT_PUBLIC_LAUNCH_USDC_MINT if needed). */
+/** Common devnet USDC mint when no deployment-specific USDC mint is set. */
 const DEVNET_USDC_DEFAULT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEGERXfW9vpM8Xo';
 
 export type CpmmMintPick = {
@@ -41,8 +41,6 @@ export type CpmmMintPick = {
 };
 
 export type LaunchQuoteKind = 'wsol' | 'usdc' | 'custom';
-
-export { LAUNCH_FEE_SOL };
 
 function toRaydiumCluster(): 'mainnet' | 'devnet' {
   return SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet';

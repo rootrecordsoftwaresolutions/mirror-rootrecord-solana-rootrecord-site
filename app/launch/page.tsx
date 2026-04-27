@@ -22,11 +22,15 @@ import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import {
   createCpmmPoolWithQuote,
   explorerUrl,
-  LAUNCH_FEE_SOL,
   type LaunchQuoteKind,
 } from '@/lib/raydiumCpmmLaunch';
 import { getStoredReferrer } from '@/lib/referral';
-import { isFeeWalletConfigured, SOLANA_NETWORK } from '@/lib/solana';
+import {
+  isFeeWalletConfigured,
+  LAUNCH_FEE_SOL,
+  RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
+  SOLANA_NETWORK,
+} from '@/lib/solana';
 
 function LaunchPageInner() {
   const params = useSearchParams();
@@ -106,6 +110,10 @@ function LaunchPageInner() {
   };
 
   const isDevnet = SOLANA_NETWORK === 'devnet';
+  const mainnetFixedTotal =
+    !isDevnet && LAUNCH_FEE_SOL > 0
+      ? RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL
+      : null;
 
   return (
     <div className="container py-14 md:py-20 max-w-2xl">
@@ -122,6 +130,20 @@ function LaunchPageInner() {
         RootRecord fee applies, you sign that transaction first, then sign the Raydium pool
         transaction.
       </p>
+
+      {!isDevnet && LAUNCH_FEE_SOL > 0 && (
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed rounded-lg border border-border bg-ink-700/25 px-4 py-3">
+          <strong className="text-foreground">Mainnet fixed charges (before your liquidity):</strong>{' '}
+          Raydium’s pool-creation fee is about{' '}
+          <strong className="text-foreground">{RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL</strong>{' '}
+          (same on-chain cost as creating the pool on raydium.io). RootRecord adds a{' '}
+          <strong className="text-foreground">{LAUNCH_FEE_SOL} SOL</strong> service charge for
+          this tool — so you’re looking at roughly{' '}
+          <strong className="text-foreground">{mainnetFixedTotal?.toFixed(2)} SOL</strong> in
+          protocol + service fees, plus tiny Solana network fees and whatever liquidity you
+          deposit.
+        </p>
+      )}
 
       <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-ink-700/30 p-4 text-sm text-muted-foreground">
         <Info className="h-4 w-4 mt-0.5 shrink-0 text-sol-purple" />
@@ -143,9 +165,8 @@ function LaunchPageInner() {
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
           <div>
-            Launch fee is set to {LAUNCH_FEE_SOL} SOL but the fee wallet is not configured
-            on this deployment — the fee transaction will be skipped until{' '}
-            <code className="text-xs">NEXT_PUBLIC_FEE_WALLET</code> is set.
+            Launch fee is set to {LAUNCH_FEE_SOL} SOL but no fee destination is configured on
+            this deployment — the fee transaction will be skipped until that is enabled.
           </div>
         </div>
       )}
@@ -159,12 +180,25 @@ function LaunchPageInner() {
                 New CPMM pool
               </CardTitle>
               <CardDescription className="mt-2">
-                RootRecord launch fee:{' '}
+                Service charge:{' '}
                 <strong className="text-foreground">
                   {LAUNCH_FEE_SOL > 0 ? `${LAUNCH_FEE_SOL} SOL` : 'none'}
                 </strong>{' '}
-                (when fee wallet is configured). Mint order for the pool is handled
-                automatically.
+                (when fee wallet is configured).
+                {!isDevnet && mainnetFixedTotal != null ? (
+                  <>
+                    {' '}
+                    On mainnet, Raydium’s pool-creation fee (~
+                    {RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL} SOL) plus this charge is about{' '}
+                    <strong className="text-foreground">
+                      {mainnetFixedTotal.toFixed(2)} SOL
+                    </strong>{' '}
+                    before your liquidity.
+                  </>
+                ) : isDevnet ? (
+                  <> Devnet Raydium fees differ; check your simulate result before signing.</>
+                ) : null}{' '}
+                Mint order for the pool is handled automatically.
               </CardDescription>
             </div>
             <WalletMultiButton />
@@ -198,10 +232,6 @@ function LaunchPageInner() {
               <option value="usdc">USDC</option>
               <option value="custom">Other token (mint)</option>
             </select>
-            <span className="text-[11px] text-muted-foreground">
-              USDC uses the standard mint for this cluster (override with{' '}
-              <code className="text-[10px]">NEXT_PUBLIC_LAUNCH_USDC_MINT</code> if needed).
-            </span>
           </div>
 
           {quoteKind === 'custom' && (

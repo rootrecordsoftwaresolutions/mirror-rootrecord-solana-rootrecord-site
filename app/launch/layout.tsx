@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Launch pool (Raydium CPMM)',
   description:
-    'Create a Raydium constant-product pool for your token vs SOL, USDC, or another mint and seed liquidity — with an optional RootRecord launch fee.',
+    'Create a Raydium CPMM pool vs SOL, USDC, or another mint. Same ~0.15 SOL Raydium pool fee as on raydium.io, plus a 0.05 SOL RootRecord service charge (~0.20 SOL fixed before liquidity on mainnet).',
 };
 
 export default function LaunchLayout({ children }: { children: React.ReactNode }) {
