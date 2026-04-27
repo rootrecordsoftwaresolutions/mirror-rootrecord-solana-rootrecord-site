@@ -3,6 +3,26 @@ export const ECOSYSTEM_OTC_TOKEN_MINT =
   process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
   '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT';
 
+/** Raydium CPMM pool state (Solscan account). */
+export const ECOSYSTEM_SOLSCAN_CPMM_POOL =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID?.trim() ||
+  'CJPypGffPA7xf9rPy7HhuLQSx7FZUpYgrSXYMuiTHuJr';
+
+/** Treasury wallet shown on ecosystem / tokenomics (Solscan). */
+export const ECOSYSTEM_SOLSCAN_TREASURY =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_SOLSCAN_TREASURY?.trim() ||
+  '3QG6gVk3fdimzQaKX9zf7J6kCs5DRLKg1RNea3VBosDJ';
+
+/** Developer / operations wallet (Solscan). */
+export const ECOSYSTEM_SOLSCAN_DEVELOPER =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_SOLSCAN_DEVELOPER?.trim() ||
+  'HCeCfMAAZeFUaBQrzC2t84myrBnvnb3h8M26k4urv2X1';
+
+export const solscanAccount = (pubkey: string) =>
+  `https://solscan.io/account/${pubkey.trim()}`;
+
+export const solscanToken = (mint: string) => `https://solscan.io/token/${mint.trim()}`;
+
 export const OTC_USD_PER_TOKEN = 0.00001;
 
 const QUOTE_RETAIN_BPS_MAX = 9_999;

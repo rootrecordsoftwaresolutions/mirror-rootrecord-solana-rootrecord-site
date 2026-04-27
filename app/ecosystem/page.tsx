@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { VersionedTransaction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 
@@ -18,18 +17,20 @@ import { Label } from '@/components/ui/label';
 
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
+  ECOSYSTEM_SOLSCAN_CPMM_POOL,
+  ECOSYSTEM_SOLSCAN_DEVELOPER,
+  ECOSYSTEM_SOLSCAN_TREASURY,
   OTC_USD_PER_TOKEN,
   ecosystemOtcQuoteRetainPercentLabel,
   ecosystemOtcUsdcAutoLpEnabled,
   ecosystemOtcUsdcLpResumeLabel,
+  solscanAccount,
+  solscanToken,
 } from '@/lib/ecosystemOtcConstants';
 import { getConnection } from '@/lib/solana';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 
 const QUOTE_TTL_MS = 30_000;
-
-const OTC_POOL_ID = process.env.NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID?.trim() ?? '';
-const OTC_POOL_SOLSCAN_HREF = OTC_POOL_ID ? `https://solscan.io/account/${OTC_POOL_ID}` : '';
 
 function base64ToUint8Array(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -622,38 +623,62 @@ export default function EcosystemPage() {
             <h2 className="text-base font-semibold text-foreground">Key terms</h2>
             <ul className="list-disc pl-5 space-y-2 marker:text-muted-foreground">
               <li>
-                <a href="#ecosystem-treasury" className="text-sol-green hover:underline font-medium">
-                  Treasury
+                <a
+                  href={solscanAccount(ECOSYSTEM_SOLSCAN_TREASURY)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  Treasury wallet
                 </a>{' '}
-                — automated wallet(s) that hold tokens and sale proceeds until they are deployed
-                (OTC, LP adds, reserves).
-              </li>
-              <li>
-                {OTC_POOL_SOLSCAN_HREF ? (
-                  <a
-                    href={OTC_POOL_SOLSCAN_HREF}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sol-green hover:underline font-medium"
-                  >
-                    Liquidity pool (LP)
-                  </a>
-                ) : (
-                  <Link href="/liquidity" className="text-sol-green hover:underline font-medium">
-                    Liquidity pool (LP)
-                  </Link>
-                )}{' '}
-                — the public Raydium CPMM pool where paired ROOTR + quote sit and trade.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">Operations / stabilization</span> —{' '}
-                automated flows (including small, capped mirror-style trades on the pool, often via
-                Jupiter) that react gradually instead of printing everything in one block. More
-                product context lives in{' '}
-                <Link href="/docs" className="text-sol-green hover:underline">
-                  Docs
-                </Link>
+                <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_SOLSCAN_TREASURY})</span>
+                {' — '}
+                holds tokens and sale proceeds until deployed (OTC, LP adds, reserves). Live deposit
+                address for checkout is also shown{' '}
+                <a href="#ecosystem-treasury" className="text-sol-green hover:underline">
+                  below
+                </a>
                 .
+              </li>
+              <li>
+                <a
+                  href={solscanAccount(ECOSYSTEM_SOLSCAN_CPMM_POOL)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  Liquidity pool (Raydium CPMM)
+                </a>{' '}
+                <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_SOLSCAN_CPMM_POOL})</span>
+                {' — '}
+                public pool where paired ROOTR + quote trade.
+              </li>
+              <li>
+                <a
+                  href={solscanAccount(ECOSYSTEM_SOLSCAN_DEVELOPER)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  Developer / operations wallet
+                </a>{' '}
+                <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_SOLSCAN_DEVELOPER})</span>
+                {' — '}
+                used for stabilization-style flows (small, capped trades on the pool, often via
+                Jupiter) so activity spreads over time instead of one huge print.
+              </li>
+              <li>
+                <a
+                  href={solscanToken(ECOSYSTEM_OTC_TOKEN_MINT)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  ROOTR mint
+                </a>{' '}
+                <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_OTC_TOKEN_MINT})</span>
+                {' — '}
+                SPL mint for this program.
               </li>
             </ul>
           </section>
@@ -661,13 +686,10 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Fees → liquidity</h2>
             <p>
-              Fees from on-site activity tied to ROOTR (for example{' '}
-              <Link href="/liquidity" className="text-sol-green hover:underline">
-                liquidity
-              </Link>{' '}
-              adds, bulk transfers, and other paid flows) are routed into automation that prioritizes
-              growing the Raydium LP—deposit project token + quote so TVL reflects real usage.
-              Additional funds from other products can be transferred in when the operator chooses.
+              Fees from on-site activity tied to ROOTR (liquidity adds, bulk transfers, and other paid
+              flows) are routed into automation that prioritizes growing the Raydium LP—deposit
+              project token + quote so TVL reflects real usage. Additional funds from other products
+              can be transferred in when the operator chooses.
             </p>
           </section>
 
@@ -724,9 +746,9 @@ export default function EcosystemPage() {
               APY.
             </p>
             <p className="text-xs text-muted-foreground/90 border-t border-border/60 pt-4">
-              Token mint on Solana:{' '}
+              Mint (Solscan):{' '}
               <a
-                href={`https://solscan.io/token/${ECOSYSTEM_OTC_TOKEN_MINT}`}
+                href={solscanToken(ECOSYSTEM_OTC_TOKEN_MINT)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-sol-green hover:underline break-all"
