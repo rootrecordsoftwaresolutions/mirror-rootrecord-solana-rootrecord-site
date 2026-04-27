@@ -16,6 +16,10 @@ import { Label } from '@/components/ui/label';
 
 const WSOL = 'So11111111111111111111111111111111111111112';
 const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+/** System token (output side of OTC Jupiter link). Override only via build env if needed. */
+const SYSTEM_TOKEN_MINT =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
+  '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT';
 const OTC_USD_PER_TOKEN = 0.00001;
 const QUOTE_TTL_MS = 30_000;
 
@@ -43,19 +47,10 @@ type ReinvestRow = {
   metadata: string | null;
 };
 
-function defaultTokenMint(): string {
-  return (
-    process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
-    '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT'
-  );
-}
-
 export default function EcosystemPage() {
   const [events, setEvents] = useState<BotEvent[]>([]);
   const [eventsErr, setEventsErr] = useState<string | null>(null);
   const [reinvest, setReinvest] = useState<ReinvestRow[]>([]);
-  const [tokenMint, setTokenMint] = useState(defaultTokenMint);
-  const [tokenDecimals, setTokenDecimals] = useState(9);
   const [tokenAmount, setTokenAmount] = useState('1000');
   const [payWith, setPayWith] = useState<'SOL' | 'USDC'>('SOL');
   const [solUsd, setSolUsd] = useState<number | null>(null);
@@ -138,12 +133,10 @@ export default function EcosystemPage() {
   }, [tokenAmount, solUsd, usdcUsd]);
 
   const jupiterUrl = useMemo(() => {
-    const mint = tokenMint.trim();
-    if (!mint) return '';
     const inputMint = payWith === 'SOL' ? WSOL : USDC;
     const params = new URLSearchParams({
       inputMint,
-      outputMint: mint,
+      outputMint: SYSTEM_TOKEN_MINT,
     });
     if (payWith === 'SOL' && otc.sol != null && otc.sol > 0) {
       const lamports = Math.max(1, Math.floor(otc.sol * 1e9));
@@ -154,7 +147,7 @@ export default function EcosystemPage() {
       params.set('amount', String(micro));
     }
     return `https://jup.ag/swap?${params.toString()}`;
-  }, [tokenMint, payWith, otc.sol, otc.usdc]);
+  }, [payWith, otc.sol, otc.usdc]);
 
   return (
     <div className="container py-14 md:py-20 max-w-4xl space-y-10">
@@ -218,26 +211,10 @@ export default function EcosystemPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="eco-mint">Token mint (output)</Label>
-              <Input
-                id="eco-mint"
-                className="font-mono text-xs"
-                value={tokenMint}
-                onChange={(e) => setTokenMint(e.target.value.trim())}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="eco-dec">Decimals (for raw amount in Jupiter link)</Label>
-              <Input
-                id="eco-dec"
-                type="number"
-                min={0}
-                max={12}
-                value={tokenDecimals}
-                onChange={(e) => setTokenDecimals(parseInt(e.target.value, 10) || 9)}
-              />
+          <div className="grid gap-2">
+            <Label>Token mint (output)</Label>
+            <div className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
+              {SYSTEM_TOKEN_MINT}
             </div>
           </div>
           <div className="grid gap-2">
