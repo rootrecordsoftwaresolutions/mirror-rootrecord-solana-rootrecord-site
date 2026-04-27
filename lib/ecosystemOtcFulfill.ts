@@ -374,7 +374,7 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
     const { blockhash } = await connection.getLatestBlockhash('confirmed');
     const ataIx = createAssociatedTokenAccountIdempotentInstruction(
       buyer,
-      buyer,
+      destAta,
       buyer,
       mintPk,
       tokenProgramId,
