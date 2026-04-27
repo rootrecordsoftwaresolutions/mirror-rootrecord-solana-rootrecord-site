@@ -81,30 +81,30 @@ function formatTokenUi(amount_raw: string, decimalsStr: string | null): string {
   }
 }
 
-function formatQuoteReceived(payWith: string, raw: string | null): string {
-  if (!raw?.trim()) return 'treasury quote —';
+/** Human line for quote credited to treasury (OTC history table). */
+function formatTreasuryDepositLine(payWith: string, raw: string | null): string {
+  if (!raw?.trim()) return 'treasury deposit —';
   const n = BigInt(raw);
   if (payWith.toUpperCase() === 'SOL') {
-    return `${(Number(n) / 1e9).toFixed(9)} SOL in`;
+    return `${(Number(n) / 1e9).toFixed(9)} SOL deposited into Treasury`;
   }
   if (payWith.toUpperCase() === 'USDC') {
-    return `${(Number(n) / 1e6).toFixed(6)} USDC in`;
+    return `${(Number(n) / 1e6).toFixed(6)} USDC deposited into Treasury`;
   }
-  return `${raw} raw`;
+  return `${raw} deposited into Treasury`;
 }
 
 function otcHistoryOneLine(row: OtcD1Row): string {
   const mintShort = shortAddr(row.token_mint, 6, 4);
   const buyerShort = shortAddr(row.buyer, 6, 4);
-  const tokensLabel =
+  const pay = (row.pay_with || '—').trim();
+  const depositLine = formatTreasuryDepositLine(row.pay_with, row.quote_received_raw);
+  const whole =
     row.tokens_whole != null && row.tokens_whole.trim()
-      ? `${row.tokens_whole.trim()} tokens (≈ ${formatTokenUi(row.amount_raw, row.token_decimals)} minted)`
-      : `token out raw ${row.amount_raw}`;
-  const quotePart = formatQuoteReceived(row.pay_with, row.quote_received_raw);
-  const same =
-    row.out_tx?.trim() && row.out_tx.trim() === row.payment_tx_signature.trim();
-  const mode = same ? 'atomic checkout (pay + token in one tx)' : 'legacy two-step';
-  return `${row.pay_with} · ${quotePart} · ${tokensLabel} → ${buyerShort} · ${mintShort} · ${mode}`;
+      ? row.tokens_whole.trim()
+      : formatTokenUi(row.amount_raw, row.token_decimals);
+  const withdrawLine = `${whole} ROOTR Withdrawn → ${buyerShort} · ${mintShort}`;
+  return `${pay} · ${depositLine}\n${withdrawLine}`;
 }
 
 function parseJsonRecord(text: string): Record<string, unknown> | null {
@@ -974,9 +974,8 @@ export default function EcosystemPage() {
           <div>
             <CardTitle className="text-lg">OTC checkout history</CardTitle>
             <CardDescription>
-              One line per checkout from this page: treasury quote in, ROOTR minted to the buyer, the
-              checkout transaction hash, and the Raydium LP add (if finalize recorded one). Rows come
-              from Worker D1 after each successful finalize.
+              Each row: quote deposited to treasury, ROOTR withdrawn to the buyer, checkout and LP tx
+              links. Data from Worker D1 after finalize.
             </CardDescription>
           </div>
           <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void loadOtcHistory()}>
@@ -1016,7 +1015,7 @@ export default function EcosystemPage() {
                         <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                           {row.created_at}
                         </td>
-                        <td className="px-3 py-2 text-xs text-foreground/90 leading-snug">
+                        <td className="px-3 py-2 text-xs text-foreground/90 leading-snug whitespace-pre-line">
                           {otcHistoryOneLine(row)}
                         </td>
                         <td className="px-3 py-2 text-[11px] font-mono whitespace-nowrap">
