@@ -31,6 +31,7 @@ import {
   logUsdcDeferredSeedLedger,
   verifyOtcPaymentTx,
   workerOtcComplete,
+  workerOtcLiquidityMeta,
   workerOtcReserve,
 } from '@/lib/ecosystemOtcFulfill';
 import { getConnection } from '@/lib/solana';
@@ -390,6 +391,8 @@ export async function finalizeOtcAtomicCheckout(
     token_mint: mintPk.toBase58(),
     amount_raw: amountRaw.toString(),
     pay_with: input.pay_with.toUpperCase(),
+    tokens_whole: String(input.tokens_whole),
+    token_decimals: String(decimals),
   });
   if (!reserve.ok && reserve.status !== 409) {
     return { ok: false, status: reserve.status, detail: reserve.detail };
@@ -434,7 +437,18 @@ export async function finalizeOtcAtomicCheckout(
     } catch (err) {
       liquidity_error = err instanceof Error ? err.message : 'add liquidity failed';
     }
+  } else {
+    liquidity_notice =
+      'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from OTC stays in the treasury until you configure the pool id.';
   }
+
+  const quoteReceivedRaw =
+    input.pay_with === 'SOL' ? receivedSol.toString() : receivedUsdc.toString();
+  void workerOtcLiquidityMeta({
+    payment_tx_signature: sig,
+    liquidity_tx: liquidity_tx,
+    quote_received_raw: quoteReceivedRaw,
+  });
 
   return {
     ok: true,

@@ -33,3 +33,7 @@ STRIPE_PUBLISHABLE_KEY = "pk_live_51T3sezIaRpbMiAov6SUJgKLGR1igmRGOYg1rY1hKJPAWx
 #   wrangler secret put SOLANA_SITE_LOG_SECRET
 # Apply migrations 0009_solana_site.sql + 0010_solana_site_challenges.sql to D1, then set the same
 # secret in Vercel as SOLANA_SITE_LOG_SECRET and SOLANA_SITE_LOG_URL to this Worker's public URL + `/api/solana-site/log`.
+#
+# If solana.rootrecord.info routes /api/* through this Worker, OTC routes live on Next/Vercel only.
+# Forward them: wrangler secret put SOLANA_TOOLS_API_FORWARD_URL
+# Value: https://<your-next-deployment>.vercel.app   (no trailing slash)

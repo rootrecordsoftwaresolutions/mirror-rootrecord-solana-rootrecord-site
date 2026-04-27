@@ -35,7 +35,6 @@ function isSlug(s: string, max: number): boolean {
   return /^[a-z0-9][a-z0-9_.:-]*$/i.test(s);
 }
 
-/** POST /api/solana-site/ecosystem-bot-event — bots append telemetry (same Bearer as site log). */
 export async function handleEcosystemBotEvent(
   request: Request,
   env: SolanaSiteEcosystemEnv,
@@ -102,7 +101,6 @@ export async function handleEcosystemBotEvent(
   return json({ ok: true }, 201);
 }
 
-/** GET /api/solana-site/ecosystem-bot-events — public feed (newest first). */
 export async function handleEcosystemBotEvents(request: Request, env: SolanaSiteEcosystemEnv): Promise<Response> {
   const url = new URL(request.url);
   const limitRaw = Number(url.searchParams.get("limit") || "80");
@@ -125,7 +123,6 @@ export async function handleEcosystemBotEvents(request: Request, env: SolanaSite
   }
 }
 
-/** POST /api/solana-site/ecosystem-reinvest — queue a reinvest intent (same Bearer). */
 export async function handleEcosystemReinvest(request: Request, env: SolanaSiteEcosystemEnv): Promise<Response> {
   const deny = assertBearer(request, env);
   if (deny) return deny;
@@ -214,6 +211,10 @@ export async function handleEcosystemOtcReserve(
   const token_mint = String(body.token_mint || "").trim().slice(0, 64);
   const amount_raw = String(body.amount_raw || "").trim().slice(0, 80);
   const pay_with = String(body.pay_with || "").trim().toUpperCase().slice(0, 8);
+  const tokens_whole =
+    body.tokens_whole != null ? String(body.tokens_whole).trim().slice(0, 24) : null;
+  const token_decimals =
+    body.token_decimals != null ? String(body.token_decimals).trim().slice(0, 3) : null;
   if (!payment_tx_signature || !buyer || !token_mint || !amount_raw) {
     return json({ ok: false, detail: "Missing required fields" }, 400);
   }
@@ -223,10 +224,10 @@ export async function handleEcosystemOtcReserve(
 
   try {
     await env.DB.prepare(
-      `INSERT INTO ecosystem_otc_fulfillments (payment_tx_signature, buyer, token_mint, amount_raw, pay_with, out_tx)
-       VALUES (?, ?, ?, ?, ?, NULL)`,
+      `INSERT INTO ecosystem_otc_fulfillments (payment_tx_signature, buyer, token_mint, amount_raw, pay_with, out_tx, tokens_whole, token_decimals)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
     )
-      .bind(payment_tx_signature, buyer, token_mint, amount_raw, pay_with)
+      .bind(payment_tx_signature, buyer, token_mint, amount_raw, pay_with, tokens_whole, token_decimals)
       .run();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "insert failed";
@@ -314,4 +315,69 @@ export async function handleEcosystemOtcComplete(
   }
 
   return json({ ok: true }, 200);
+}
+
+/** POST /api/solana-site/ecosystem-otc-liquidity-meta — Bearer; attach LP tx + quote received after finalize. */
+export async function handleEcosystemOtcLiquidityMeta(
+  request: Request,
+  env: SolanaSiteEcosystemEnv,
+): Promise<Response> {
+  const deny = assertBearer(request, env);
+  if (deny) return deny;
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return json({ ok: false, detail: "Invalid JSON" }, 400);
+  }
+
+  const payment_tx_signature = String(body.payment_tx_signature || "").trim().slice(0, 128);
+  const liquidity_tx =
+    body.liquidity_tx != null && String(body.liquidity_tx).trim()
+      ? String(body.liquidity_tx).trim().slice(0, 128)
+      : null;
+  const quote_received_raw =
+    body.quote_received_raw != null ? String(body.quote_received_raw).trim().slice(0, 80) : null;
+  if (!payment_tx_signature) {
+    return json({ ok: false, detail: "Missing payment_tx_signature" }, 400);
+  }
+
+  try {
+    await env.DB.prepare(
+      `UPDATE ecosystem_otc_fulfillments SET liquidity_tx = ?, quote_received_raw = ? WHERE payment_tx_signature = ?`,
+    )
+      .bind(liquidity_tx, quote_received_raw, payment_tx_signature)
+      .run();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "update failed";
+    return json({ ok: false, detail: msg }, 500);
+  }
+
+  return json({ ok: true }, 200);
+}
+
+/** GET /api/solana-site/ecosystem-otc-history — public; OTC rows for site transaction list. */
+export async function handleEcosystemOtcHistory(
+  request: Request,
+  env: SolanaSiteEcosystemEnv,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const limitRaw = Number(url.searchParams.get("limit") || "60");
+  const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? Math.floor(limitRaw) : 60));
+
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT payment_tx_signature, buyer, token_mint, amount_raw, pay_with, out_tx, liquidity_tx, quote_received_raw, tokens_whole, token_decimals, created_at
+       FROM ecosystem_otc_fulfillments
+       ORDER BY datetime(created_at) DESC
+       LIMIT ?`,
+    )
+      .bind(limit)
+      .all<Record<string, unknown>>();
+    return json({ ok: true, rows: rows.results ?? [] }, 200);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "query failed";
+    return json({ ok: false, detail: msg }, 500);
+  }
 }

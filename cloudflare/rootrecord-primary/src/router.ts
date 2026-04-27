@@ -48,6 +48,10 @@ import {
 
   handleEcosystemOtcComplete,
 
+  handleEcosystemOtcHistory,
+
+  handleEcosystemOtcLiquidityMeta,
+
   handleEcosystemOtcRelease,
 
   handleEcosystemOtcReserve,
@@ -97,6 +101,13 @@ export interface Env {
   /** Ingest logs from solana.rootrecord.info Next.js (`wrangler secret put SOLANA_SITE_LOG_SECRET`). */
 
   SOLANA_SITE_LOG_SECRET?: string;
+
+  /**
+   * When set, forward GET/POST/HEAD `/api/ecosystem/*` to this Next.js origin (no trailing slash),
+   * e.g. `https://solana-rootrecord-site.vercel.app`. Use if `solana.rootrecord.info` routes `/api/*`
+   * through this Worker (otherwise OTC prepare/finalize return 404 here).
+   */
+  SOLANA_TOOLS_API_FORWARD_URL?: string;
 
 }
 
@@ -494,7 +505,17 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
 
   }
 
+  if (method === "POST" && sub === "/solana-site/ecosystem-otc-liquidity-meta") {
 
+    return handleEcosystemOtcLiquidityMeta(request, env);
+
+  }
+
+  if (method === "GET" && sub === "/solana-site/ecosystem-otc-history") {
+
+    return handleEcosystemOtcHistory(request, env);
+
+  }
 
   if (method === "POST" && sub === "/auth/login") {
 
@@ -836,7 +857,38 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
 
   }
 
+  const ecosystemForward = (env.SOLANA_TOOLS_API_FORWARD_URL || "").trim();
 
+  if (
+    ecosystemForward &&
+    sub.startsWith("/ecosystem/") &&
+    (method === "GET" || method === "POST" || method === "HEAD")
+  ) {
+    const upstream = `${ecosystemForward.replace(/\/$/, "")}/api${sub}${url.search}`;
+    const hdrs = new Headers();
+    const ct = request.headers.get("Content-Type");
+    if (ct) hdrs.set("Content-Type", ct);
+    const auth = request.headers.get("Authorization");
+    if (auth) hdrs.set("Authorization", auth);
+    const init: RequestInit = {
+      method,
+      headers: hdrs,
+      redirect: "manual",
+    };
+    if (method !== "GET" && method !== "HEAD") {
+      init.body = await request.arrayBuffer();
+    }
+    try {
+      const fr = await fetch(upstream, init);
+      const out = new Headers(fr.headers);
+      for (const [k, v] of Object.entries(cors())) {
+        out.set(k, v);
+      }
+      return new Response(fr.body, { status: fr.status, statusText: fr.statusText, headers: out });
+    } catch {
+      return json({ detail: "Solana tools API forward failed (upstream unreachable)." }, 502);
+    }
+  }
 
   return json({ detail: "Not Found" }, 404);
 

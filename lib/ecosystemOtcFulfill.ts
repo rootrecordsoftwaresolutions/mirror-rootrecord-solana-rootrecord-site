@@ -187,6 +187,8 @@ export async function workerOtcReserve(body: {
   token_mint: string;
   amount_raw: string;
   pay_with: string;
+  tokens_whole?: string;
+  token_decimals?: string;
 }): Promise<{ ok: true } | { ok: false; status: number; detail: string }> {
   const res = await fetchSolanaWorker('/api/solana-site/ecosystem-otc-reserve', body);
   const text = await res.text();
@@ -215,6 +217,23 @@ export async function workerOtcComplete(payment_tx_signature: string, out_tx: st
     payment_tx_signature,
     out_tx,
   });
+}
+
+/** Persist LP tx + treasury quote received for ecosystem transaction history (best-effort). */
+export async function workerOtcLiquidityMeta(body: {
+  payment_tx_signature: string;
+  liquidity_tx: string | null;
+  quote_received_raw: string;
+}): Promise<void> {
+  try {
+    await fetchSolanaWorker('/api/solana-site/ecosystem-otc-liquidity-meta', {
+      payment_tx_signature: body.payment_tx_signature,
+      liquidity_tx: body.liquidity_tx,
+      quote_received_raw: body.quote_received_raw,
+    });
+  } catch {
+    /* optional */
+  }
 }
 
 /** Ledger USDC for initial seed (D1 bot feed); best-effort. */
@@ -430,6 +449,8 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
     token_mint: mintPk.toBase58(),
     amount_raw: amountRaw.toString(),
     pay_with: input.pay_with.toUpperCase(),
+    tokens_whole: String(input.tokens_whole),
+    token_decimals: String(decimals),
   });
   if (!reserve.ok) {
     const st = reserve.status === 409 ? 409 : 502;
@@ -504,7 +525,18 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
       } catch (err) {
         liquidity_error = err instanceof Error ? err.message : 'add liquidity failed';
       }
+    } else {
+      liquidity_notice =
+        'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from OTC stays in the treasury until you configure the pool id.';
     }
+
+    const quoteReceivedRaw =
+      input.pay_with === 'SOL' ? receivedSol.toString() : receivedUsdc.toString();
+    void workerOtcLiquidityMeta({
+      payment_tx_signature: sig,
+      liquidity_tx,
+      quote_received_raw: quoteReceivedRaw,
+    });
 
     return { ok: true, out_signature: outSig, liquidity_tx, liquidity_error, liquidity_notice };
   } catch (e) {

@@ -37,29 +37,71 @@ function base64ToUint8Array(b64: string): Uint8Array {
   return out;
 }
 
-type BotEvent = {
-  id: number;
+/** Row from D1 `ecosystem_otc_fulfillments` (public GET via Worker). */
+type OtcD1Row = {
+  payment_tx_signature: string;
+  buyer: string;
+  token_mint: string;
+  amount_raw: string;
+  pay_with: string;
+  out_tx: string | null;
+  liquidity_tx: string | null;
+  quote_received_raw: string | null;
+  tokens_whole: string | null;
+  token_decimals: string | null;
   created_at: string;
-  bot_id: string;
-  event_type: string;
-  pool_id: string | null;
-  mint: string | null;
-  tx_signature: string | null;
-  amount_token_raw: string | null;
-  amount_quote_raw: string | null;
-  quote_currency: string | null;
-  usd_estimate: string | null;
-  metadata: string | null;
 };
 
-type ReinvestRow = {
-  id: number;
-  created_at: string;
-  source: string;
-  amount_usd: string;
-  status: string;
-  metadata: string | null;
-};
+const OTC_HISTORY_UNAVAILABLE =
+  'OTC checkout history is not available yet. Apply D1 migration 0013 on the Worker, deploy rootrecord-primary, and ensure SOLANA_SITE_LOG_URL points at that Worker.';
+
+function shortAddr(a: string, head = 4, tail = 4): string {
+  const s = (a || '').trim();
+  if (s.length <= head + tail + 1) return s || '—';
+  return `${s.slice(0, head)}…${s.slice(-tail)}`;
+}
+
+function formatTokenUi(amount_raw: string, decimalsStr: string | null): string {
+  try {
+    const dec = decimalsStr != null ? parseInt(decimalsStr, 10) : 9;
+    const d = Number.isFinite(dec) && dec >= 0 && dec <= 18 ? dec : 9;
+    const raw = BigInt(amount_raw || '0');
+    const scale = 10n ** BigInt(d);
+    const whole = raw / scale;
+    const frac = raw % scale;
+    if (frac === 0n) return whole.toString();
+    const fracStr = frac.toString().padStart(d, '0').replace(/0+$/, '') || '0';
+    return `${whole.toString()}.${fracStr}`;
+  } catch {
+    return amount_raw || '—';
+  }
+}
+
+function formatQuoteReceived(payWith: string, raw: string | null): string {
+  if (!raw?.trim()) return 'treasury quote —';
+  const n = BigInt(raw);
+  if (payWith.toUpperCase() === 'SOL') {
+    return `${(Number(n) / 1e9).toFixed(9)} SOL in`;
+  }
+  if (payWith.toUpperCase() === 'USDC') {
+    return `${(Number(n) / 1e6).toFixed(6)} USDC in`;
+  }
+  return `${raw} raw`;
+}
+
+function otcHistoryOneLine(row: OtcD1Row): string {
+  const mintShort = shortAddr(row.token_mint, 6, 4);
+  const buyerShort = shortAddr(row.buyer, 6, 4);
+  const tokensLabel =
+    row.tokens_whole != null && row.tokens_whole.trim()
+      ? `${row.tokens_whole.trim()} tokens (≈ ${formatTokenUi(row.amount_raw, row.token_decimals)} minted)`
+      : `token out raw ${row.amount_raw}`;
+  const quotePart = formatQuoteReceived(row.pay_with, row.quote_received_raw);
+  const same =
+    row.out_tx?.trim() && row.out_tx.trim() === row.payment_tx_signature.trim();
+  const mode = same ? 'atomic checkout (pay + token in one tx)' : 'legacy two-step';
+  return `${row.pay_with} · ${quotePart} · ${tokensLabel} → ${buyerShort} · ${mintShort} · ${mode}`;
+}
 
 function parseJsonRecord(text: string): Record<string, unknown> | null {
   try {
@@ -107,7 +149,7 @@ function finalizeErrorUserMessage(status: number, finJson: OtcFinalizeJson): str
     finJson.detail ??
     (typeof finJson.message === 'string' ? finJson.message : undefined);
   if (status === 404 || raw === 'Not Found') {
-    return 'Finalize step is not deployed (404). Ship the latest build with /api/ecosystem/finalize-otc-checkout, then tap Retry finalize.';
+    return 'Finalize returned 404 (often Cloudflare rootrecord-primary in front of /api with no handler). Fix: redeploy Next so the route exists, or set SOLANA_TOOLS_API_FORWARD_URL on that Worker to your Vercel app origin (no trailing slash), redeploy the Worker, then Retry finalize.';
   }
   return raw || `Finalize failed (${status})`;
 }
@@ -119,10 +161,6 @@ type PrepareCheckoutJson = {
   unsigned_tx_b64?: string;
   detail?: string;
 };
-
-/** Shown when the bot-events upstream is missing or not wired; neutral copy (no deploy/env names). */
-const TELEMETRY_UNAVAILABLE =
-  'No bot events to show yet. This table fills in when live telemetry is connected to the site.';
 
 export default function EcosystemPage() {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
@@ -138,9 +176,8 @@ export default function EcosystemPage() {
   const [lastLiquidityErr, setLastLiquidityErr] = useState<string | null>(null);
   const [lastLiquidityNotice, setLastLiquidityNotice] = useState<string | null>(null);
 
-  const [events, setEvents] = useState<BotEvent[]>([]);
-  const [eventsErr, setEventsErr] = useState<string | null>(null);
-  const [reinvest, setReinvest] = useState<ReinvestRow[]>([]);
+  const [otcHistory, setOtcHistory] = useState<OtcD1Row[]>([]);
+  const [otcHistoryErr, setOtcHistoryErr] = useState<string | null>(null);
   const [tokenAmount, setTokenAmount] = useState('1000');
   const [payWith, setPayWith] = useState<'SOL' | 'USDC'>('SOL');
   /** SOL/USD from Jupiter; USDC pay leg uses fixed $1 = 1 USDC (locked USD/token notional). */
@@ -148,40 +185,36 @@ export default function EcosystemPage() {
   const [priceFetchedAt, setPriceFetchedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
-  const loadFeeds = useCallback(async () => {
+  const loadOtcHistory = useCallback(async () => {
     try {
-      const [eRes, rRes] = await Promise.all([
-        fetch('/api/solana-site/ecosystem-bot-events?limit=100'),
-        fetch('/api/solana-site/ecosystem-reinvest-pending?limit=40'),
-      ]);
-      const eText = await eRes.text();
-      const eParsed = parseJsonRecord(eText);
-      const eJson = (eParsed ?? {}) as { ok?: boolean; events?: BotEvent[]; detail?: string; skipped?: boolean };
-      if (eRes.ok && eJson.ok) {
-        setEventsErr(null);
-        setEvents(eJson.events ?? []);
-      } else {
-        const detailStr =
-          typeof eJson.detail === 'string' ? eJson.detail.trim() : '';
-        const bodySnippet = !eParsed && eText.trim() ? eText.trim().slice(0, 200) : '';
-        let msg =
-          detailStr ||
-          bodySnippet ||
-          `Could not load bot events (HTTP ${eRes.status}).`;
-        const skipped = eJson.skipped === true;
-        if (skipped || eRes.status === 404 || /^not found$/i.test(msg.trim())) {
-          msg = TELEMETRY_UNAVAILABLE;
-        }
-        setEventsErr(msg);
-        setEvents([]);
+      const res = await fetch('/api/solana-site/ecosystem-otc-history?limit=80');
+      const text = await res.text();
+      const parsed = parseJsonRecord(text);
+      const j = (parsed ?? {}) as {
+        ok?: boolean;
+        rows?: OtcD1Row[];
+        detail?: string;
+        skipped?: boolean;
+      };
+      if (res.ok && j.ok && Array.isArray(j.rows)) {
+        setOtcHistoryErr(null);
+        setOtcHistory(j.rows);
+        return;
       }
-
-      const rText = await rRes.text();
-      const rParsed = parseJsonRecord(rText);
-      const rJson = (rParsed ?? {}) as { ok?: boolean; rows?: ReinvestRow[] };
-      if (rRes.ok && rJson.ok) setReinvest(rJson.rows ?? []);
+      const detailStr = typeof j.detail === 'string' ? j.detail.trim() : '';
+      const bodySnippet = !parsed && text.trim() ? text.trim().slice(0, 200) : '';
+      let msg =
+        detailStr ||
+        bodySnippet ||
+        `Could not load OTC history (HTTP ${res.status}).`;
+      if (j.skipped === true || res.status === 404 || /^not found$/i.test(msg.trim())) {
+        msg = OTC_HISTORY_UNAVAILABLE;
+      }
+      setOtcHistoryErr(msg);
+      setOtcHistory([]);
     } catch {
-      setEventsErr('Network error loading feed');
+      setOtcHistoryErr('Network error loading OTC history');
+      setOtcHistory([]);
     }
   }, []);
 
@@ -229,10 +262,10 @@ export default function EcosystemPage() {
   }, [loadTreasuryInfo]);
 
   useEffect(() => {
-    void loadFeeds();
-    const t = setInterval(() => void loadFeeds(), 45_000);
+    void loadOtcHistory();
+    const t = setInterval(() => void loadOtcHistory(), 45_000);
     return () => clearInterval(t);
-  }, [loadFeeds]);
+  }, [loadOtcHistory]);
 
   useEffect(() => {
     void refreshPrices();
@@ -442,6 +475,7 @@ export default function EcosystemPage() {
       setLastLiquidityNotice(finJson.liquidity_notice ?? null);
       setFulfillMsg(null);
       setRetryFinalizeBody(null);
+      void loadOtcHistory();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (/user rejected|rejected the request|denied|declined/i.test(msg)) {
@@ -455,6 +489,7 @@ export default function EcosystemPage() {
       setFulfillLoading(false);
     }
   }, [
+    loadOtcHistory,
     otc.solLamports,
     otc.tokensWhole,
     otc.usdcMicro,
@@ -509,12 +544,13 @@ export default function EcosystemPage() {
       setLastLiquidityNotice(finJson.liquidity_notice ?? null);
       setFulfillMsg(null);
       setRetryFinalizeBody(null);
+      void loadOtcHistory();
     } catch {
       setFulfillMsg('Network error');
     } finally {
       setFulfillLoading(false);
     }
-  }, [publicKey, retryFinalizeBody, treasuryAddr]);
+  }, [loadOtcHistory, publicKey, retryFinalizeBody, treasuryAddr]);
 
   return (
     <div className="container py-14 md:py-20 max-w-4xl space-y-10">
@@ -789,101 +825,101 @@ export default function EcosystemPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Reinvest queue (pending)</CardTitle>
-          <CardDescription>
-            Rows are created when automation or scripts POST to the Worker with a USD tranche (same
-            auth as site logging). Operators complete add-liquidity manually or via treasury
-            tooling, then mark rows done out of band.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="text-lg">OTC checkout history</CardTitle>
+            <CardDescription>
+              One line per checkout from this page: treasury quote in, ROOTR minted to the buyer, the
+              checkout transaction hash, and the Raydium LP add (if finalize recorded one). Rows come
+              from Worker D1 after each successful finalize.
+            </CardDescription>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void loadOtcHistory()}>
+            Refresh history
+          </Button>
         </CardHeader>
-        <CardContent>
-          {reinvest.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pending rows.</p>
+        <CardContent className="space-y-3">
+          {otcHistoryErr && otcHistoryErr !== OTC_HISTORY_UNAVAILABLE ? (
+            <p className="text-sm text-destructive">{otcHistoryErr}</p>
+          ) : null}
+          {otcHistoryErr === OTC_HISTORY_UNAVAILABLE ? (
+            <p className="text-sm text-muted-foreground leading-relaxed">{otcHistoryErr}</p>
+          ) : null}
+          {otcHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No OTC checkouts recorded yet.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[520px] overflow-y-auto rounded-md border border-border">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-t border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">When</th>
-                    <th className="px-3 py-2 font-medium">Source</th>
-                    <th className="px-3 py-2 font-medium">USD</th>
+                <thead className="sticky top-0 z-[1] border-b border-border bg-ink-900/95 backdrop-blur-sm">
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-3 py-2 font-medium whitespace-nowrap w-[140px]">When</th>
+                    <th className="px-3 py-2 font-medium">Transaction</th>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">Checkout · LP add</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reinvest.map((r) => (
-                    <tr key={r.id} className="border-t border-border/70">
-                      <td className="px-3 py-2 text-muted-foreground text-xs">{r.created_at}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.source}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.amount_usd}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Bot telemetry (D1)</CardTitle>
-          <CardDescription>
-            Latest events from pool mirror scripts. Each row is append-only.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {eventsErr ? (
-            <p
-              className={
-                eventsErr === TELEMETRY_UNAVAILABLE
-                  ? 'text-sm text-muted-foreground leading-relaxed'
-                  : 'text-sm text-destructive'
-              }
-            >
-              {eventsErr}
-            </p>
-          ) : events.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events yet.</p>
-          ) : (
-            <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-t border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">When</th>
-                    <th className="px-3 py-2 font-medium">Bot</th>
-                    <th className="px-3 py-2 font-medium">Type</th>
-                    <th className="px-3 py-2 font-medium">Tx</th>
-                    <th className="px-3 py-2 font-medium">Meta</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((ev) => (
-                    <tr key={ev.id} className="border-t border-border/70">
-                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                        {ev.created_at}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">{ev.bot_id}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{ev.event_type}</td>
-                      <td className="px-3 py-2 font-mono text-xs">
-                        {ev.tx_signature ? (
-                          <a
-                            href={`https://solscan.io/tx/${ev.tx_signature}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sol-green hover:underline"
-                          >
-                            {ev.tx_signature.slice(0, 10)}…
-                          </a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] break-all">
-                        {ev.metadata || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {otcHistory.map((row) => {
+                    const sigShort = (s: string) =>
+                      s.length > 20 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
+                    const checkout = row.payment_tx_signature?.trim();
+                    const lp = row.liquidity_tx?.trim() || '';
+                    const out = row.out_tx?.trim();
+                    const showSeparateOut =
+                      out && checkout && out !== checkout;
+                    return (
+                      <tr key={checkout} className="border-t border-border/70 align-top">
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {row.created_at}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-foreground/90 leading-snug">
+                          {otcHistoryOneLine(row)}
+                        </td>
+                        <td className="px-3 py-2 text-[11px] font-mono whitespace-nowrap">
+                          <div className="flex flex-col gap-1 min-w-[200px]">
+                            <span>
+                              <span className="text-muted-foreground">Checkout </span>
+                              <a
+                                href={`https://solscan.io/tx/${checkout}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sol-green hover:underline"
+                              >
+                                {sigShort(checkout)}
+                              </a>
+                            </span>
+                            <span>
+                              <span className="text-muted-foreground">LP </span>
+                              {lp ? (
+                                <a
+                                  href={`https://solscan.io/tx/${lp}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sol-green hover:underline"
+                                >
+                                  {sigShort(lp)}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </span>
+                            {showSeparateOut ? (
+                              <span>
+                                <span className="text-muted-foreground">Token out </span>
+                                <a
+                                  href={`https://solscan.io/tx/${out}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sol-green hover:underline"
+                                >
+                                  {sigShort(out)}
+                                </a>
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
