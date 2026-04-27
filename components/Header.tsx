@@ -10,6 +10,7 @@ const NAV = [
   { href: '/create', label: 'Create Token' },
   { href: '/liquidity', label: 'Liquidity' },
   { href: '/tools', label: 'Tools' },
+  { href: '/contracts', label: 'Contracts' },
   { href: '/token-stats', label: 'Token Stats' },
   { href: '/bulk', label: 'Bulk SOL' },
   { href: '/pricing', label: 'Pricing' },

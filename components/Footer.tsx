@@ -45,6 +45,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/contracts" className="hover:text-sol-green">
+                  Contracts
+                </Link>
+              </li>
+              <li>
                 <Link href="/token-stats" className="hover:text-sol-green">
                   Token stats
                 </Link>
