@@ -572,29 +572,15 @@ export default function EcosystemPage() {
               </span>
             </div>
           </div>
-          <div className="grid gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label>Receiving wallet</Label>
-              <WalletMultiButton />
-            </div>
-            {publicKey ? (
-              <div className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
-                {publicKey.toBase58()}{' '}
-                <a
-                  href={`https://solscan.io/account/${publicKey.toBase58()}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sol-green hover:underline"
-                >
-                  Solscan
-                </a>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Connect a wallet to receive tokens and sign any required setup transactions.
-              </p>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Wallet (pays &amp; receives)</span>
+            <WalletMultiButton />
           </div>
+          {!publicKey ? (
+            <p className="text-sm text-muted-foreground">
+              Connect the wallet that will sign the treasury payment and receive the tokens.
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" size="sm" onClick={() => void refreshPrices()}>
               Refresh prices
