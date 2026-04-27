@@ -612,13 +612,9 @@ export default function EcosystemPage() {
               that backs RootRecord Software Solutions operations.
             </p>
             <p>
-              Whenever our{' '}
-              <Link href="/" className="text-sol-green hover:underline">
-                Solana tools
-              </Link>{' '}
-              are used, small fees are collected on each action. They are designed to stay cheap;
-              over time they add up. The goal is a system where value accrues to the community and
-              holders—not only to the developer.
+              Whenever this site&apos;s Solana tooling is used, small fees are collected on each
+              action. They are designed to stay cheap; over time they add up. The goal is a system
+              where value accrues to the community and holders—not only to the developer.
             </p>
           </section>
 
@@ -650,15 +646,14 @@ export default function EcosystemPage() {
                 — the public Raydium CPMM pool where paired ROOTR + quote sit and trade.
               </li>
               <li>
-                <Link href="/docs" className="text-sol-green hover:underline font-medium">
-                  Operations / stabilization
-                </Link>{' '}
-                — automated flows (including small, capped mirror-style trades on the pool, often
-                via Jupiter) that react gradually instead of printing everything in one block. See{' '}
+                <span className="font-medium text-foreground">Operations / stabilization</span> —{' '}
+                automated flows (including small, capped mirror-style trades on the pool, often via
+                Jupiter) that react gradually instead of printing everything in one block. More
+                product context lives in{' '}
                 <Link href="/docs" className="text-sol-green hover:underline">
                   Docs
-                </Link>{' '}
-                for product-level detail.
+                </Link>
+                .
               </li>
             </ul>
           </section>
@@ -666,18 +661,13 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Fees → liquidity</h2>
             <p>
-              Fees from RootRecord services on{' '}
-              <Link href="/" className="text-sol-green hover:underline">
-                solana.rootrecord.info
-              </Link>{' '}
-              (token create, metadata,{' '}
+              Fees from on-site activity tied to ROOTR (for example{' '}
               <Link href="/liquidity" className="text-sol-green hover:underline">
                 liquidity
-              </Link>
-              , bulk sends, and related flows) are routed into automation that prioritizes growing
-              the Raydium LP—same mental model as using the Liquidity page: deposit project token +
-              quote so TVL reflects real usage. Additional funds from other products can be
-              transferred in when the operator chooses.
+              </Link>{' '}
+              adds, bulk transfers, and other paid flows) are routed into automation that prioritizes
+              growing the Raydium LP—deposit project token + quote so TVL reflects real usage.
+              Additional funds from other products can be transferred in when the operator chooses.
             </p>
           </section>
 
