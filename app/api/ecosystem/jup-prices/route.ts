@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { fetchJupiterSolUsdcUsd } from '@/lib/ecosystemJupUsd';
 
 /**
- * Cached SOL / USDC USD reference for OTC calculator (Jupiter Price API v2).
+ * SOL/USD for OTC calculator (Jupiter price v3, WSOL only). USDC leg uses fixed $1 = 1 USDC.
  */
 export async function GET() {
   try {
@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       sol_usd: solUsd,
+      /** Always 1 — locked USD/token notional; no Jupiter USDC fetch. */
       usdc_usd: usdcUsd,
       fetched_at: fetchedAt,
     });

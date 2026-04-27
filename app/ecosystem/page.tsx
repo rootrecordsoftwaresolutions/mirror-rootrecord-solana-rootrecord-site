@@ -152,8 +152,8 @@ export default function EcosystemPage() {
   const [reinvest, setReinvest] = useState<ReinvestRow[]>([]);
   const [tokenAmount, setTokenAmount] = useState('1000');
   const [payWith, setPayWith] = useState<'SOL' | 'USDC'>('SOL');
+  /** SOL/USD from Jupiter; USDC pay leg uses fixed $1 = 1 USDC (locked USD/token notional). */
   const [solUsd, setSolUsd] = useState<number | null>(null);
-  const [usdcUsd, setUsdcUsd] = useState<number | null>(null);
   const [priceFetchedAt, setPriceFetchedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -199,12 +199,10 @@ export default function EcosystemPage() {
       const j = (await r.json()) as {
         ok?: boolean;
         sol_usd?: number;
-        usdc_usd?: number;
         detail?: string;
       };
       if (r.ok && j.ok && j.sol_usd) {
         setSolUsd(j.sol_usd);
-        setUsdcUsd(j.usdc_usd ?? 1);
         setPriceFetchedAt(Date.now());
       }
     } catch {
@@ -262,12 +260,11 @@ export default function EcosystemPage() {
     const tokensWhole = Math.max(1, Math.ceil(parsed));
     const usdTotal = tokensWhole * OTC_USD_PER_TOKEN;
     const solIdeal = usdTotal / solUsd;
-    const uusd = usdcUsd && usdcUsd > 0 ? usdcUsd : 1;
-    const usdcIdeal = usdTotal / uusd;
+    const usdcIdeal = usdTotal;
     const solLamports = Math.max(1, Math.ceil(solIdeal * 1e9));
     const usdcMicro = Math.max(1, Math.ceil(usdcIdeal * 1e6));
     return { tokensWhole, usdTotal, solIdeal, usdcIdeal, solLamports, usdcMicro };
-  }, [tokenAmount, solUsd, usdcUsd]);
+  }, [tokenAmount, solUsd]);
 
   const payAndClaim = useCallback(async () => {
     setFulfillMsg(null);
