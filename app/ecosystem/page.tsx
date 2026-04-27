@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label';
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
   OTC_USD_PER_TOKEN,
-  ecosystemOtcQuoteRetainPercentLabel,
   ecosystemOtcUsdcAutoLpEnabled,
   ecosystemOtcUsdcLpResumeLabel,
 } from '@/lib/ecosystemOtcConstants';
@@ -619,25 +618,14 @@ export default function EcosystemPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">OTC — $0.00001 USD per token (treasury)</CardTitle>
-          <CardDescription>
-            Live SOL / USDC marks from Jupiter&apos;s public price API. Fractional token counts round{' '}
-            <strong className="text-foreground">up</strong> to the next whole token; SOL and USDC
-            deposit amounts round <strong className="text-foreground">up</strong> to the next whole
-            lamport or micro-USDC. Your <strong className="text-foreground">connected wallet</strong>{' '}
-            signs one versioned transaction that includes both the quote payment to the treasury and
-            the SPL credit from the treasury into your wallet, so wallets and explorers show the
-            token balance change in the same transaction as the payment (fee payer must match
-            on-chain). If you do not already have an ATA for this mint, your wallet signs a
-            one-time create first (you pay rent). After that checkout confirms, the server finalizes
-            fulfillment and, when OTC pool auto-deposit is enabled for this deployment, deposits the
-            SOL or USDC quote
-            into that Raydium CPMM pool minus a{' '}
-            <strong className="text-foreground">{ecosystemOtcQuoteRetainPercentLabel()}</strong>{' '}
-            treasury reserve for transfer fees and later LP adds, with paired project token (no
-            RootRecord add-liquidity fee on that step). <strong className="text-foreground">USDC</strong>{' '}
-            OTC payments through <strong className="text-foreground">{ecosystemOtcUsdcLpResumeLabel()}</strong>{' '}
-            stay in treasury for the initial USDC pair seed (auto-deposit resumes after that window
-            unless configured otherwise). Complete checkout while the quote window is green.
+          <CardDescription className="leading-relaxed">
+            You buy <strong className="text-foreground">whole tokens</strong> at this USD price;
+            token count and payment round <strong className="text-foreground">up</strong>. SOL/USD
+            comes from <strong className="text-foreground">Jupiter</strong>. You sign{' '}
+            <strong className="text-foreground">one</strong> transaction: pay the treasury and
+            receive tokens in the same tx. If you need a token account first, the site will ask for a
+            small extra signature (you pay rent). Finish while the quote is still{' '}
+            <strong className="text-foreground">green</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
