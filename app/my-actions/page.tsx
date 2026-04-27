@@ -52,7 +52,7 @@ function formatMeta(meta: unknown): string {
 
 function actionDisplayLabel(row: ActionRow): string {
   if (row.source === 'otc_purchase' || row.action === 'otc_checkout') {
-    return 'OTC purchase';
+    return 'Treasury transfer';
   }
   return row.action;
 }
@@ -148,7 +148,7 @@ export default function MyActionsPage() {
           <p className="mt-4 text-muted-foreground max-w-xl leading-relaxed">
             We never see your private key. You sign a short text once per refresh to prove you
             control the wallet — then we show tool activity and{' '}
-            <strong className="text-foreground">ecosystem OTC purchases</strong> for that address.
+            <strong className="text-foreground">Treasury Transfer Tool purchases</strong> for that address.
           </p>
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3 shrink-0">
@@ -193,7 +193,7 @@ export default function MyActionsPage() {
           ) : rows.length === 0 ? (
             <p className="px-6 py-10 text-sm text-muted-foreground text-center">
               No logged activity for this wallet yet. Use create, tools, liquidity, bulk sends, or
-              an ecosystem OTC checkout — then try again.
+              the Treasury Transfer Tool — then try again.
             </p>
           ) : (
             <div className="overflow-x-auto">

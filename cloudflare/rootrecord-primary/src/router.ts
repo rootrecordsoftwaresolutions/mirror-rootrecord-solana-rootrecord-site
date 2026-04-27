@@ -105,7 +105,7 @@ export interface Env {
   /**
    * When set, forward GET/POST/HEAD `/api/ecosystem/*` to this Next.js origin (no trailing slash),
    * e.g. `https://solana-rootrecord-site.vercel.app`. Use if `solana.rootrecord.info` routes `/api/*`
-   * through this Worker (otherwise OTC prepare/finalize return 404 here).
+   * through this Worker (otherwise treasury transfer prepare/finalize return 404 here).
    */
   SOLANA_TOOLS_API_FORWARD_URL?: string;
 

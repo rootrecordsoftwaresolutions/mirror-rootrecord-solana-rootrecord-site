@@ -331,7 +331,7 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
       ok: false,
       status: 400,
       detail:
-        'Connected wallet cannot be the OTC treasury. Use another wallet to pay and receive tokens.',
+        'Connected wallet cannot be the deposit treasury. Use another wallet to pay and receive tokens.',
     };
   }
 
@@ -459,7 +459,7 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
       status: st,
       detail:
         reserve.detail === 'payment_tx_already_used' || reserve.status === 409
-          ? 'This payment transaction was already used for an OTC fulfillment.'
+          ? 'This payment transaction was already used for a treasury transfer fulfillment.'
           : reserve.detail,
     };
   }
@@ -527,7 +527,7 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
       }
     } else {
       liquidity_notice =
-        'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from OTC stays in the treasury until you configure the pool id.';
+        'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from treasury transfers stays in the treasury until you configure the pool id.';
     }
 
     const quoteReceivedRaw =

@@ -30,6 +30,8 @@ import {
   explorerUrl,
   getConnection,
 } from '@/lib/solana';
+import { isPinataConfigured, uploadJsonToPinata } from '@/lib/pinata';
+import { mergeTokenMetadataJsonFields } from '@/lib/metadataOffchainSync';
 import {
   withdrawWithheldFromMint,
   harvestWithheldToMint,
@@ -77,7 +79,8 @@ const META: Record<
   },
   'update-metadata': {
     title: 'Update metadata (legacy)',
-    desc: 'Change the name, symbol, or off-chain JSON URI for a legacy SPL token. Requires the metadata to be mutable.',
+    desc:
+      'Change the name, symbol, or off-chain JSON URI for a legacy SPL token. Requires the metadata to be mutable. When PINATA_JWT is set on the server, we download the current JSON from the on-chain URI (or the URI you paste), merge the new name/symbol, re-pin to IPFS, and set the Metaplex URI to the new file so explorers and wallets stay aligned.',
     cta: `Update · ${ACTION_FEE_SOL} SOL`,
   },
   'withdraw-fees': {
@@ -209,6 +212,42 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     };
   }, [kind, mint]);
 
+  useEffect(() => {
+    if (kind !== 'update-metadata') return;
+    const trimmed = mint.trim();
+    if (!trimmed) return;
+    try {
+      new PublicKey(trimmed);
+    } catch {
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `/api/tools/metaplex-metadata?mint=${encodeURIComponent(trimmed)}`,
+          { cache: 'no-store' },
+        );
+        const j = (await r.json()) as {
+          ok?: boolean;
+          name?: string;
+          symbol?: string;
+          uri?: string;
+        };
+        if (cancelled || !r.ok || !j.ok) return;
+        setName((n) => (n.trim() ? n : j.name ?? ''));
+        setSymbol((s) => (s.trim() ? s : (j.symbol ?? '').toUpperCase().slice(0, 10)));
+        setUri((u) => (u.trim() ? u : j.uri ?? ''));
+      } catch {
+        /* ignore */
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, mint]);
+
   if (!kind) return null;
   const meta = META[kind];
 
@@ -222,6 +261,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       return;
     }
     setBusy(true);
+    let repinnedMetadataJson = false;
     try {
       const ref = getStoredReferrer();
       let sig = '';
@@ -248,7 +288,58 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       } else if (kind === 'update-metadata') {
         if (!name || !symbol)
           throw new Error('Name and symbol are required');
-        sig = await updateTokenMetadata(wallet, mint, { name, symbol, uri }, ref);
+        let finalUri = uri.trim();
+        const pinReady = await isPinataConfigured();
+        if (pinReady) {
+          const mr = await fetch(
+            `/api/tools/metaplex-metadata?mint=${encodeURIComponent(mint.trim())}`,
+            { cache: 'no-store' },
+          );
+          const mj = (await mr.json()) as { ok?: boolean; uri?: string; error?: string };
+          if (!mr.ok || !mj.ok) {
+            throw new Error(mj.error || 'Could not read on-chain Metaplex metadata for this mint');
+          }
+          const sourceUri = finalUri || (typeof mj.uri === 'string' ? mj.uri : '');
+          if (!sourceUri.trim()) {
+            throw new Error(
+              'No metadata URI is set on-chain. Paste the JSON metadata URI, or create metadata for this mint first.',
+            );
+          }
+          const jRes = await fetch(
+            `/api/tools/metadata-json?url=${encodeURIComponent(sourceUri.trim())}`,
+            { cache: 'no-store' },
+          );
+          const parsed: unknown = await jRes.json().catch(() => null);
+          if (!jRes.ok || parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            const err =
+              parsed !== null &&
+              typeof parsed === 'object' &&
+              !Array.isArray(parsed) &&
+              typeof (parsed as { error?: string }).error === 'string'
+                ? (parsed as { error: string }).error
+                : `Could not download metadata JSON (HTTP ${jRes.status}). Check the URI is reachable.`;
+            throw new Error(err);
+          }
+          const merged = mergeTokenMetadataJsonFields(parsed as Record<string, unknown>, name, symbol);
+          const up = await uploadJsonToPinata(merged, `metadata-${mint.trim().slice(0, 8)}.json`);
+          finalUri = up.gatewayUrl;
+          repinnedMetadataJson = true;
+        } else if (!finalUri) {
+          const mr = await fetch(
+            `/api/tools/metaplex-metadata?mint=${encodeURIComponent(mint.trim())}`,
+            { cache: 'no-store' },
+          );
+          const mj = (await mr.json()) as { ok?: boolean; uri?: string; error?: string };
+          if (mr.ok && mj.ok && typeof mj.uri === 'string' && mj.uri.trim()) {
+            finalUri = mj.uri.trim();
+          }
+          if (!finalUri) {
+            throw new Error(
+              'Metadata URI is required when Pinata is not configured. Paste the HTTPS JSON link, or set PINATA_JWT on the server to re-pin merged JSON from the existing on-chain URI automatically.',
+            );
+          }
+        }
+        sig = await updateTokenMetadata(wallet, mint, { name, symbol, uri: finalUri }, ref);
       } else if (kind === 'withdraw-fees') {
         sig = await withdrawWithheldFromMint(
           wallet,
@@ -273,7 +364,12 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
         );
       }
       toast.success('Transaction confirmed', {
-        description: 'View on Solscan',
+        description:
+          kind === 'update-metadata' && repinnedMetadataJson
+            ? 'Metaplex metadata updated; off-chain JSON was re-pinned to match name/symbol. View on Solscan'
+            : kind === 'update-metadata'
+              ? 'Metaplex metadata updated. Set PINATA_JWT to also re-pin merged JSON from the URI. View on Solscan'
+              : 'View on Solscan',
         action: {
           label: 'Open',
           onClick: () => window.open(explorerUrl(sig), '_blank'),

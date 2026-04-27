@@ -4,7 +4,7 @@ export type JupiterUsdMark = {
   /** SOL / USD from Jupiter (only external mark we need). */
   solUsd: number;
   /**
-   * Fixed at 1 for OTC math: notion is locked in USD per token; USDC leg uses $1 = 1 USDC.
+   * Fixed at 1 for treasury transfer math: notion is locked in USD per token; USDC leg uses $1 = 1 USDC.
    * Not fetched from Jupiter.
    */
   usdcUsd: number;

@@ -46,7 +46,7 @@ export type OtcClientPaymentBuilt = {
 };
 
 /**
- * Unsigned v0 tx: buyer pays quoted SOL or USDC to the OTC treasury (same amounts the server verifies).
+ * Unsigned v0 tx: buyer pays quoted SOL or USDC to the deposit treasury (same amounts the server verifies).
  */
 export async function buildOtcTreasuryPaymentTx(
   params: OtcClientPaymentParams,

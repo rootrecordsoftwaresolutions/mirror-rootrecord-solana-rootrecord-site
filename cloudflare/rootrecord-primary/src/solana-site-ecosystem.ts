@@ -357,7 +357,7 @@ export async function handleEcosystemOtcLiquidityMeta(
   return json({ ok: true }, 200);
 }
 
-/** GET /api/solana-site/ecosystem-otc-history — public; OTC rows for site transaction list. */
+/** GET /api/solana-site/ecosystem-otc-history — public; treasury transfer rows for site transaction list. */
 export async function handleEcosystemOtcHistory(
   request: Request,
   env: SolanaSiteEcosystemEnv,

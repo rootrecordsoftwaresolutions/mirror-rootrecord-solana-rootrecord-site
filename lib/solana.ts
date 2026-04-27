@@ -26,6 +26,7 @@ import {
 import {
   createCreateMetadataAccountV3Instruction,
   createUpdateMetadataAccountV2Instruction,
+  Metadata as MetaplexMetadata,
   PROGRAM_ID as METADATA_PROGRAM_ID,
 } from '@metaplex-foundation/mpl-token-metadata';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
@@ -568,7 +569,14 @@ export async function updateTokenMetadata(
       'Update metadata (legacy) only applies to standard SPL mints with Metaplex metadata. Token-2022 mints use the on-mint TokenMetadata extension.',
     );
   }
+  const connection = getConnection();
   const metadata = metadataPda(mint);
+  const existing = await MetaplexMetadata.fromAccountAddress(
+    connection,
+    metadata,
+    'confirmed',
+  );
+  const d = existing.data;
   const ix = createUpdateMetadataAccountV2Instruction(
     {
       metadata,
@@ -580,10 +588,10 @@ export async function updateTokenMetadata(
           name: data.name.slice(0, 32),
           symbol: data.symbol.slice(0, 10),
           uri: data.uri.slice(0, 200),
-          sellerFeeBasisPoints: 0,
-          creators: null,
-          collection: null,
-          uses: null,
+          sellerFeeBasisPoints: d.sellerFeeBasisPoints,
+          creators: d.creators,
+          collection: existing.collection,
+          uses: existing.uses,
         },
         updateAuthority: wallet.publicKey,
         primarySaleHappened: null,

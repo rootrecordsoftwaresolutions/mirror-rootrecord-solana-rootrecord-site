@@ -109,7 +109,7 @@ async function validateQuoteAndBuyer(input: PrepareOtcCheckoutInput): Promise<
       ok: false,
       status: 400,
       detail:
-        'Buyer wallet cannot be the OTC treasury. Use another wallet to pay and receive tokens.',
+        'Buyer wallet cannot be the deposit treasury. Use another wallet to pay and receive tokens.',
     };
   }
   const q = input.quoted_sol_usd;
@@ -439,7 +439,7 @@ export async function finalizeOtcAtomicCheckout(
     }
   } else {
     liquidity_notice =
-      'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from OTC stays in the treasury until you configure the pool id.';
+      'Auto pool deposit skipped: ECOSYSTEM_OTC_CPMM_POOL_ID (or NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID) is not set on the server. SOL/USDC from treasury transfers stays in the treasury until you configure the pool id.';
   }
 
   const quoteReceivedRaw =

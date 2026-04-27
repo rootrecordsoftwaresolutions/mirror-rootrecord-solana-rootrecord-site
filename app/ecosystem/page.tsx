@@ -57,7 +57,7 @@ type OtcD1Row = {
 };
 
 const OTC_HISTORY_UNAVAILABLE =
-  'OTC checkout history is not available yet. Apply D1 migration 0013 on the Worker, deploy rootrecord-primary, and ensure SOLANA_SITE_LOG_URL points at that Worker.';
+  'Treasury transfer history is not available yet. Apply D1 migration 0013 on the Worker, deploy rootrecord-primary, and ensure SOLANA_SITE_LOG_URL points at that Worker.';
 
 function shortAddr(a: string, head = 4, tail = 4): string {
   const s = (a || '').trim();
@@ -81,7 +81,7 @@ function formatTokenUi(amount_raw: string, decimalsStr: string | null): string {
   }
 }
 
-/** Human line for quote credited to treasury (OTC history table). */
+/** Human line for quote credited to treasury (transfer history table). */
 function formatTreasuryDepositLine(payWith: string, raw: string | null): string {
   if (!raw?.trim()) return 'treasury deposit —';
   const n = BigInt(raw);
@@ -148,7 +148,7 @@ function parseFinalizeJson(text: string): OtcFinalizeJson | null {
   }
 }
 
-/** Worker returned 401 when Next called D1-backed OTC routes with a mismatched Bearer. */
+/** Worker returned 401 when Next called D1-backed treasury routes with a mismatched Bearer. */
 function otcWorkerBearerMismatchHint(status: number, detail: string | undefined): string | null {
   const d = typeof detail === 'string' ? detail.trim() : '';
   if (status !== 401 || !/^unauthorized$/i.test(d)) return null;
@@ -164,9 +164,13 @@ function finalizeErrorUserMessage(status: number, finJson: OtcFinalizeJson): str
     finJson.detail ??
     (typeof finJson.message === 'string' ? finJson.message : undefined);
   if (status === 404 || raw === 'Not Found') {
-    return 'Finalize returned 404 (often Cloudflare rootrecord-primary in front of /api with no handler). Fix: redeploy Next so the route exists, or set SOLANA_TOOLS_API_FORWARD_URL on that Worker to your Vercel app origin (no trailing slash), redeploy the Worker, then Retry finalize.';
+    return 'Treasury transfer finalize returned 404 (often Cloudflare rootrecord-primary in front of /api with no handler). Fix: redeploy Next so the route exists, or set SOLANA_TOOLS_API_FORWARD_URL on that Worker to your Vercel app origin (no trailing slash), redeploy the Worker, then Retry finalize.';
   }
-  return otcWorkerBearerMismatchHint(status, raw) ?? raw?.trim() ?? `Finalize failed (${status})`;
+  return (
+    otcWorkerBearerMismatchHint(status, raw) ??
+    raw?.trim() ??
+    `Treasury transfer finalize failed (${status})`
+  );
 }
 
 type PrepareCheckoutJson = {
@@ -180,7 +184,7 @@ type PrepareCheckoutJson = {
 export default function EcosystemPage() {
   const { publicKey, signTransaction, sendTransaction } = useWallet();
   const [treasuryAddr, setTreasuryAddr] = useState<string | null>(null);
-  /** SPL UI string from server (same mint as OTC output). */
+  /** SPL UI string from server (same mint as treasury transfers). */
   const [treasuryRootrUi, setTreasuryRootrUi] = useState<string | null>(null);
   const [retryFinalizeBody, setRetryFinalizeBody] = useState<OtcFinalizePayload | null>(null);
   const [actionHint, setActionHint] = useState<string | null>(null);
@@ -221,14 +225,14 @@ export default function EcosystemPage() {
       let msg =
         detailStr ||
         bodySnippet ||
-        `Could not load OTC history (HTTP ${res.status}).`;
+        `Could not load treasury transfer history (HTTP ${res.status}).`;
       if (j.skipped === true || res.status === 404 || /^not found$/i.test(msg.trim())) {
         msg = OTC_HISTORY_UNAVAILABLE;
       }
       setOtcHistoryErr(msg);
       setOtcHistory([]);
     } catch {
-      setOtcHistoryErr('Network error loading OTC history');
+      setOtcHistoryErr('Network error loading treasury transfer history');
       setOtcHistory([]);
     }
   }, []);
@@ -357,7 +361,7 @@ export default function EcosystemPage() {
     }
     if (publicKey.toBase58() === treasuryAddr.trim()) {
       setFulfillMsg(
-        'Your connected wallet is the OTC treasury. Switch to a different wallet to pay and receive tokens.',
+        'Your connected wallet is the deposit treasury. Switch to a different wallet to pay and receive tokens.',
       );
       return;
     }
@@ -379,13 +383,13 @@ export default function EcosystemPage() {
 
     setFulfillLoading(true);
     try {
-      setActionHint('Preparing checkout…');
+      setActionHint('Preparing treasury transfer…');
       const mint = ECOSYSTEM_OTC_TOKEN_MINT;
       const mintShort =
         mint.length > 14 ? `${mint.slice(0, 6)}…${mint.slice(-4)}` : mint;
       const usdNotional =
         otc.usdTotal != null ? otc.usdTotal.toFixed(6) : String(otc.tokensWhole * OTC_USD_PER_TOKEN);
-      const memoUtf8 = `RootRecord OTC: receive ${otc.tokensWhole} tokens (${usdNotional} USD @ $${OTC_USD_PER_TOKEN}/token). Pay ${payWith}. Output mint ${mintShort}.`;
+      const memoUtf8 = `RootRecord treasury transfer: receive ${otc.tokensWhole} tokens (${usdNotional} USD @ $${OTC_USD_PER_TOKEN}/token). Pay ${payWith}. Output mint ${mintShort}.`;
 
       const checkoutBase: OtcCheckoutPayload = {
         buyer_wallet: publicKey.toBase58(),
@@ -443,7 +447,7 @@ export default function EcosystemPage() {
         base64ToUint8Array(prepJson.checkout_tx_b64),
       );
 
-      setActionHint('Review checkout in your wallet (payment + tokens in one transaction)…');
+      setActionHint('Review treasury transfer in your wallet (payment + tokens in one transaction)…');
       let checkoutSig: string;
       if (sendTransaction) {
         checkoutSig = await sendTransaction(checkoutVtx, conn, {
@@ -478,7 +482,7 @@ export default function EcosystemPage() {
         setFulfillMsg(
           finRes.status === 404
             ? finalizeErrorUserMessage(404, {})
-            : 'Invalid response from finalize endpoint.',
+            : 'Invalid response from treasury transfer finalize endpoint.',
         );
         setRetryFinalizeBody(finalizeBody);
         return;
@@ -498,7 +502,7 @@ export default function EcosystemPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (/user rejected|rejected the request|denied|declined/i.test(msg)) {
-        setFulfillMsg('Checkout was cancelled in the wallet.');
+        setFulfillMsg('Treasury transfer was cancelled in the wallet.');
       } else {
         setFulfillMsg(msg || 'Something went wrong.');
       }
@@ -531,7 +535,7 @@ export default function EcosystemPage() {
       publicKey.toBase58() === treasuryAddr.trim()
     ) {
       setFulfillMsg(
-        'Your connected wallet is the OTC treasury. Switch to a different wallet to retry.',
+        'Your connected wallet is the deposit treasury. Switch to a different wallet to retry.',
       );
       return;
     }
@@ -549,7 +553,7 @@ export default function EcosystemPage() {
         setFulfillMsg(
           finRes.status === 404
             ? finalizeErrorUserMessage(404, {})
-            : 'Invalid response from finalize endpoint.',
+            : 'Invalid response from treasury transfer finalize endpoint.',
         );
         return;
       }
@@ -580,7 +584,7 @@ export default function EcosystemPage() {
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">Purpose</h1>
         <p className="mt-4 text-muted-foreground leading-relaxed">
           ROOTR on Solana: why the token exists, how fees and treasury liquidity fit together, and a
-          live treasury OTC checkout on the same page—read first, then act on-chain.
+          live Treasury Transfer Tool on the same page—read first, then act on-chain.
         </p>
       </div>
 
@@ -588,7 +592,7 @@ export default function EcosystemPage() {
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">ROOTR — tokenomics &amp; mechanics</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            From the developer: economics, wallets, pool, and OTC. Descriptive only —{' '}
+            From the developer: economics, wallets, pool, and treasury transfers. Descriptive only —{' '}
             <strong className="text-foreground">not financial advice</strong>. Do your own research.
           </CardDescription>
         </CardHeader>
@@ -630,8 +634,8 @@ export default function EcosystemPage() {
                 </a>{' '}
                 <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_SOLSCAN_TREASURY})</span>
                 {' — '}
-                holds tokens and sale proceeds until deployed (OTC, LP adds, reserves). Live deposit
-                address for checkout is also shown{' '}
+                holds tokens and sale proceeds until deployed (transfers, LP adds, reserves). Live
+                deposit address for the Treasury Transfer Tool is also shown{' '}
                 <a href="#ecosystem-treasury" className="text-sol-green hover:underline">
                   below
                 </a>
@@ -711,9 +715,9 @@ export default function EcosystemPage() {
             <h2 className="text-base font-semibold text-foreground">Peg &amp; pool stabilization</h2>
             <p>
               While minted supply is still being distributed or placed into the LP, an in-house
-              program targets a <strong className="text-foreground">flat OTC reference</strong> of{' '}
+              program targets a <strong className="text-foreground">flat treasury reference</strong> of{' '}
               <strong className="text-foreground">${OTC_USD_PER_TOKEN} USD per whole token</strong>{' '}
-              on the treasury checkout below. Directionally: when buys hit the LP, treasury-side
+              on the Treasury Transfer Tool below. Directionally: when buys hit the LP, treasury-side
               flows can sell into strength; when sells hit the LP, flows can buy to support the
               reference—always subject to inventory, caps, and on-chain reality (not a guarantee of
               price).
@@ -728,14 +732,14 @@ export default function EcosystemPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-semibold text-foreground">OTC checkout (below)</h2>
+            <h2 className="text-base font-semibold text-foreground">Treasury Transfer Tool (below)</h2>
             <p>
               The in-house transfer tool offers ROOTR at a predictable USD rate for whole tokens.
               If the open market is far from that reference, arbitrageurs may appear—that can help
               realign pricing when automation alone cannot pin the pool.
             </p>
             <p>
-              On each OTC checkout, received SOL/USDC is split for automation: about{' '}
+              On each treasury transfer, received SOL/USDC is split for automation: about{' '}
               <strong className="text-foreground">{ecosystemOtcQuoteRetainPercentLabel()}</strong> of
               the quote can remain in treasury for fees, reserves, and stabilization; the rest
               follows the deployment&apos;s CPMM add-liquidity path (see site notices for USDC seed
@@ -798,7 +802,7 @@ export default function EcosystemPage() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                OTC treasury wallet is not configured on the server yet.
+                Deposit treasury wallet is not configured on the server yet.
               </p>
             )}
           </div>
@@ -883,7 +887,8 @@ export default function EcosystemPage() {
           ) : null}
           {walletIsTreasury ? (
             <p className="text-sm text-destructive leading-relaxed">
-              This wallet is the deposit treasury. OTC needs a <strong className="text-foreground">different</strong>{' '}
+              This wallet is the deposit treasury. The Treasury Transfer Tool needs a{' '}
+              <strong className="text-foreground">different</strong>{' '}
               wallet to send SOL or USDC and receive the project tokens; paying from the treasury
               only pays the network fee and does not credit a purchase.
             </p>
@@ -906,7 +911,7 @@ export default function EcosystemPage() {
               }
               onClick={() => void payAndClaim()}
             >
-              {fulfillLoading ? 'Working…' : 'Sign checkout (pay + receive tokens)'}
+              {fulfillLoading ? 'Working…' : 'Sign treasury transfer (pay + receive tokens)'}
             </Button>
             {retryFinalizeBody ? (
               <Button
@@ -916,7 +921,7 @@ export default function EcosystemPage() {
                 disabled={fulfillLoading || walletIsTreasury}
                 onClick={() => void retryFinalizeOnly()}
               >
-                Retry finalize (checkout already sent)
+                Retry finalize (transfer already sent)
               </Button>
             ) : null}
           </div>
@@ -928,7 +933,7 @@ export default function EcosystemPage() {
           ) : null}
           {lastOutSig ? (
             <div className="rounded-lg border border-emerald-500/35 bg-emerald-950/40 px-4 py-3 text-sm space-y-2">
-              <p className="font-medium text-emerald-100">Checkout confirmed</p>
+              <p className="font-medium text-emerald-100">Treasury transfer confirmed</p>
               <p className="text-muted-foreground leading-relaxed">
                 Your payment and token receipt are in one on-chain transaction. Use the link below to
                 open the transaction on Solscan and verify balance changes.
@@ -969,7 +974,7 @@ export default function EcosystemPage() {
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-lg">Treasury Checkout History</CardTitle>
+            <CardTitle className="text-lg">Treasury Transfer history</CardTitle>
             <CardDescription>A log of all direct transfers.</CardDescription>
           </div>
           <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void loadOtcHistory()}>
@@ -984,7 +989,7 @@ export default function EcosystemPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">{otcHistoryErr}</p>
           ) : null}
           {otcHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No OTC checkouts recorded yet.</p>
+            <p className="text-sm text-muted-foreground">No treasury transfers recorded yet.</p>
           ) : (
             <div className="overflow-x-auto max-h-[520px] overflow-y-auto rounded-md border border-border">
               <table className="w-full text-sm">
@@ -992,7 +997,7 @@ export default function EcosystemPage() {
                   <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-2 font-medium whitespace-nowrap w-[140px]">When</th>
                     <th className="px-3 py-2 font-medium">Transaction</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Checkout · LP add</th>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">Transfer · LP add</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1015,7 +1020,7 @@ export default function EcosystemPage() {
                         <td className="px-3 py-2 text-[11px] font-mono whitespace-nowrap">
                           <div className="flex flex-col gap-1 min-w-[200px]">
                             <span>
-                              <span className="text-muted-foreground">Checkout </span>
+                              <span className="text-muted-foreground">Transfer </span>
                               <a
                                 href={`https://solscan.io/tx/${checkout}`}
                                 target="_blank"

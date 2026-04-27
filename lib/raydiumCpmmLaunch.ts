@@ -228,7 +228,7 @@ export async function loadRaydiumForKeypair(owner: Keypair) {
 }
 
 /**
- * Add CPMM liquidity signed by a keypair (no RootRecord add-liquidity platform fee — for OTC auto-LP).
+ * Add CPMM liquidity signed by a keypair (no RootRecord add-liquidity platform fee — for treasury transfer auto-LP).
  */
 export async function addCpmmLiquidityWithKeypair(
   owner: Keypair,

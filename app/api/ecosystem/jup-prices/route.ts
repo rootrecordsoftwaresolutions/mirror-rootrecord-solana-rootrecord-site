@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { fetchJupiterSolUsdcUsd } from '@/lib/ecosystemJupUsd';
 
 /**
- * SOL/USD for OTC calculator (Jupiter price v3, WSOL only). USDC leg uses fixed $1 = 1 USDC.
+ * SOL/USD for Treasury Transfer Tool calculator (Jupiter price v3, WSOL only). USDC leg uses fixed $1 = 1 USDC.
  */
 export async function GET() {
   try {

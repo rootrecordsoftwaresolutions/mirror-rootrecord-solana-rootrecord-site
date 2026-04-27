@@ -1,4 +1,4 @@
-/** OTC output mint (same default as ecosystem page). */
+/** Treasury Transfer Tool output mint (same default as ecosystem page). */
 export const ECOSYSTEM_OTC_TOKEN_MINT =
   process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
   '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT';
@@ -60,7 +60,7 @@ export const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 const DEVNET_USDC_DEFAULT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEGERXfW9vpM8Xo';
 
-/** USDC mint for OTC payment verification and pool matching (aligns with launch tool env). */
+/** USDC mint for treasury transfer payment verification and pool matching (aligns with launch tool env). */
 export function ecosystemOtcUsdcMint(): string {
   const trimmed = process.env.NEXT_PUBLIC_LAUNCH_USDC_MINT?.trim();
   if (trimmed) return trimmed;
@@ -68,7 +68,7 @@ export function ecosystemOtcUsdcMint(): string {
   return net === 'devnet' ? DEVNET_USDC_DEFAULT : USDC_MINT;
 }
 
-/** End of pause window (ms): after this instant, USDC OTC payments auto-deposit into CPMM. Default end of April 30, 2026 UTC. */
+/** End of pause window (ms): after this instant, USDC treasury transfer payments auto-deposit into CPMM. Default end of April 30, 2026 UTC. */
 function ecosystemOtcUsdcLpResumeAtMs(): number {
   const iso =
     process.env.NEXT_PUBLIC_ECOSYSTEM_OTC_USDC_LP_RESUME_ISO?.trim() ||
@@ -80,7 +80,7 @@ function ecosystemOtcUsdcLpResumeAtMs(): number {
   return Date.UTC(2026, 3, 30, 23, 59, 59, 999);
 }
 
-/** When false, USDC received from OTC stays in treasury for initial seed; SOL auto-LP unchanged. */
+/** When false, USDC received from treasury transfers stays in treasury for initial seed; SOL auto-LP unchanged. */
 export function ecosystemOtcUsdcAutoLpEnabled(): boolean {
   return Date.now() > ecosystemOtcUsdcLpResumeAtMs();
 }

@@ -22,7 +22,7 @@ function otcCpmmPoolId(): string {
 }
 
 /**
- * Deposit the OTC quote payment (SOL or USDC) into the configured Raydium CPMM pool from the
+ * Deposit the treasury transfer quote payment (SOL or USDC) into the configured Raydium CPMM pool from the
  * treasury keypair, pairing with project token per pool price (Raydium SDK). A configurable
  * share of the quote stays in treasury (default 1%) for fees and later LP.
  */
@@ -47,19 +47,19 @@ export async function depositOtcPaymentToCpmmPool(params: {
   const list = await raydium.api.fetchPoolById({ ids: poolId });
   const poolInfo = list.find(isCpmmPoolItem);
   if (!poolInfo) {
-    throw new Error('OTC pool id is not a Raydium CPMM pool on this cluster');
+    throw new Error('Treasury transfer pool id is not a Raydium CPMM pool on this cluster');
   }
 
   const hasToken =
     poolInfo.mintA.address === tokenMint || poolInfo.mintB.address === tokenMint;
   if (!hasToken) {
-    throw new Error('OTC pool does not include the OTC token mint');
+    throw new Error('Treasury transfer pool does not include the configured token mint');
   }
 
   const quoteIsA = poolInfo.mintA.address === quoteMint;
   const quoteIsB = poolInfo.mintB.address === quoteMint;
   if (!quoteIsA && !quoteIsB) {
-    throw new Error('OTC pool quote side must be WSOL (SOL) or USDC to match payment');
+    throw new Error('Treasury transfer pool quote side must be WSOL (SOL) or USDC to match payment');
   }
 
   const received = params.payWith === 'SOL' ? params.receivedSol : params.receivedUsdc;
