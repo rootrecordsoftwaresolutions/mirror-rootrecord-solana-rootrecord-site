@@ -123,6 +123,11 @@ body {
   }
   main {
     padding-top: 0 !important;
+    max-width: none !important;
+  }
+  .wallet-paper-print-root {
+    max-width: none !important;
+    width: 100% !important;
   }
   .print-color-adjust-exact {
     print-color-adjust: exact;

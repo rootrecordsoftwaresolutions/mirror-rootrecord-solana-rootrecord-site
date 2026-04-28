@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import QRCode from 'react-qr-code';
-import { Printer, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Printer, RefreshCw, Scissors, ShieldAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,140 +16,176 @@ export type PaperWalletRow = {
   fingerprintHex: string;
 };
 
-function generateBatch(): PaperWalletRow[] {
-  return Array.from({ length: 4 }, () => {
-    const kp = Keypair.generate();
-    const publicKey = kp.publicKey.toBase58();
-    const bytes = new PublicKey(publicKey).toBytes();
-    const fingerprintHex = Array.from(bytes.slice(0, 8))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .toUpperCase();
-    return {
-      publicKey,
-      privateKeyB58: bs58.encode(kp.secretKey),
-      fingerprintHex,
-    };
-  });
+function generateOne(): PaperWalletRow {
+  const kp = Keypair.generate();
+  const publicKey = kp.publicKey.toBase58();
+  const bytes = new PublicKey(publicKey).toBytes();
+  const fingerprintHex = Array.from(bytes.slice(0, 8))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+  return {
+    publicKey,
+    privateKeyB58: bs58.encode(kp.secretKey),
+    fingerprintHex,
+  };
 }
 
-function QrBox({
-  label,
-  accent,
-  value,
-  footnote,
-}: {
-  label: string;
-  accent: 'green' | 'purple';
-  value: string;
-  footnote: string;
-}) {
-  const accentRing =
-    accent === 'green'
-      ? 'ring-2 ring-sol-green/50 shadow-[0_0_0_1px_rgba(20,241,149,0.2)]'
-      : 'ring-2 ring-sol-purple/50 shadow-[0_0_0_1px_rgba(153,69,255,0.2)]';
-  const labelClass = accent === 'green' ? 'text-sol-green' : 'text-sol-purple';
-
+function SolanaMark({ className }: { className?: string }) {
+  const gid = useId().replace(/:/g, '');
+  const gradId = `sol-g-${gid}`;
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2.5">
-      <span
-        className={cn(
-          'text-[10px] font-semibold uppercase tracking-[0.12em]',
-          labelClass,
-        )}
-      >
+    <svg
+      viewBox="0 0 72 56"
+      className={cn('shrink-0', className)}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#14F195" />
+          <stop offset="100%" stopColor="#9945FF" />
+        </linearGradient>
+      </defs>
+      <g transform="skewX(-8)">
+        <rect x="6" y="8" width="56" height="9" rx="2" fill={`url(#${gradId})`} />
+        <rect x="6" y="22" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.85} />
+        <rect x="6" y="36" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.7} />
+      </g>
+    </svg>
+  );
+}
+
+function FoldRule({ label }: { label: string }) {
+  return (
+    <div
+      className={cn(
+        'relative flex h-7 shrink-0 items-center justify-center gap-2 border-y border-dashed border-white/35',
+        'bg-ink-900/90 print:h-6 print:border-white/40',
+      )}
+      aria-hidden
+    >
+      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-foreground/60" />
+      <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground print:text-[8px]">
         {label}
       </span>
-      <div className={cn('rounded-lg bg-white p-2.5 print:p-2', accentRing)}>
-        <QRCode value={value} size={112} level="M" className="h-28 w-28 print:h-24 print:w-24" />
-      </div>
-      <p className="max-w-[9.5rem] text-center text-[9px] text-muted-foreground print:max-w-[8.5rem]">
-        {footnote}
-      </p>
+      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-foreground/60" />
     </div>
   );
 }
 
-function PaperWalletCard({ row, index }: { row: PaperWalletRow; index: number }) {
+/** Tent strip: top = public (rotated 180°), middle = private, bottom = branding — fold private behind branding, then fold public to ridge. */
+function TentFoldWallet({ row }: { row: PaperWalletRow }) {
   return (
     <div
       className={cn(
-        'relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-ink-800/80',
-        'print:break-inside-avoid print:border-white/20 print:shadow-none',
+        'mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-border shadow-lg',
+        'print:max-w-none print:rounded-none print:border-2 print:border-dashed print:border-white/35 print:shadow-none',
+        'print-color-adjust-exact',
       )}
     >
-      <div
-        className="h-1.5 w-full print-color-adjust-exact"
-        style={{
-          background: 'linear-gradient(90deg, #14F195 0%, #9945FF 100%)',
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.12] print:opacity-10"
-        style={{
-          backgroundImage: `
-            linear-gradient(135deg, rgba(20, 241, 149, 0.15) 0%, transparent 45%),
-            linear-gradient(315deg, rgba(153, 69, 255, 0.15) 0%, transparent 45%)
-          `,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full border border-white/5"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-4 bottom-0 h-20 w-20 rounded-full border border-sol-green/10"
-        aria-hidden
-      />
-
-      <div className="relative flex items-start justify-between gap-2 border-b border-border/60 px-4 pb-1 pt-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            RootRecord <span className="text-foreground/90">paper wallet</span>
-          </div>
-          <div className="mt-0.5 font-display text-lg tracking-tight text-foreground">
-            <em className="not-italic text-sol-green">Solana</em> · address{' '}
-            <span className="not-italic text-sol-purple"> #{index + 1}</span>
-          </div>
-        </div>
-        <div className="max-w-[40%] break-all text-right text-[9px] font-mono leading-tight text-muted-foreground">
-          <div className="text-[8px] uppercase tracking-widest">Fingerprint</div>
-          <div className="tracking-wide text-foreground/90">{row.fingerprintHex}</div>
-        </div>
+      {/* Cut border hint */}
+      <div className="border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-white/20 print:py-1">
+        <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground print:text-[7px]">
+          Cut outer dashed border · one wallet per sheet
+        </p>
       </div>
 
-      <div className="relative flex flex-1 flex-wrap items-stretch justify-center gap-4 px-3 py-4 sm:gap-6 sm:px-5 sm:py-5 print:px-2 print:py-2">
-        <QrBox
-          label="Public — receive"
-          accent="green"
-          value={row.publicKey}
-          footnote="Scan to share your address. Safe to show."
-        />
-        <div className="hidden w-px self-stretch bg-border/60 sm:block print:block" />
-        <QrBox
-          label="Private key"
-          accent="purple"
-          value={row.privateKeyB58}
-          footnote="Import in a wallet. Anyone with this can spend."
-        />
-      </div>
-
-      <div className="relative space-y-2.5 border-t border-border/60 bg-ink-900/50 px-3 py-3 sm:px-4 print:px-3 print:py-2.5">
-        <div>
-          <div className="mb-1 text-[8px] uppercase tracking-[0.14em] text-sol-green/90">
-            Public key (base58)
+      {/* —— Panel 1: Public (reads upright from opposite side of tent) —— */}
+      <div
+        className="relative bg-[#f4f6fa] text-ink-900 print:bg-[#f0f2f6]"
+        style={{ transform: 'rotate(180deg)' }}
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-[0.07] print:opacity-[0.06]">
+          <div
+            className="absolute -right-6 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full"
+            style={{ background: 'radial-gradient(circle, #9945FF 0%, transparent 70%)' }}
+          />
+        </div>
+        <div className="relative px-4 pb-5 pt-4 print:px-5 print:pb-4 print:pt-3">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-900/70">
+                Address
+              </p>
+              <p className="mt-1 font-mono text-[9px] leading-snug text-ink-900/90 print:text-[8px]">
+                {row.publicKey}
+              </p>
+            </div>
+            <SolanaMark className="h-12 w-14 opacity-40 print:h-10 print:w-12" />
           </div>
-          <p className="break-all font-mono text-[9px] leading-relaxed text-foreground/95 sm:text-[10px]">
-            {row.publicKey}
+          <div className="mx-auto flex w-fit rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5 print:p-2.5">
+            <QRCode value={row.publicKey} size={140} level="M" className="h-36 w-36 print:h-32 print:w-32" />
+          </div>
+          <p className="mt-3 text-center text-[9px] text-ink-900/55 print:text-[8px]">
+            Scan to receive SOL &amp; tokens
           </p>
         </div>
-        <div>
-          <div className="mb-1 text-[8px] uppercase tracking-[0.14em] text-sol-purple/90">
-            Secret key (base58, 64-byte keypair)
+      </div>
+
+      <FoldRule label="Fold 2 — tent ridge (meet with branding face)" />
+
+      {/* —— Panel 2: Private (sandwiched inside when assembled) —— */}
+      <div
+        className={cn(
+          'relative border-x border-sol-purple/30 bg-gradient-to-b from-ink-800 to-ink-900',
+          'print:border-white/15',
+        )}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(153,69,255,0.06),transparent)]" />
+        <div className="relative px-3 py-4 text-center print:px-4 print:py-3">
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sol-purple print:text-[8px]">
+            Concealed · private key
+          </p>
+          <p className="mx-auto mt-1 max-w-[18rem] text-[8px] leading-relaxed text-muted-foreground print:text-[7px]">
+            Fold this section behind the branding panel first (Fold 1). It stays inside the tent.
+          </p>
+          <div className="mx-auto mt-3 flex w-fit rounded-lg bg-white p-2 ring-2 ring-sol-purple/40 print:mt-2 print:p-1.5">
+            <QRCode value={row.privateKeyB58} size={100} level="M" className="h-[100px] w-[100px] print:h-24 print:w-24" />
           </div>
-          <p className="break-all font-mono text-[8px] leading-relaxed text-foreground/90 sm:text-[9px]">
+          <p className="mx-auto mt-2 max-w-[20rem] break-all font-mono text-[7px] leading-relaxed text-foreground/85 print:text-[6.5px]">
             {row.privateKeyB58}
           </p>
+        </div>
+      </div>
+
+      <FoldRule label="Fold 1 — tuck private behind branding" />
+
+      {/* —— Panel 3: Branding + amount (outward face of tent) —— */}
+      <div className="relative overflow-hidden bg-ink-800 print:bg-ink-800">
+        <div
+          className="absolute inset-0 opacity-30 print:opacity-25 print-color-adjust-exact"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(20,241,149,0.2) 0%, transparent 42%), linear-gradient(315deg, rgba(153,69,255,0.18) 0%, transparent 45%)',
+          }}
+        />
+        <div className="absolute bottom-0 right-0 top-0 flex w-12 flex-col border-l border-white/10 bg-ink-900/50 py-3 print:w-11 print:py-2">
+          <div
+            className="flex flex-1 flex-col items-center justify-center gap-3 text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground print:text-[7px]"
+            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+          >
+            <span className="text-foreground/90">Amount</span>
+            <span className="text-sol-green">SOL</span>
+          </div>
+          <div
+            className="mx-auto mb-2 h-20 w-px border-l border-dashed border-white/30 print:h-16"
+            title="Hand-write balance"
+          />
+        </div>
+        <div className="relative flex items-center gap-4 pr-14 pl-5 py-6 print:gap-3 print:pr-12 print:pl-4 print:py-5">
+          <SolanaMark className="h-16 w-20 print:h-14 print:w-[4.5rem]" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">RootRecord</p>
+            <h2 className="font-display text-3xl tracking-tight text-foreground print:text-2xl">
+              <span className="text-sol-green">Solana</span>{' '}
+              <span className="text-lg font-sans font-normal text-muted-foreground print:text-base">
+                paper wallet
+              </span>
+            </h2>
+            <p className="mt-1 font-mono text-[9px] text-muted-foreground print:text-[8px]">
+              ID {row.fingerprintHex}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -157,10 +193,10 @@ function PaperWalletCard({ row, index }: { row: PaperWalletRow; index: number })
 }
 
 export function WalletGeneratorClient() {
-  const [wallets, setWallets] = useState<PaperWalletRow[]>(() => generateBatch());
+  const [wallet, setWallet] = useState<PaperWalletRow>(() => generateOne());
 
   const regenerate = useCallback(() => {
-    setWallets(generateBatch());
+    setWallet(generateOne());
   }, []);
 
   const print = useCallback(() => {
@@ -175,51 +211,62 @@ export function WalletGeneratorClient() {
 
       <div
         id="wallet-paper-print-root"
-        className="wallet-paper-print-root mx-auto max-w-4xl print-color-adjust-exact"
+        className="wallet-paper-print-root mx-auto max-w-2xl print-color-adjust-exact print:max-w-none"
       >
         <div className="mb-2 text-center print:hidden">
-          <Badge className="mb-2">Offline-ready</Badge>
+          <Badge className="mb-2">Tent-fold · one per page</Badge>
         </div>
         <div className="mb-4 text-center print:mb-3 print:hidden">
           <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
             Wallet <em className="not-italic text-sol-green">Generator</em>
           </h1>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Four fresh Solana keypairs are generated in your browser. Print this sheet, cut the
-            cards, and store the private side like cash—anyone with the private key or QR can move
-            funds.
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            One Solana keypair per sheet, shaped like a classic tent-fold paper wallet: public address on
+            one face, RootRecord branding on the other, private key on the middle band you tuck inside
+            before folding the ridge.
           </p>
         </div>
         <div className="wallet-gen-no-print mb-6 flex flex-col flex-wrap items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <Button type="button" onClick={regenerate} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
-            Generate new set
+            New wallet
           </Button>
           <Button type="button" onClick={print} className="gap-2">
             <Printer className="h-4 w-4" />
             Print sheet
           </Button>
         </div>
-        <div className="wallet-gen-no-print mb-8 max-w-2xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+
+        <div className="wallet-gen-no-print mb-6 max-w-xl mx-auto rounded-lg border border-border bg-ink-800/60 px-4 py-3 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Assembly</p>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[13px] leading-relaxed">
+            <li>
+              Along <strong className="text-foreground">Fold 1</strong>, fold the <strong className="text-foreground">middle (private)</strong>{' '}
+              section backward behind the <strong className="text-foreground">branding</strong> panel so the secret faces the back of that panel.
+            </li>
+            <li>
+              Along <strong className="text-foreground">Fold 2</strong>, bring the <strong className="text-foreground">address</strong> panel down to meet the ridge so the tent stands: branding on one slope, public QR on the other. The private strip stays sandwiched inside.
+            </li>
+            <li>Optional: tape the open long edges. Hand-write your balance on the vertical Amount line.</li>
+          </ol>
+        </div>
+
+        <div className="wallet-gen-no-print mb-6 max-w-2xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
           <div className="flex gap-2 text-sm text-foreground/95">
             <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" aria-hidden />
             <p>
-              Keys never leave this tab until you print or copy them. Clear your printouts from
-              shared devices. Losing the private key means losing access; exposing it means losing
-              funds.
+              Keys stay in this tab until you print. Treat the private band like cash—anyone with the QR or
+              base58 string can spend everything in this address.
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 print:grid-cols-2 print:gap-3">
-          {wallets.map((w, i) => (
-            <PaperWalletCard key={`${w.publicKey}-${i}`} row={w} index={i} />
-          ))}
+
+        <div className="flex justify-center print:block">
+          <TentFoldWallet row={wallet} />
         </div>
-        <p className="mt-6 hidden text-center text-xs text-muted-foreground print:mt-4 print:block print:text-[9px]">
-          solana.rootrecord.info · paper wallet — generated locally in your browser
-        </p>
-        <p className="mt-2 text-center text-xs text-muted-foreground/80 print:hidden">
-          Fingerprint: first 8 bytes of the public key (hex), for quick visual matching.
+
+        <p className="mt-8 hidden text-center text-xs text-muted-foreground print:mt-4 print:block print:text-[9px]">
+          solana.rootrecord.info · tent-fold paper wallet
         </p>
       </div>
     </div>
