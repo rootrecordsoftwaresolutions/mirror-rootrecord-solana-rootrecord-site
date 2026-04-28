@@ -46,10 +46,24 @@ function SolanaMark({ className }: { className?: string }) {
           <stop offset="100%" stopColor="#9945FF" />
         </linearGradient>
       </defs>
-      <g transform="skewX(-8)">
+      {/* Screen: filled gradient bars */}
+      <g className="print:hidden" transform="skewX(-8)">
         <rect x="6" y="8" width="56" height="9" rx="2" fill={`url(#${gradId})`} />
         <rect x="6" y="22" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.85} />
         <rect x="6" y="36" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.7} />
+      </g>
+      {/* Print: outline only — minimal ink */}
+      <g
+        className="hidden print:block"
+        transform="skewX(-8)"
+        fill="none"
+        stroke="#525252"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      >
+        <rect x="6" y="8" width="56" height="9" rx="2" />
+        <rect x="6" y="22" width="56" height="9" rx="2" />
+        <rect x="6" y="36" width="56" height="9" rx="2" />
       </g>
     </svg>
   );
@@ -60,15 +74,15 @@ function FoldRule({ label }: { label: string }) {
     <div
       className={cn(
         'relative flex h-7 shrink-0 items-center justify-center gap-2 border-y border-dashed border-white/35',
-        'bg-ink-900/90 print:h-6 print:border-white/40',
+        'bg-ink-900/90 print:h-6 print:border-neutral-400 print:bg-white',
       )}
       aria-hidden
     >
-      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-foreground/60" />
-      <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground print:text-[8px]">
+      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-neutral-500" />
+      <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground print:text-[8px] print:text-neutral-700">
         {label}
       </span>
-      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-foreground/60" />
+      <Scissors className="h-3.5 w-3.5 text-muted-foreground print:text-neutral-500" />
     </div>
   );
 }
@@ -79,13 +93,13 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
     <div
       className={cn(
         'mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-border shadow-lg',
-        'print:max-w-[178mm] print:rounded-none print:border-2 print:border-dashed print:border-white/35 print:shadow-none',
-        'print-color-adjust-exact',
+        'print:max-w-[178mm] print:rounded-none print:border print:border-dashed print:border-neutral-500 print:shadow-none',
+        'print-economy-sheet',
       )}
     >
       {/* Cut border hint */}
-      <div className="border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-white/20 print:py-1">
-        <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground print:text-[7px]">
+      <div className="border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-neutral-300 print:bg-white print:py-1">
+        <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground print:text-[7px] print:text-neutral-600">
           Cut outer dashed border · one wallet per sheet
         </p>
       </div>
@@ -93,11 +107,11 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       {/* —— Panel 1: Public (reads upright from opposite side of tent) —— */}
       <div
         className={cn(
-          'relative bg-[#f4f6fa] text-ink-900 print:flex print:min-h-[92mm] print:flex-col print:justify-center print:bg-[#f0f2f6]',
+          'relative bg-[#f4f6fa] text-ink-900 print:flex print:min-h-[92mm] print:flex-col print:justify-center print:bg-white',
         )}
         style={{ transform: 'rotate(180deg)' }}
       >
-        <div className="pointer-events-none absolute inset-0 opacity-[0.07] print:opacity-[0.06]">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.07] print:hidden">
           <div
             className="absolute -right-6 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full"
             style={{ background: 'radial-gradient(circle, #9945FF 0%, transparent 70%)' }}
@@ -115,7 +129,7 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
             </div>
             <SolanaMark className="h-12 w-14 opacity-40 print:h-12 print:w-14" />
           </div>
-          <div className="mx-auto flex w-fit rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5 print:p-4">
+          <div className="mx-auto flex w-fit rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5 print:p-4 print:shadow-none print:ring-1 print:ring-neutral-300">
             <QRCode value={row.publicKey} size={140} level="M" className="h-36 w-36 print:h-44 print:w-44" />
           </div>
           <p className="mt-3 text-center text-[9px] text-ink-900/55 print:mt-4 print:text-[10px]">
@@ -130,21 +144,21 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       <div
         className={cn(
           'relative border-x border-sol-purple/30 bg-gradient-to-b from-ink-800 to-ink-900',
-          'print:flex print:min-h-[68mm] print:flex-col print:justify-center print:border-white/15',
+          'print:flex print:min-h-[68mm] print:flex-col print:justify-center print:border-x print:border-neutral-400 print:bg-neutral-50',
         )}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(153,69,255,0.06),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(153,69,255,0.06),transparent)] print:hidden" />
         <div className="relative px-3 py-4 text-center print:px-5 print:py-4">
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sol-purple print:text-[10px]">
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sol-purple print:text-[10px] print:text-neutral-800">
             Concealed · private key
           </p>
-          <p className="mx-auto mt-1 max-w-[18rem] text-[8px] leading-relaxed text-muted-foreground print:max-w-[38rem] print:text-[8px]">
+          <p className="mx-auto mt-1 max-w-[18rem] text-[8px] leading-relaxed text-muted-foreground print:max-w-[38rem] print:text-[8px] print:text-neutral-600">
             Fold this section behind the branding panel first (Fold 1). It stays inside the tent.
           </p>
-          <div className="mx-auto mt-3 flex w-fit rounded-lg bg-white p-2 ring-2 ring-sol-purple/40 print:mt-3 print:p-2.5">
+          <div className="mx-auto mt-3 flex w-fit rounded-lg bg-white p-2 ring-2 ring-sol-purple/40 print:mt-3 print:p-2.5 print:ring-1 print:ring-neutral-400">
             <QRCode value={row.privateKeyB58} size={100} level="M" className="h-[100px] w-[100px] print:h-32 print:w-32" />
           </div>
-          <p className="mx-auto mt-2 max-w-[20rem] break-all font-mono text-[7px] leading-relaxed text-foreground/85 print:max-w-[38rem] print:text-[7px]">
+          <p className="mx-auto mt-2 max-w-[20rem] break-all font-mono text-[7px] leading-relaxed text-foreground/85 print:max-w-[38rem] print:text-[7px] print:text-neutral-800">
             {row.privateKeyB58}
           </p>
         </div>
@@ -153,38 +167,45 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       <FoldRule label="Fold 1 — tuck private behind branding" />
 
       {/* —— Panel 3: Branding + amount (outward face of tent) —— */}
-      <div className="relative overflow-hidden bg-ink-800 print:flex print:min-h-[72mm] print:flex-col print:justify-center print:bg-ink-800">
+      <div className="relative overflow-hidden bg-ink-800 print:flex print:min-h-[72mm] print:flex-col print:justify-center print:border-t print:border-neutral-200 print:bg-white">
         <div
-          className="absolute inset-0 opacity-30 print:opacity-25 print-color-adjust-exact"
+          className="absolute inset-0 opacity-30 print:hidden"
           style={{
             background:
               'linear-gradient(135deg, rgba(20,241,149,0.2) 0%, transparent 42%), linear-gradient(315deg, rgba(153,69,255,0.18) 0%, transparent 45%)',
           }}
         />
-        <div className="absolute bottom-0 right-0 top-0 flex w-12 flex-col border-l border-white/10 bg-ink-900/50 py-3 print:w-11 print:py-2">
+        {/* Print: single slim accent line (saves ink vs full gradient) */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 hidden h-0.5 print:block print:bg-neutral-700"
+          aria-hidden
+        />
+        <div className="absolute bottom-0 right-0 top-0 flex w-12 flex-col border-l border-white/10 bg-ink-900/50 py-3 print:w-11 print:border-neutral-300 print:bg-neutral-100 print:py-2">
           <div
-            className="flex flex-1 flex-col items-center justify-center gap-3 text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground print:text-[7px]"
+            className="flex flex-1 flex-col items-center justify-center gap-3 text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground print:text-[7px] print:text-neutral-600"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
           >
-            <span className="text-foreground/90">Amount</span>
-            <span className="text-sol-green">SOL</span>
+            <span className="text-foreground/90 print:text-neutral-900">Amount</span>
+            <span className="text-sol-green print:text-neutral-800">SOL</span>
           </div>
           <div
-            className="mx-auto mb-2 h-20 w-px border-l border-dashed border-white/30 print:h-16"
+            className="mx-auto mb-2 h-20 w-px border-l border-dashed border-white/30 print:h-16 print:border-neutral-400"
             title="Hand-write balance"
           />
         </div>
         <div className="relative flex items-center gap-4 pr-14 pl-5 py-6 print:gap-4 print:pr-14 print:pl-6 print:py-6">
           <SolanaMark className="h-16 w-20 print:h-[4.5rem] print:w-[5.5rem]" />
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground print:text-[11px]">RootRecord</p>
-            <h2 className="font-display text-3xl tracking-tight text-foreground print:text-3xl">
-              <span className="text-sol-green">Solana</span>{' '}
-              <span className="text-lg font-sans font-normal text-muted-foreground print:text-base">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground print:text-[11px] print:text-neutral-600">
+              RootRecord
+            </p>
+            <h2 className="font-display text-3xl tracking-tight text-foreground print:text-3xl print:text-neutral-900">
+              <span className="text-sol-green print:text-neutral-900">Solana</span>{' '}
+              <span className="text-lg font-sans font-normal text-muted-foreground print:text-base print:text-neutral-600">
                 paper wallet
               </span>
             </h2>
-            <p className="mt-1 font-mono text-[9px] text-muted-foreground print:text-[8px]">
+            <p className="mt-1 font-mono text-[9px] text-muted-foreground print:text-[8px] print:text-neutral-500">
               ID {row.fingerprintHex}
             </p>
           </div>
@@ -213,7 +234,7 @@ export function WalletGeneratorClient() {
 
       <div
         id="wallet-paper-print-root"
-        className="wallet-paper-print-root mx-auto max-w-2xl print-color-adjust-exact print:max-w-none"
+        className="wallet-paper-print-root mx-auto max-w-2xl print:max-w-none print-economy-sheet"
       >
         <div className="mb-2 text-center print:hidden">
           <Badge className="mb-2">Tent-fold · one per page</Badge>
@@ -268,7 +289,7 @@ export function WalletGeneratorClient() {
             <TentFoldWallet row={wallet} />
           </div>
 
-          <p className="mt-8 hidden shrink-0 text-center text-xs text-muted-foreground print:mt-6 print:block print:text-[9px]">
+          <p className="mt-8 hidden shrink-0 text-center text-xs text-muted-foreground print:mt-6 print:block print:text-[9px] print:text-neutral-500">
             solana.rootrecord.info · tri-fold paper wallet
           </p>
         </div>

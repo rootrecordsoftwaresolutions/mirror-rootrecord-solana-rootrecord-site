@@ -104,7 +104,7 @@ body {
   animation: fade-up 0.6s ease-out both;
 }
 
-/* Paper wallet generator — preserve brand colors when printing */
+/* Paper wallet generator — light page, economy color adjustment when printing */
 @media print {
   @page {
     margin: 10mm;
@@ -117,9 +117,10 @@ body {
     display: none !important;
   }
   body {
-    background: #06090f !important;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+    background: #ffffff !important;
+    /* Let the UA reduce ink where possible (supported browsers) */
+    print-color-adjust: economy;
+    -webkit-print-color-adjust: economy;
   }
   main {
     padding-top: 0 !important;
@@ -128,6 +129,12 @@ body {
   .wallet-paper-print-root {
     max-width: none !important;
     width: 100% !important;
+    print-color-adjust: economy;
+    -webkit-print-color-adjust: economy;
+  }
+  .print-economy-sheet {
+    print-color-adjust: economy;
+    -webkit-print-color-adjust: economy;
   }
   /* Center the strip vertically on A4; ~297mm page − 20mm margins */
   .wallet-page-print-shell {
@@ -136,9 +143,5 @@ body {
     justify-content: center !important;
     min-height: 277mm !important;
     box-sizing: border-box !important;
-  }
-  .print-color-adjust-exact {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
   }
 }
