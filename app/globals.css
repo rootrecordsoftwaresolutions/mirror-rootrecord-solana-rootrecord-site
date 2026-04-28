@@ -129,6 +129,14 @@ body {
     max-width: none !important;
     width: 100% !important;
   }
+  /* Center the strip vertically on A4; ~297mm page − 20mm margins */
+  .wallet-page-print-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    min-height: 277mm !important;
+    box-sizing: border-box !important;
+  }
   .print-color-adjust-exact {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
