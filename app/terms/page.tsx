@@ -1,4 +1,14 @@
-export const metadata = { title: 'Terms' };
+import type { Metadata } from 'next';
+
+import { pageSeo } from '@/lib/seo';
+
+export const metadata: Metadata = pageSeo({
+  path: '/terms',
+  title: 'Terms of service',
+  description:
+    'Terms of service for RootRecord Solana Tools: acceptable use of the token creation and management utilities, fees, and limitations.',
+  keywords: ['RootRecord', 'terms', 'Solana tools'],
+});
 
 export default function TermsPage() {
   return (

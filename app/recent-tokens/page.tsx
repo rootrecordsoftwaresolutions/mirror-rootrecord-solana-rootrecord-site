@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FEATURED_TOKENS } from '@/lib/featuredTokens';
 import { fetchSolanaWorkerGet } from '@/lib/solanaSiteApi';
-import { getPublicSiteOrigin } from '@/lib/siteOrigin';
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -27,18 +27,13 @@ type RecentTokenRow = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = getPublicSiteOrigin();
-  const canonical = `${origin.replace(/\/$/, '')}/recent-tokens`;
-  return {
-    title: 'New tokens',
+  return pageSeo({
+    path: '/recent-tokens',
+    title: 'New tokens feed',
     description:
-      'RootRecord picks and a free feed of SPL tokens created with our tools. Open the shareable token dashboard for any mint.',
-    alternates: { canonical },
-    openGraph: {
-      title: 'New tokens · RootRecord Solana Tools',
-      url: canonical,
-    },
-  };
+      'Featured picks plus a feed of SPL tokens created with RootRecord Solana Tools. Jump to the shareable token stats dashboard for any mint address.',
+    keywords: [...SEO_KEYWORDS.core, 'new Solana tokens', 'token feed', 'mint list'],
+  });
 }
 
 function fmtCreated(iso: string): string {

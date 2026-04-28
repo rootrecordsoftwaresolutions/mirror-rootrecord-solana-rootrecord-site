@@ -1,23 +1,22 @@
 import type { Metadata } from 'next';
 
 import { WalletGeneratorClient } from './WalletGeneratorClient';
-import { getPublicSiteOrigin } from '@/lib/siteOrigin';
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = getPublicSiteOrigin();
-  const canonical = `${origin.replace(/\/$/, '')}/wallet-generator`;
-  return {
-    title: 'Wallet Generator',
+  return pageSeo({
+    path: '/wallet-generator',
+    title: 'Solana paper wallet generator',
     description:
-      'Print a tent-fold Solana paper wallet: public address on one face, branding on the other, private key on a middle band you tuck inside before folding.',
-    alternates: { canonical },
-    openGraph: {
-      title: 'Wallet Generator · RootRecord Solana Tools',
-      url: canonical,
-      description:
-        'Print a tent-fold Solana paper wallet with public and private QR codes.',
-    },
-  };
+      'Generate a Solana keypair in your browser and print a tent-fold paper wallet: public address QR, private key QR (concealed fold), and RootRecord branding. Ink-friendly light layout for PDF or printer.',
+    keywords: [
+      ...SEO_KEYWORDS.core,
+      'cold storage',
+      'print wallet',
+      'QR private key',
+      'offline wallet',
+    ],
+  });
 }
 
 export default function WalletGeneratorPage() {

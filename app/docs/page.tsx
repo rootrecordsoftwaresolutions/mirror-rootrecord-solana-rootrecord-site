@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export const metadata = { title: 'Docs' };
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+
+export const metadata: Metadata = pageSeo({
+  path: '/docs',
+  title: 'Documentation',
+  description:
+    'How to connect a wallet, create SPL or Token-2022 tokens, use Token-2022 extensions, Pinata IPFS metadata, Raydium liquidity tools, referrals, and fee configuration on RootRecord Solana Tools.',
+  keywords: [...SEO_KEYWORDS.core, 'Solana tools documentation', 'wallet adapter', 'devnet'],
+});
 
 const JUPITER_SITE = 'https://jup.ag/';
 const JUPITER_EXTENSION =

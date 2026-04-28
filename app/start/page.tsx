@@ -26,12 +26,15 @@ import {
   ACTION_FEE_SOL,
   REFERRAL_FEE_SHARE_BPS,
 } from '@/lib/solana';
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageSeo({
+  path: '/start',
   title: 'Start here',
   description:
-    'New to RootRecord Solana Tools? Connect a wallet, understand fees, create or manage a token, and verify everything on-chain — in plain steps.',
-};
+    'Step-by-step: install a Solana wallet, connect on RootRecord Solana Tools, understand flat SOL fees and referrals, create or manage a token, and verify transactions on a block explorer.',
+  keywords: [...SEO_KEYWORDS.core, 'Phantom wallet', 'Solflare', 'Jupiter wallet', 'beginner'],
+});
 
 const STEPS: {
   n: string;

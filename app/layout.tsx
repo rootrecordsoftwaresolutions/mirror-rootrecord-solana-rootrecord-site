@@ -7,6 +7,7 @@ import { SolanaProviders } from '@/components/providers/SolanaProviders';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ReferralCapture } from '@/components/ReferralCapture';
+import { SiteJsonLd } from '@/components/seo/SiteJsonLd';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,24 +47,33 @@ const SITE = metadataBaseUrl();
 
 const SOCIAL_IMAGE_PATH = '/brand.jpg';
 
+const GOOGLE_SITE_VERIFICATION = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
   metadataBase: SITE,
+  applicationName: 'RootRecord Solana Tools',
   title: {
-    default: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
+    default: 'RootRecord Solana Tools | SPL & Token-2022 creator',
     template: '%s | RootRecord Solana Tools',
   },
   description:
-    'Fast, cheap, on-chain SPL token creation that respects your SOL. Create, revoke authorities, mint more, and update metadata for ~half the price of every other Solana token tool.',
+    'Fast, cheap, on-chain SPL and Token-2022 token tools on Solana: create mints, Metaplex metadata, revoke authorities, Raydium liquidity, bulk sends, and paper wallets. Flat SOL fees, no subscriptions.',
   keywords: [
     'Solana',
     'SPL token',
+    'Token-2022',
     'token creator',
-    'memecoin',
-    'cheapest solana token creator',
+    'Solana token creator',
     'revoke mint authority',
-    'metaplex',
-    'rootrecord',
+    'Metaplex',
+    'Raydium CPMM',
+    'paper wallet',
+    'RootRecord',
   ],
+  authors: [{ name: 'RootRecord', url: 'https://rootrecord.info' }],
+  creator: 'RootRecord',
+  formatDetection: { email: false, address: false, telephone: false },
+  referrer: 'strict-origin-when-cross-origin',
   icons: {
     icon: [{ url: SOCIAL_IMAGE_PATH, type: 'image/jpeg' }],
     apple: [{ url: SOCIAL_IMAGE_PATH, type: 'image/jpeg' }],
@@ -92,6 +102,14 @@ export const metadata: Metadata = {
       'Cheap, fast, no-BS Solana token creator. ~Half the cost of competitors.',
     images: [SOCIAL_IMAGE_PATH],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+  },
+  ...(GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export const viewport: Viewport = {
@@ -116,6 +134,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen flex flex-col antialiased">
+        <SiteJsonLd />
         <SolanaProviders>
           <ReferralCapture />
           <Header />

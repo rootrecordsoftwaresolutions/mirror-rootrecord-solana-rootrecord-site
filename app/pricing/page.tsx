@@ -1,4 +1,7 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 import { Check, Flame, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,11 +17,13 @@ import {
 } from '@/lib/solana';
 import { BULK_FEE_PER_100_SOL } from '@/lib/bulkSol';
 
-export const metadata = {
-  title: 'Pricing',
+export const metadata: Metadata = pageSeo({
+  path: '/pricing',
+  title: 'Pricing — flat SOL per action',
   description:
-    'Roughly half what every other Solana token tool charges. Pay once per action — no subscriptions.',
-};
+    'Transparent Solana tool pricing: create token, revoke authority, metadata updates, Raydium liquidity fees, bulk sends, and more. Compare to typical market rates — no subscriptions.',
+  keywords: [...SEO_KEYWORDS.core, 'Solana token creator pricing', 'token tool fees', 'flat fee SOL'],
+});
 
 function feeSol(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return '0 SOL';

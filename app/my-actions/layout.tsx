@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'My Actions',
+import { pageSeo } from '@/lib/seo';
+
+export const metadata: Metadata = pageSeo({
+  path: '/my-actions',
+  title: 'My actions',
   description:
-    'Sign in with your Solana wallet to view on-chain actions you performed through RootRecord Solana Tools.',
-};
+    'After wallet verification, view a history of on-chain actions you performed through RootRecord Solana Tools (create, tools, liquidity, and related flows).',
+  noindex: true,
+});
 
 export default function MyActionsLayout({
   children,

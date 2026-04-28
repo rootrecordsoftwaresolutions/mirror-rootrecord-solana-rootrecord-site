@@ -19,6 +19,7 @@ import {
   getPublicSiteOrigin,
 } from '@/lib/siteOrigin';
 import { explorerUrl } from '@/lib/solana';
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -35,19 +36,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? `Supply, authorities, largest holders, and price snapshot for ${res.data.mint}.`
     : 'View supply, authorities, holders, and price for any Solana SPL mint.';
 
-  const origin = getPublicSiteOrigin();
-  const canonical = buildTokenDashboardShareUrl(origin, params.mint.trim());
+  const mint = params.mint.trim();
 
-  return {
+  return pageSeo({
+    path: `/ref/${mint}`,
     title,
     description: desc,
-    alternates: { canonical },
-    openGraph: {
-      title: `${title} · RootRecord`,
-      description: desc,
-      url: canonical,
-    },
-  };
+    keywords: [...SEO_KEYWORDS.core, 'token stats', 'SPL mint', mint.slice(0, 12)],
+  });
 }
 
 function fmtUsd(n: number | null): string {

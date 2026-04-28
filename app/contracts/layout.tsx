@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Contracts',
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+
+export const metadata: Metadata = pageSeo({
+  path: '/contracts',
+  title: 'On-chain contracts',
   description:
-    'Design vesting schedules, time locks, and token custody deals on Solana — linear cliffs, tranches, treasuries, and multi-recipient releases.',
-};
+    'Explore vesting schedules, time locks, and token custody patterns on Solana: cliffs, tranches, treasuries, and multi-recipient releases aligned with RootRecord tooling.',
+  keywords: [...SEO_KEYWORDS.core, 'vesting', 'token lock', 'treasury', 'Solana smart contract'],
+});
 
 export default function ContractsLayout({
   children,

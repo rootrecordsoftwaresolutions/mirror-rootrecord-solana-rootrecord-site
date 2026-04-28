@@ -1,4 +1,8 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+import { HomeStructuredData } from '@/components/seo/HomeStructuredData';
+import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 import {
   ArrowRight,
   Sparkles,
@@ -21,6 +25,22 @@ import { Badge } from '@/components/ui/badge';
 import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageSeo({
+    path: '/',
+    title: 'Solana SPL & Token-2022 tools',
+    description:
+      'Low-fee Solana token creator and utilities: SPL and Token-2022 mints, Metaplex metadata, revoke mint and freeze authority, Token-2022 transfer fees, Raydium CPMM liquidity, bulk SOL sends, and printable cold-storage paper wallets. Transparent flat SOL pricing — no subscriptions.',
+    keywords: [
+      ...SEO_KEYWORDS.core,
+      'cheap Solana token creator',
+      'SPL token creator',
+      'create token on Solana',
+      'update Metaplex metadata',
+    ],
+  });
+}
 
 const FEATURES: {
   n: string;
@@ -74,6 +94,7 @@ const COMPETITORS = [
 export default function HomePage() {
   return (
     <>
+      <HomeStructuredData />
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-aurora pointer-events-none" />
