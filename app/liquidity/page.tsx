@@ -30,7 +30,7 @@ import {
   removeCpmmLiquidity,
   type LaunchQuoteKind,
 } from '@/lib/raydiumCpmmLaunch';
-import { getStoredReferrer } from '@/lib/referral';
+import { getStoredReferrer, withReferrerMetadata } from '@/lib/referral';
 import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 import {
   ADD_LIQUIDITY_FEE_SOL,
@@ -203,13 +203,13 @@ function LiquidityPageInner() {
           action: SiteAction.LIQ_POOL_CREATE,
           route: '/liquidity',
           signature: poolTxId || feeTxId || undefined,
-          metadata: {
+          metadata: withReferrerMetadata({
             poolId: pid,
             poolTxId,
             feeTxId: feeTxId || undefined,
             baseMint: mint.trim(),
             quoteKind,
-          },
+          }),
         });
       }
     } catch (e) {
@@ -285,11 +285,11 @@ function LiquidityPageInner() {
           action: SiteAction.LIQ_ADD,
           route: '/liquidity',
           signature: txId || feeTxId || undefined,
-          metadata: {
+          metadata: withReferrerMetadata({
             poolId: loadedPool.id,
             feeTxId: feeTxId || undefined,
             baseIn: addBaseIn,
-          },
+          }),
         });
       }
     } catch (e) {
@@ -332,10 +332,10 @@ function LiquidityPageInner() {
           action: SiteAction.LIQ_REMOVE,
           route: '/liquidity',
           signature: txId || feeTxId || undefined,
-          metadata: {
+          metadata: withReferrerMetadata({
             poolId: loadedPool.id,
             feeTxId: feeTxId || undefined,
-          },
+          }),
         });
       }
     } catch (e) {

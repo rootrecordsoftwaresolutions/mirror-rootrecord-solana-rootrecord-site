@@ -17,6 +17,8 @@ import { Label } from '@/components/ui/label';
 
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
+  ECOSYSTEM_LISTING_NAME,
+  ECOSYSTEM_LISTING_SYMBOL,
   ECOSYSTEM_SOLSCAN_CPMM_POOL,
   ECOSYSTEM_SOLSCAN_DEVELOPER,
   ECOSYSTEM_SOLSCAN_TREASURY,
@@ -103,7 +105,7 @@ function otcHistoryOneLine(row: OtcD1Row): string {
     row.tokens_whole != null && row.tokens_whole.trim()
       ? row.tokens_whole.trim()
       : formatTokenUi(row.amount_raw, row.token_decimals);
-  const withdrawLine = `${whole} ROOTR Withdrawn → ${buyerShort} · ${mintShort}`;
+  const withdrawLine = `${whole} ${ECOSYSTEM_LISTING_SYMBOL} Withdrawn → ${buyerShort} · ${mintShort}`;
   return `${pay} · ${depositLine}\n${withdrawLine}`;
 }
 
@@ -583,14 +585,17 @@ export default function EcosystemPage() {
         </div>
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">Purpose</h1>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          ROOTR on Solana: why the token exists, how fees and treasury liquidity fit together, and a
-          live Treasury Transfer Tool on the same page—read first, then act on-chain.
+          {ECOSYSTEM_LISTING_NAME} ({ECOSYSTEM_LISTING_SYMBOL}) on Solana: why the token exists, how
+          fees and treasury liquidity fit together, and a live Treasury Transfer Tool on the same
+          page—read first, then act on-chain.
         </p>
       </div>
 
       <Card id="tokenomics" className="scroll-mt-24">
         <CardHeader>
-          <CardTitle className="text-xl md:text-2xl">ROOTR — tokenomics &amp; mechanics</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">
+            {ECOSYSTEM_LISTING_SYMBOL} — tokenomics &amp; mechanics
+          </CardTitle>
           <CardDescription className="text-base leading-relaxed">
             From the developer: economics, wallets, pool, and treasury transfers. Descriptive only —{' '}
             <strong className="text-foreground">not financial advice</strong>. Do your own research.
@@ -598,11 +603,14 @@ export default function EcosystemPage() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-8 leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-base font-semibold text-foreground">Why ROOTR</h2>
+            <h2 className="text-base font-semibold text-foreground">
+              Why {ECOSYSTEM_LISTING_SYMBOL}
+            </h2>
             <p>
-              ROOTR is meant to stand for <strong className="text-foreground">growth</strong> and
-              to build value for customers and holders—not a memecoin, but a{' '}
-              <strong className="text-foreground">utility</strong> layer on{' '}
+              {ECOSYSTEM_LISTING_NAME} (ticker{' '}
+              <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong>) is the
+              treasury-aligned token for RootRecord&apos;s Solana tooling — built to support{' '}
+              <strong className="text-foreground">utility</strong> and long-term operations on{' '}
               <a
                 href="https://solana.com"
                 target="_blank"
@@ -610,8 +618,8 @@ export default function EcosystemPage() {
                 className="text-sol-green hover:underline"
               >
                 Solana
-              </a>{' '}
-              that backs RootRecord Software Solutions operations.
+              </a>
+              , not a short-lived memecoin narrative.
             </p>
             <p>
               Whenever this site&apos;s Solana tooling is used, small fees are collected on each
@@ -652,7 +660,7 @@ export default function EcosystemPage() {
                 </a>{' '}
                 <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_SOLSCAN_CPMM_POOL})</span>
                 {' — '}
-                public pool where paired ROOTR + quote trade.
+                public pool where paired {ECOSYSTEM_LISTING_SYMBOL} + quote trade.
               </li>
               <li>
                 <a
@@ -675,7 +683,7 @@ export default function EcosystemPage() {
                   rel="noopener noreferrer"
                   className="text-sol-green hover:underline font-medium"
                 >
-                  ROOTR mint
+                  {ECOSYSTEM_LISTING_SYMBOL} mint
                 </a>{' '}
                 <span className="font-mono text-xs text-foreground/80">({ECOSYSTEM_OTC_TOKEN_MINT})</span>
                 {' — '}
@@ -687,7 +695,8 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Fees → liquidity</h2>
             <p>
-              Fees from on-site activity tied to ROOTR (liquidity adds, bulk transfers, and other paid
+              Fees from on-site activity tied to {ECOSYSTEM_LISTING_SYMBOL} (liquidity adds, bulk
+              transfers, and other paid
               flows) are routed into automation that prioritizes growing the Raydium LP—deposit
               project token + quote so TVL reflects real usage. Additional funds from other products
               can be transferred in when the operator chooses.
@@ -697,7 +706,8 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Treasury &amp; long-term plan</h2>
             <p>
-              The treasury holds unused ROOTR and related reserves; it is the largest inventory
+              The treasury holds unused {ECOSYSTEM_LISTING_SYMBOL} and related reserves; it is the
+              largest inventory
               account and funds fair, systemic growth. It can also hold LP positions—the keys to
               withdrawing liquidity when needed for infrastructure, servers, and longer-term goals
               (for example off-grid property work the team has described publicly).
@@ -734,7 +744,8 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Treasury Transfer Tool (below)</h2>
             <p>
-              The in-house transfer tool offers ROOTR at a predictable USD rate for whole tokens.
+              The in-house transfer tool offers {ECOSYSTEM_LISTING_SYMBOL} at a predictable USD rate
+              for whole tokens.
               If the open market is far from that reference, arbitrageurs may appear—that can help
               realign pricing when automation alone cannot pin the pool.
             </p>
@@ -791,12 +802,13 @@ export default function EcosystemPage() {
                 </p>
                 {treasuryRootrUi != null ? (
                   <p className="text-sm text-muted-foreground">
-                    <strong className="text-foreground font-medium">ROOTR</strong> in treasury:{' '}
+                    <strong className="text-foreground font-medium">{ECOSYSTEM_LISTING_SYMBOL}</strong>{' '}
+                    in treasury:{' '}
                     <span className="font-mono tabular-nums">{treasuryRootrUi}</span>
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    ROOTR balance not loaded (no token account yet or RPC error).
+                    {ECOSYSTEM_LISTING_SYMBOL} balance not loaded (no token account yet or RPC error).
                   </p>
                 )}
               </>

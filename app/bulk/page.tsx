@@ -36,7 +36,7 @@ import {
   sendBulkTokenTransfers,
   explorerUrl,
 } from '@/lib/bulkSol';
-import { getStoredReferrer } from '@/lib/referral';
+import { getStoredReferrer, withReferrerMetadata } from '@/lib/referral';
 import { getConnection, isFeeWalletConfigured } from '@/lib/solana';
 import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
@@ -267,10 +267,10 @@ export default function BulkSolPage() {
             action: SiteAction.BULK_SOL_SEND,
             route: '/bulk',
             signature: signatures[0],
-            metadata: {
+            metadata: withReferrerMetadata({
               txCount: signatures.length,
               recipientRows: parsed.rows.length,
-            },
+            }),
           });
         }
       } else {
@@ -300,11 +300,11 @@ export default function BulkSolPage() {
             action: SiteAction.BULK_TOKEN_SEND,
             route: '/bulk',
             signature: signatures[0],
-            metadata: {
+            metadata: withReferrerMetadata({
               txCount: signatures.length,
               recipientRows: parsed.rows.length,
               mint: mintInput.trim(),
-            },
+            }),
           });
         }
       }

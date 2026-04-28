@@ -15,6 +15,13 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>
+          Brand new? Read the short guided walkthrough on{' '}
+          <Link href="/start" className="text-sol-green hover:underline">
+            Start here
+          </Link>{' '}
+          first, then come back for detail.
+        </p>
+        <p className="mt-3">
           Use <strong className="text-foreground">Select Wallet</strong> in the top
           right, then pick your Solana wallet and approve the connection. We never ask for
           your seed phrase or recovery words—only normal sign-in prompts.
@@ -127,15 +134,21 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
     title: 'Referral links',
     body: (
       <p>
-        Add <strong className="text-foreground font-mono text-xs">?ref=</strong> and your
-        wallet address to any link you share (for example{' '}
+        Open the{' '}
+        <Link href="/referrals" className="text-sol-green hover:underline">
+          Referrals
+        </Link>{' '}
+        page after connecting your wallet to copy ready-made links. In general, add{' '}
+        <strong className="text-foreground font-mono text-xs">?ref=</strong> and your
+        wallet address to any URL you share (for example{' '}
         <span className="font-mono text-xs break-all">
           solana.rootrecord.info/create?ref=YourWalletHere
         </span>
         ). Their browser saves that wallet as the referrer. When they later pay a
-        RootRecord fee (create or a paid tool), the same transaction records that referrer
-        on-chain so we can run payouts later. Rewards aren&apos;t live yet; tracking works
-        today.
+        RootRecord fee (create or a paid tool), the same transaction can include an
+        on-chain memo so attribution survives without our database alone. Automated SOL
+        payouts to referrers are not live yet; site action logs may include a referrer
+        field for analytics.
       </p>
     ),
   },

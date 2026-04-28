@@ -31,6 +31,11 @@ export function Footer() {
             </div>
             <ul className="space-y-2">
               <li>
+                <Link href="/start" className="hover:text-sol-green">
+                  Start here
+                </Link>
+              </li>
+              <li>
                 <Link href="/create" className="hover:text-sol-green">
                   Create Token
                 </Link>

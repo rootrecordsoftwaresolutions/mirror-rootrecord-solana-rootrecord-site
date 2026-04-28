@@ -120,6 +120,9 @@ export default function HomePage() {
               <Button asChild size="lg" variant="outline" data-testid="cta-pricing">
                 <Link href="/pricing">See the receipts</Link>
               </Button>
+              <Button asChild size="lg" variant="ghost" data-testid="cta-start">
+                <Link href="/start">New? Start here</Link>
+              </Button>
             </div>
 
             {/* trust bar */}

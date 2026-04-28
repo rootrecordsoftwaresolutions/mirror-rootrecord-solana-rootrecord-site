@@ -3,6 +3,12 @@ export const ECOSYSTEM_OTC_TOKEN_MINT =
   process.env.NEXT_PUBLIC_ECOSYSTEM_TOKEN_MINT?.trim() ||
   '6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT';
 
+/** Metaplex listing symbol for the ecosystem mint — keep in sync with on-chain metadata. */
+export const ECOSYSTEM_LISTING_SYMBOL = 'RRTT';
+
+/** Metaplex listing name for the ecosystem mint — keep in sync with on-chain metadata. */
+export const ECOSYSTEM_LISTING_NAME = 'Root Record Treasury Token';
+
 /** Raydium CPMM pool state (Solscan account). */
 export const ECOSYSTEM_SOLSCAN_CPMM_POOL =
   process.env.NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID?.trim() ||

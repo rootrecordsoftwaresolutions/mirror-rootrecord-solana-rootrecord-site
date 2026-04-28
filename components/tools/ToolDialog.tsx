@@ -44,7 +44,7 @@ import {
   readMintInfo,
 } from '@/lib/token2022';
 import { cn, parseSupply } from '@/lib/utils';
-import { getStoredReferrer } from '@/lib/referral';
+import { getStoredReferrer, withReferrerMetadata } from '@/lib/referral';
 import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
 function assertOptionalHttpUrl(raw: string) {
@@ -500,7 +500,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           action: `${SiteAction.TOOL_PREFIX}${kind}`,
           route: '/tools',
           signature: sig,
-          metadata: { tool: kind, mint: mint.trim() },
+          metadata: withReferrerMetadata({ tool: kind, mint: mint.trim() }),
         });
       }
       reset();

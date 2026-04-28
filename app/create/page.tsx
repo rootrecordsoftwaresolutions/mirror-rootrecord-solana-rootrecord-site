@@ -36,7 +36,7 @@ import {
   isFeeWalletConfigured,
 } from '@/lib/solana';
 import { createToken2022 } from '@/lib/token2022';
-import { getStoredReferrer } from '@/lib/referral';
+import { getStoredReferrer, withReferrerMetadata } from '@/lib/referral';
 import { defaultExtensions, type ExtensionState } from '@/lib/schema';
 import { Token2022Section } from '@/components/create/Token2022Section';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
@@ -209,12 +209,12 @@ export default function CreateTokenPage() {
           action: SiteAction.TOKEN_CREATE,
           route: '/create',
           signature: result.signature,
-          metadata: {
+          metadata: withReferrerMetadata({
             mint: result.mint,
             symbol: values.symbol,
             name: values.name,
             token2022: extensions.enabled,
-          },
+          }),
         });
       }
     } catch (err) {
@@ -239,7 +239,7 @@ export default function CreateTokenPage() {
           action: SiteAction.TOKEN_REVOKE_MINT,
           route: '/create',
           signature: sig,
-          metadata: { mint: success.mint },
+          metadata: withReferrerMetadata({ mint: success.mint }),
         });
       }
     } catch (e) {
@@ -262,7 +262,7 @@ export default function CreateTokenPage() {
           action: SiteAction.TOKEN_REVOKE_FREEZE,
           route: '/create',
           signature: sig,
-          metadata: { mint: success.mint },
+          metadata: withReferrerMetadata({ mint: success.mint }),
         });
       }
     } catch (e) {
@@ -573,6 +573,7 @@ export default function CreateTokenPage() {
           window.location.href = `/tools?action=mint&mint=${success.mint}`;
         }}
         busy={postBusy}
+        affiliateWallet={wallet.publicKey?.toBase58() ?? null}
       />
     </div>
   );

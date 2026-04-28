@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Copy,
@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { explorerUrl } from '@/lib/solana';
 import { shortAddr } from '@/lib/utils';
 import { toast } from 'sonner';
+import { buildReferralUrl } from '@/lib/referral';
 
 export interface SuccessPayload {
   mint: string;
@@ -41,6 +42,8 @@ interface Props {
   onRevokeFreeze: () => Promise<void>;
   onMintMore: () => void;
   busy: 'mint' | 'freeze' | null;
+  /** Connected creator wallet — used to build a `/create?ref=` share link. */
+  affiliateWallet?: string | null;
 }
 
 export function SuccessDialog({
@@ -50,10 +53,21 @@ export function SuccessDialog({
   onRevokeFreeze,
   onMintMore,
   busy,
+  affiliateWallet,
 }: Props) {
   const [revokedMint, setRevokedMint] = useState(false);
   const [revokedFreeze, setRevokedFreeze] = useState(false);
+  const [origin, setOrigin] = useState('');
+  useEffect(() => {
+    setOrigin(typeof window !== 'undefined' ? window.location.origin : '');
+  }, []);
+
   if (!payload) return null;
+
+  const referralCreateUrl =
+    affiliateWallet && origin
+      ? buildReferralUrl(origin, '/create', affiliateWallet)
+      : null;
 
   const tweet = encodeURIComponent(
     `Just launched $${payload.symbol} (${payload.name}) on Solana via @rootrecord — cheap, fast, no-BS token creation. Mint: ${payload.mint}`,
@@ -211,6 +225,38 @@ export function SuccessDialog({
             </Button>
           </div>
         </div>
+
+        {referralCreateUrl && (
+          <div className="rounded-xl border border-sol-purple/25 bg-sol-purple/5 px-4 py-3 space-y-2">
+            <div className="text-xs uppercase tracking-[0.14em] text-sol-purple">
+              Your referral link
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Share create with your wallet in <span className="font-mono">?ref=</span>.
+              Payouts are not automated yet; on-chain memos still record attribution.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="font-mono text-[0.7rem] max-w-full truncate"
+                onClick={() => {
+                  void navigator.clipboard.writeText(referralCreateUrl);
+                  toast.success('Referral link copied');
+                }}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                Copy /create?ref=…
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/referrals" onClick={onClose}>
+                  Referral hub
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between pt-3 gap-3">
           <div className="text-xs text-muted-foreground">

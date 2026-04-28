@@ -12,7 +12,7 @@ import { getConnection } from '@/lib/solana';
 
 export const dynamic = 'force-dynamic';
 
-/** Public: treasury address + project (ROOTR) SPL balance on hand (no secret exposed). */
+/** Public: deposit treasury address + ecosystem token (RRTT) SPL balance on hand (no secret exposed). */
 export async function GET() {
   try {
     const kp = loadTreasuryKeypair();

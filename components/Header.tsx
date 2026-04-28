@@ -18,6 +18,7 @@ import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { ReferralPill } from '@/components/ReferralPill';
 
 const NAV = [
+  { href: '/start', label: 'Start here' },
   { href: '/create', label: 'Create Token' },
   { href: '/liquidity', label: 'Liquidity' },
   { href: '/tools', label: 'Tools' },
@@ -26,6 +27,7 @@ const NAV = [
   { href: '/ecosystem', label: 'Purpose' },
   { href: '/bulk', label: 'Bulk SOL' },
   { href: '/my-actions', label: 'My Actions' },
+  { href: '/referrals', label: 'Referrals' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/docs', label: 'Docs' },
 ];
@@ -39,7 +41,9 @@ export function Header() {
   const linkIsActive = (href: string) =>
     pathname === href ||
     (href === '/token-stats' && pathname.startsWith('/ref/')) ||
-    (href === '/ecosystem' && pathname.startsWith('/ecosystem'));
+    (href === '/ecosystem' && pathname.startsWith('/ecosystem')) ||
+    (href === '/referrals' && pathname.startsWith('/referrals')) ||
+    (href === '/start' && pathname.startsWith('/start'));
 
   return (
     <header
