@@ -17,7 +17,7 @@ import {
 
 import {
   getConnection,
-  feeTransferIx,
+  platformFeeTransferInstructions,
   explorerUrl,
   resolveMintAndProgram,
 } from '@/lib/solana';
@@ -81,8 +81,8 @@ export function bulkTokenFirstTxOverhead(
   platformFeeSol: number,
   referrer: string | null | undefined,
 ): number {
-  const feeIx = feeTransferIx(payer, platformFeeSol);
-  let n = feeIx ? 1 : 0;
+  const feeIxs = platformFeeTransferInstructions(payer, platformFeeSol, referrer);
+  let n = feeIxs.length;
   if (eligibleReferrerForPayer(referrer, payer)) n += 1;
   return n;
 }
@@ -318,7 +318,11 @@ export async function sendBulkSolTransfers(
   const payer = wallet.publicKey;
   const connection = getConnection();
   const platformFeeSol = bulkPlatformFeeSol(transfers.length);
-  const feeIx = feeTransferIx(payer, platformFeeSol);
+  const feeIxs = platformFeeTransferInstructions(
+    payer,
+    platformFeeSol,
+    opts?.referrer ?? null,
+  );
   const chunks = chunkTransfers(transfers);
   const signatures: string[] = [];
 
@@ -337,7 +341,7 @@ export async function sendBulkSolTransfers(
       );
     }
     if (c === 0) {
-      if (feeIx) ixs.push(feeIx);
+      for (const ix of feeIxs) ixs.push(ix);
       appendReferralMemoIfEligible(ixs, payer, opts?.referrer ?? null);
     }
 
@@ -362,7 +366,7 @@ export async function sendBulkSolTransfers(
   return {
     signatures,
     batchCount: chunks.length,
-    platformFeeSol: feeIx ? platformFeeSol : 0,
+    platformFeeSol: feeIxs.length ? platformFeeSol : 0,
   };
 }
 
@@ -439,7 +443,11 @@ export async function sendBulkTokenTransfers(
     platformFeeSol,
     opts?.referrer ?? null,
   );
-  const feeIx = feeTransferIx(payer, platformFeeSol);
+  const feeIxs = platformFeeTransferInstructions(
+    payer,
+    platformFeeSol,
+    opts?.referrer ?? null,
+  );
   const chunks = chunkRowsByTokenIxBudget(transfers, needsCreate, firstOverhead);
 
   const rentPerAta = await connection.getMinimumBalanceForRentExemption(165);
@@ -496,7 +504,7 @@ export async function sendBulkTokenTransfers(
     }
 
     if (c === 0) {
-      if (feeIx) ixs.push(feeIx);
+      for (const ix of feeIxs) ixs.push(ix);
       appendReferralMemoIfEligible(ixs, payer, opts?.referrer ?? null);
     }
 
@@ -521,7 +529,7 @@ export async function sendBulkTokenTransfers(
   return {
     signatures,
     batchCount: chunks.length,
-    platformFeeSol: feeIx ? platformFeeSol : 0,
+    platformFeeSol: feeIxs.length ? platformFeeSol : 0,
   };
 }
 

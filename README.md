@@ -13,8 +13,11 @@ Lives at: **solana.rootrecord.info**
 - **Mint More** — Top up supply (mint authority must be active).
 - **Update Metadata** — Change name / symbol / URI on a mutable mint.
 - **Pricing transparency** — Side-by-side with competitor fees.
-- **Referral stub** — `?ref=WALLET` is captured into localStorage on every page
-  load and shown as a small pill in the header. Backend payouts come later.
+- **Referrals** — `?ref=WALLET` is stored in the browser; when the visitor pays a
+  RootRecord **platform** fee (create, tools, Raydium tool fees, bulk, etc.), a
+  configurable share (default **10%**) goes to the referrer in the **same** transaction;
+  the rest goes to the fee wallet. **Treasury OTC checkouts** (ecosystem Purpose page)
+  never include a referral split.
 
 ## Tech
 
@@ -45,6 +48,7 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_FEE_WALLET` | Public key receiving the platform fee |
 | `NEXT_PUBLIC_CREATE_FEE_SOL` | Default `0.025` |
 | `NEXT_PUBLIC_ACTION_FEE_SOL` | Default `0.01` (revoke / mint / update) |
+| `NEXT_PUBLIC_REFERRAL_SHARE_BPS` | Optional. Basis points of each platform fee to an eligible `?ref=` wallet in the same tx (default `1000` = 10%). `0` disables. |
 | `PINATA_JWT` | **Server-only**. JWT for Pinata IPFS uploads. Browser never sees it. |
 | `NEXT_PUBLIC_PINATA_GATEWAY` | Custom Pinata gateway domain (optional) |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL for OG / SEO |

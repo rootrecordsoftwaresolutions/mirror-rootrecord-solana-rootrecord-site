@@ -27,7 +27,7 @@ import {
   resolveMintAndProgram,
   SOLANA_NETWORK,
   explorerUrl,
-  feeTransferIx,
+  platformFeeTransferInstructions,
   sendSimpleTx,
   confirmSignatureSucceeded,
   ADD_LIQUIDITY_FEE_SOL,
@@ -148,9 +148,11 @@ async function sendPlatformFeeSol(
   referrer: string | null | undefined,
 ): Promise<string | null> {
   if (!wallet.publicKey || amountSol <= 0) return null;
-  const feeIx = feeTransferIx(wallet.publicKey, amountSol);
-  const ixs: TransactionInstruction[] = [];
-  if (feeIx) ixs.push(feeIx);
+  const ixs: TransactionInstruction[] = platformFeeTransferInstructions(
+    wallet.publicKey,
+    amountSol,
+    referrer ?? null,
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrer ?? null);
   if (!ixs.length) return null;
   return sendSimpleTx(wallet, ixs);

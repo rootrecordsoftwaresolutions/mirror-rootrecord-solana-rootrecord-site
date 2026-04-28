@@ -33,6 +33,7 @@ import {
   revokeFreezeAuthority,
   CREATE_FEE_SOL,
   ACTION_FEE_SOL,
+  REFERRAL_FEE_SHARE_BPS,
   isFeeWalletConfigured,
 } from '@/lib/solana';
 import { createToken2022 } from '@/lib/token2022';
@@ -513,6 +514,18 @@ export default function CreateTokenPage() {
               <p className="text-xs text-muted-foreground pt-2 border-t border-border">
                 Roughly half what most token creators charge. No subscription.
                 No upsells. No surprise costs at signing.
+                {REFERRAL_FEE_SHARE_BPS > 0 && (
+                  <>
+                    {' '}
+                    If you arrived with a valid{' '}
+                    <span className="font-mono">?ref=</span> link,{' '}
+                    {(REFERRAL_FEE_SHARE_BPS / 100).toFixed(
+                      REFERRAL_FEE_SHARE_BPS % 100 === 0 ? 0 : 2,
+                    )}
+                    % of this platform fee is sent to that wallet in the same
+                    transaction.
+                  </>
+                )}
               </p>
             </CardContent>
           </Card>

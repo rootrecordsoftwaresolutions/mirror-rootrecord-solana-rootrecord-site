@@ -47,6 +47,10 @@ export type OtcClientPaymentBuilt = {
 
 /**
  * Unsigned v0 tx: buyer pays quoted SOL or USDC to the deposit treasury (same amounts the server verifies).
+ *
+ * **Referral policy:** never add `platformFeeTransferInstructions` or referrer splits
+ * here — treasury transfers are excluded from the % referral bonus to prevent abuse on
+ * large OTC payments.
  */
 export async function buildOtcTreasuryPaymentTx(
   params: OtcClientPaymentParams,

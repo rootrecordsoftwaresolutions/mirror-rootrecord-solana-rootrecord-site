@@ -233,7 +233,8 @@ export function SuccessDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Share create with your wallet in <span className="font-mono">?ref=</span>.
-              Payouts are not automated yet; on-chain memos still record attribution.
+              When someone pays a fee with your link saved, a share of that fee is sent to
+              you in the same transaction (see Pricing / Referrals).
             </p>
             <div className="flex flex-wrap gap-2">
               <Button

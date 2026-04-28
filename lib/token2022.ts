@@ -41,7 +41,7 @@ import type { WalletContextState } from '@solana/wallet-adapter-react';
 
 import {
   getConnection,
-  feeTransferIx,
+  platformFeeTransferInstructions,
   CREATE_FEE_SOL,
   ACTION_FEE_SOL,
   resolveMintAndProgram,
@@ -328,8 +328,13 @@ export async function createToken2022(
     );
   }
 
-  const fee = feeTransferIx(payer, CREATE_FEE_SOL);
-  if (fee) tx2.add(fee);
+  for (const ix of platformFeeTransferInstructions(
+    payer,
+    CREATE_FEE_SOL,
+    opts?.referrer ?? null,
+  )) {
+    tx2.add(ix);
+  }
   appendReferralMemoToTransaction(tx2, payer, opts?.referrer ?? null);
 
   /* ---- Sign + send sequentially. The mint Keypair signs only TX1. ---- */
@@ -415,8 +420,13 @@ export async function withdrawWithheldFromMint(
     ),
   );
 
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);
@@ -458,8 +468,13 @@ export async function harvestWithheldToMint(
       TOKEN_2022_PROGRAM_ID,
     ),
   ];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);
@@ -501,8 +516,13 @@ export async function updateTransferFee(
       TOKEN_2022_PROGRAM_ID,
     ),
   ];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
 
   const tx = new Transaction().add(...ixs);

@@ -22,6 +22,7 @@ import {
   getStoredReferrer,
   subscribeReferrerChanged,
 } from '@/lib/referral';
+import { REFERRAL_FEE_SHARE_BPS } from '@/lib/solana';
 import { REFERRAL_MEMO_PREFIX } from '@/lib/referralMemo';
 
 const PATH_PRESETS: { label: string; path: string; hint?: string }[] = [
@@ -31,6 +32,7 @@ const PATH_PRESETS: { label: string; path: string; hint?: string }[] = [
   { label: 'Liquidity', path: '/liquidity' },
   { label: 'Bulk SOL', path: '/bulk' },
   { label: 'Pricing', path: '/pricing' },
+  { label: 'New tokens', path: '/recent-tokens' },
   { label: 'Token stats', path: '/token-stats' },
   { label: 'Docs', path: '/docs' },
 ];
@@ -81,11 +83,24 @@ export function ReferralsClient() {
           ?ref=
         </Badge>{' '}
         plus a valid Solana wallet address stores that wallet as their referrer. When
-        they pay a RootRecord platform fee, the same transaction can include an on-chain
-        memo (<span className="font-mono text-xs">{REFERRAL_MEMO_PREFIX}</span>…) so
-        attribution does not depend on our database alone. Automated SOL payouts to
-        referrers are not live yet; action logs may include the referrer field for
-        analytics. See{' '}
+        they complete a paid RootRecord <strong className="text-foreground">platform fee</strong>{' '}
+        action (create, tools, Raydium launch/liquidity tool fees, bulk fees, etc.),{' '}
+        <strong className="text-foreground">
+          {(REFERRAL_FEE_SHARE_BPS / 100).toFixed(
+            REFERRAL_FEE_SHARE_BPS % 100 === 0 ? 0 : 2,
+          )}
+          %
+        </strong>{' '}
+        of the platform fee is sent to that referrer&apos;s wallet immediately in the
+        same transaction; the rest goes to RootRecord. Self-referral is blocked (you
+        cannot use your own wallet as <span className="font-mono text-xs">?ref=</span>
+        ). An optional on-chain memo (
+        <span className="font-mono text-xs">{REFERRAL_MEMO_PREFIX}</span>…) is still
+        included for explorers and analytics.{' '}
+        <strong className="text-foreground">Ecosystem treasury checkouts</strong> (SOL or USDC
+        paid to the OTC treasury on the Purpose page) do{' '}
+        <em className="text-foreground not-italic">not</em> include any referral bonus — the
+        full payment goes to the treasury. See{' '}
         <Link href="/docs" className="text-sol-green hover:underline">
           Docs
         </Link>
@@ -100,8 +115,9 @@ export function ReferralsClient() {
               <CardTitle className="text-base">Visitor referrer set</CardTitle>
             </div>
             <CardDescription>
-              This browser will tag your fee transactions for this wallet until you
-              clear it.
+              This browser will tag your <strong className="text-foreground">platform fee</strong>{' '}
+              transactions for this wallet until you clear it. Treasury OTC checkouts are
+              not affected.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2">

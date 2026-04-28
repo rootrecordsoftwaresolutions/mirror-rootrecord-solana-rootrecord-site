@@ -10,6 +10,7 @@ import {
   ADD_LIQUIDITY_FEE_SOL,
   REMOVE_LIQUIDITY_FEE_SOL,
   RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
+  REFERRAL_FEE_SHARE_BPS,
 } from '@/lib/solana';
 import { BULK_FEE_PER_100_SOL } from '@/lib/bulkSol';
 
@@ -132,6 +133,26 @@ export default function PricingPage() {
           ask for. The platform fee for each action is published right next to
           the real on-chain cost — so you can see exactly where your SOL goes.
         </p>
+        {REFERRAL_FEE_SHARE_BPS > 0 && (
+          <p className="mt-4 text-sm text-muted-foreground max-w-2xl border-l-2 border-sol-purple/50 pl-4">
+            <strong className="text-foreground">Referrals:</strong> when someone
+            pays a listed RootRecord fee with a valid{' '}
+            <span className="font-mono text-xs">?ref=</span> wallet in their
+            browser,{' '}
+            {(REFERRAL_FEE_SHARE_BPS / 100).toFixed(
+              REFERRAL_FEE_SHARE_BPS % 100 === 0 ? 0 : 2,
+            )}
+            % of that fee is transferred to the referrer and the remainder to
+            RootRecord — in the <em className="text-foreground not-italic">same</em>{' '}
+            signed transaction. Ecosystem <strong className="text-foreground">treasury</strong>{' '}
+            checkouts (OTC payments to the treasury) are excluded — no referral share on
+            those. See{' '}
+            <Link href="/referrals" className="text-sol-green hover:underline">
+              Referrals
+            </Link>
+            .
+          </p>
+        )}
       </div>
 
       <div className="mt-12">

@@ -34,6 +34,7 @@ import type { WalletContextState } from '@solana/wallet-adapter-react';
 import {
   appendReferralMemoIfEligible,
   appendReferralMemoToTransaction,
+  eligibleReferrerForPayer,
 } from '@/lib/referralMemo';
 
 export const SOLANA_NETWORK = (process.env.NEXT_PUBLIC_SOLANA_NETWORK ||
@@ -81,6 +82,15 @@ export const ACTION_FEE_SOL = parseFeeSol(
   process.env.NEXT_PUBLIC_ACTION_FEE_SOL,
   0.01,
 );
+
+/** Basis points of each platform fee sent to an eligible referrer (same tx). Default 1000 = 10%. */
+function parseReferralShareBps(): number {
+  const n = parseInt(process.env.NEXT_PUBLIC_REFERRAL_SHARE_BPS ?? '', 10);
+  if (Number.isFinite(n) && n >= 0 && n <= 10_000) return n;
+  return 1000;
+}
+
+export const REFERRAL_FEE_SHARE_BPS = parseReferralShareBps();
 /** RootRecord service charge for the Raydium pool launch tool (first tx, before pool creation). */
 export const LAUNCH_FEE_SOL = parseFeeSol(
   process.env.NEXT_PUBLIC_LAUNCH_FEE_SOL,
@@ -126,13 +136,65 @@ export function feeTransferIx(
   payer: PublicKey,
   amountSol: number,
 ): TransactionInstruction | null {
+  const ixs = platformFeeTransferInstructions(payer, amountSol, null);
+  return ixs[0] ?? null;
+}
+
+/**
+ * SOL **RootRecord platform fee** only (create, tools, Raydium tool fees, bulk fees).
+ * Not used for ecosystem **treasury** checkouts (SOL/USDC paid to the OTC treasury) —
+ * those are always full amount to the treasury with no referrer split, by design.
+ *
+ * When an eligible referrer is set, `REFERRAL_FEE_SHARE_BPS` of the gross fee goes to
+ * the referrer and the remainder to the fee wallet. Payer debits the full `amountSol`
+ * (rounding: referrer gets floor bps, fee wallet gets the rest).
+ */
+export function platformFeeTransferInstructions(
+  payer: PublicKey,
+  amountSol: number,
+  referrer: string | null | undefined,
+): TransactionInstruction[] {
   const fw = getFeeWallet();
-  if (!fw) return null;
-  return SystemProgram.transfer({
-    fromPubkey: payer,
-    toPubkey: fw,
-    lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
-  });
+  if (!fw) return [];
+  const totalLamports = Math.round(amountSol * LAMPORTS_PER_SOL);
+  if (totalLamports <= 0) return [];
+
+  const refB58 = eligibleReferrerForPayer(referrer, payer);
+  if (!refB58 || REFERRAL_FEE_SHARE_BPS <= 0) {
+    return [
+      SystemProgram.transfer({
+        fromPubkey: payer,
+        toPubkey: fw,
+        lamports: totalLamports,
+      }),
+    ];
+  }
+
+  const refPk = new PublicKey(refB58);
+  const refLamports = Math.floor(
+    (totalLamports * REFERRAL_FEE_SHARE_BPS) / 10_000,
+  );
+  const platLamports = totalLamports - refLamports;
+  const out: TransactionInstruction[] = [];
+  if (platLamports > 0) {
+    out.push(
+      SystemProgram.transfer({
+        fromPubkey: payer,
+        toPubkey: fw,
+        lamports: platLamports,
+      }),
+    );
+  }
+  if (refLamports > 0) {
+    out.push(
+      SystemProgram.transfer({
+        fromPubkey: payer,
+        toPubkey: refPk,
+        lamports: refLamports,
+      }),
+    );
+  }
+  return out;
 }
 
 export function explorerUrl(
@@ -180,8 +242,8 @@ export function metadataPda(mint: PublicKey): PublicKey {
  *  3. create ATA for payer
  *  4. mint full supply
  *  5. create Metaplex metadata account v3
- *  6. transfer create fee to platform fee wallet
- *  7. optional memo tagging referrer wallet (same tx, for later payout attribution)
+ *  6. transfer create fee: fee wallet + optional 10% referrer share (same tx)
+ *  7. optional memo tagging referrer wallet (same tx, for analytics)
  */
 export async function createSplToken(
   wallet: WalletContextState,
@@ -263,9 +325,13 @@ export async function createSplToken(
     ),
   );
 
-  // 6. fee transfer
-  const feeIx = feeTransferIx(payer, CREATE_FEE_SOL);
-  if (feeIx) tx.add(feeIx);
+  // 6. fee transfers (platform + optional referrer split)
+  const feeIxs = platformFeeTransferInstructions(
+    payer,
+    CREATE_FEE_SOL,
+    opts?.referrer ?? null,
+  );
+  for (const ix of feeIxs) tx.add(ix);
   appendReferralMemoToTransaction(tx, payer, opts?.referrer ?? null);
 
   // Fee ix runs last; if the wallet is light on SOL, rent consumes balance first and the
@@ -275,7 +341,7 @@ export async function createSplToken(
     METADATA_ACCOUNT_SPACE,
   );
   const lamportsAta = await connection.getMinimumBalanceForRentExemption(165);
-  const feeLamports = feeIx
+  const feeLamports = feeIxs.length
     ? Math.round(CREATE_FEE_SOL * LAMPORTS_PER_SOL)
     : 0;
   const headroom = 25_000;
@@ -433,8 +499,13 @@ export async function revokeMintAuthority(
       programId,
     ),
   ];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
@@ -456,8 +527,13 @@ export async function revokeFreezeAuthority(
       programId,
     ),
   ];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
@@ -503,8 +579,13 @@ export async function mintMore(
       programId,
     ),
   );
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
@@ -603,8 +684,13 @@ export async function updateTokenMetadata(
     },
   );
   const ixs: TransactionInstruction[] = [ix];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }
@@ -662,8 +748,13 @@ export async function lockLegacyListingMetadata(
     },
   );
   const ixs: TransactionInstruction[] = [ix];
-  const fee = feeTransferIx(wallet.publicKey, ACTION_FEE_SOL);
-  if (fee) ixs.push(fee);
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
   appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
   return sendSimpleTx(wallet, ixs);
 }

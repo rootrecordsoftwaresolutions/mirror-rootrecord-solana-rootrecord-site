@@ -47,7 +47,7 @@ export function referralMemoInstruction(
   });
 }
 
-/** Append memo after platform-fee instructions (same transaction). */
+/** Append memo after platform-fee + optional referrer SOL transfers (same transaction). */
 export function appendReferralMemoIfEligible(
   ixs: TransactionInstruction[],
   payer: PublicKey,

@@ -21,7 +21,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CREATE_FEE_SOL, ACTION_FEE_SOL } from '@/lib/solana';
+import {
+  CREATE_FEE_SOL,
+  ACTION_FEE_SOL,
+  REFERRAL_FEE_SHARE_BPS,
+} from '@/lib/solana';
 
 export const metadata: Metadata = {
   title: 'Start here',
@@ -50,7 +54,7 @@ const STEPS: {
   {
     n: '03',
     title: 'Know what you are paying',
-    body: `Each paid action charges a small, fixed RootRecord fee in SOL (for example ~${CREATE_FEE_SOL} SOL to create a token and ~${ACTION_FEE_SOL} SOL for most tools), plus Solana network rent and fees. There are no subscriptions. See Pricing for the full list.`,
+    body: `Each paid action charges a small, fixed RootRecord fee in SOL (for example ~${CREATE_FEE_SOL} SOL to create a token and ~${ACTION_FEE_SOL} SOL for most tools), plus Solana network rent and fees. There are no subscriptions. If you used someone’s referral link (${REFERRAL_FEE_SHARE_BPS > 0 ? `${(REFERRAL_FEE_SHARE_BPS / 100).toFixed(REFERRAL_FEE_SHARE_BPS % 100 === 0 ? 0 : 2)}%` : '0%'} of the platform fee goes to them in the same transaction by default). See Pricing for the full list.`,
     icon: Coins,
   },
   {

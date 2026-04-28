@@ -13,6 +13,8 @@ import {
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { JupiterWalletAdapter, JupiterWalletName } from '@/lib/jupiterWalletAdapter';
+import { CustodialWalletAdapter } from '@/lib/custodialWalletAdapter';
+import { RootRecordAuthDialog } from '@/components/RootRecordAuthDialog';
 import { RPC_URL } from '@/lib/solana';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -42,6 +44,7 @@ export function SolanaProviders({ children }: { children: React.ReactNode }) {
   const [wallets, setWallets] = useState<WalletAdapter[]>([]);
   useEffect(() => {
     setWallets([
+      new CustodialWalletAdapter(),
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new JupiterWalletAdapter(),
@@ -51,7 +54,10 @@ export function SolanaProviders({ children }: { children: React.ReactNode }) {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect onError={onWalletError}>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <RootRecordAuthDialog />
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

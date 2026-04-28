@@ -252,6 +252,7 @@ export async function prepareOtcAtomicCheckout(
   const ixs = [];
   if (memoIx) ixs.push(memoIx);
 
+  // Payment to treasury only — no RootRecord platform-fee / referrer split (OTC is excluded by policy).
   if (input.pay_with === 'SOL') {
     ixs.push(
       SystemProgram.transfer({

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { ReferralPill } from '@/components/ReferralPill';
+import { AccountSignInButton } from '@/components/RootRecordAuthDialog';
 
 const NAV = [
   { href: '/start', label: 'Start here' },
@@ -23,6 +24,7 @@ const NAV = [
   { href: '/liquidity', label: 'Liquidity' },
   { href: '/tools', label: 'Tools' },
   { href: '/contracts', label: 'Contracts' },
+  { href: '/recent-tokens', label: 'New tokens' },
   { href: '/token-stats', label: 'Token Stats' },
   { href: '/ecosystem', label: 'Purpose' },
   { href: '/bulk', label: 'Bulk SOL' },
@@ -41,6 +43,7 @@ export function Header() {
   const linkIsActive = (href: string) =>
     pathname === href ||
     (href === '/token-stats' && pathname.startsWith('/ref/')) ||
+    (href === '/recent-tokens' && pathname.startsWith('/recent-tokens')) ||
     (href === '/ecosystem' && pathname.startsWith('/ecosystem')) ||
     (href === '/referrals' && pathname.startsWith('/referrals')) ||
     (href === '/start' && pathname.startsWith('/start'));
@@ -66,6 +69,7 @@ export function Header() {
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <ReferralPill />
+          <AccountSignInButton />
           <Button
             type="button"
             variant="ghost"

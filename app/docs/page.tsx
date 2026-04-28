@@ -144,11 +144,17 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
         <span className="font-mono text-xs break-all">
           solana.rootrecord.info/create?ref=YourWalletHere
         </span>
-        ). Their browser saves that wallet as the referrer. When they later pay a
-        RootRecord fee (create or a paid tool), the same transaction can include an
-        on-chain memo so attribution survives without our database alone. Automated SOL
-        payouts to referrers are not live yet; site action logs may include a referrer
-        field for analytics.
+        ). Their browser saves that wallet as the referrer. When they pay any RootRecord
+        platform fee with a valid referrer (not the same wallet as the payer), a fixed
+        percentage of that fee is transferred to the referrer in the{' '}
+        <strong className="text-foreground">same signed transaction</strong> — the rest
+        goes to RootRecord&apos;s fee wallet. The default share is 10% (configurable via{' '}
+        <span className="font-mono text-xs">NEXT_PUBLIC_REFERRAL_SHARE_BPS</span>, basis
+        points out of 10,000). A small memo may still be written for explorers. Action
+        logs can include the referrer address for your records.{' '}
+        <strong className="text-foreground">Treasury OTC payments</strong> (SOL or USDC
+        to the ecosystem deposit treasury on the Purpose page) never pay a referral share;
+        the full quoted amount goes to the treasury only.
       </p>
     ),
   },

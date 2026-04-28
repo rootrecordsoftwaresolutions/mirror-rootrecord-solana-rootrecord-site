@@ -38,6 +38,8 @@ import { lifeMemberFromLicenseData, upsertUserAccountFromLicense } from "./accou
 
 import { handleSolanaSiteLog } from "./solana-site-log";
 
+import { handleRecentTokens } from "./solana-site-recent-tokens";
+
 import { handleSolanaSiteChallenge, handleSolanaSiteMyActions } from "./solana-site-read";
 
 import {
@@ -472,6 +474,12 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   if (method === "GET" && sub === "/solana-site/ecosystem-bot-events") {
 
     return handleEcosystemBotEvents(request, env);
+
+  }
+
+  if (method === "GET" && sub === "/solana-site/recent-tokens") {
+
+    return handleRecentTokens(request, env);
 
   }
 
