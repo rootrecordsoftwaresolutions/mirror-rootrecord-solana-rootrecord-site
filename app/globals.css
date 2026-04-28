@@ -103,3 +103,29 @@ body {
 .fade-in-up {
   animation: fade-up 0.6s ease-out both;
 }
+
+/* Paper wallet generator — preserve brand colors when printing */
+@media print {
+  @page {
+    margin: 10mm;
+    size: A4;
+  }
+  header[data-testid='site-header'],
+  footer[data-testid='site-footer'],
+  .wallet-gen-no-print,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  body {
+    background: #06090f !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  main {
+    padding-top: 0 !important;
+  }
+  .print-color-adjust-exact {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

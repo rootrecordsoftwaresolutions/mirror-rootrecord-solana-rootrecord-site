@@ -28,6 +28,7 @@ const NAV = [
   { href: '/token-stats', label: 'Token Stats' },
   { href: '/ecosystem', label: 'Purpose' },
   { href: '/bulk', label: 'Bulk SOL' },
+  { href: '/wallet-generator', label: 'Wallet Generator' },
   { href: '/my-actions', label: 'My Actions' },
   { href: '/referrals', label: 'Referrals' },
   { href: '/pricing', label: 'Pricing' },
@@ -46,7 +47,8 @@ export function Header() {
     (href === '/recent-tokens' && pathname.startsWith('/recent-tokens')) ||
     (href === '/ecosystem' && pathname.startsWith('/ecosystem')) ||
     (href === '/referrals' && pathname.startsWith('/referrals')) ||
-    (href === '/start' && pathname.startsWith('/start'));
+    (href === '/start' && pathname.startsWith('/start')) ||
+    (href === '/wallet-generator' && pathname.startsWith('/wallet-generator'));
 
   return (
     <header
@@ -110,7 +112,7 @@ export function Header() {
                 <Link
                   key={n.href}
                   href={n.href}
-                  data-testid={`nav-${n.label.toLowerCase().replace(' ', '-')}`}
+                  data-testid={`nav-${n.label.toLowerCase().replace(/\s+/g, '-')}`}
                   onClick={() => setMenuOpen(false)}
                   className={cn(
                     'px-6 py-3.5 text-sm font-medium transition-colors hover:bg-white/5',

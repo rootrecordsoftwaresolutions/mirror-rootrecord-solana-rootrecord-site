@@ -70,6 +70,11 @@ export function Footer() {
                   Bulk SOL
                 </Link>
               </li>
+              <li>
+                <Link href="/wallet-generator" className="hover:text-sol-green">
+                  Wallet generator
+                </Link>
+              </li>
               <FooterMyActionsLink />
               <li>
                 <Link href="/pricing" className="hover:text-sol-green">
