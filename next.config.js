@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@streamflow/stream', '@streamflow/common'],
   webpack: (config) => {
     config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
     config.resolve.fallback = {

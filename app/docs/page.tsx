@@ -10,7 +10,14 @@ export const metadata: Metadata = pageSeo({
   title: 'Documentation',
   description:
     'How to connect a wallet, create SPL or Token-2022 tokens, use Token-2022 extensions, Pinata IPFS metadata, Raydium liquidity tools, referrals, and fee configuration on RootRecord Solana Tools.',
-  keywords: [...SEO_KEYWORDS.core, 'Solana tools documentation', 'wallet adapter', 'devnet'],
+  keywords: [
+    ...SEO_KEYWORDS.core,
+    'Solana tools documentation',
+    'wallet adapter',
+    'devnet',
+    'Solana paper wallet',
+    'wallet generator',
+  ],
 });
 
 const JUPITER_SITE = 'https://jup.ag/';
@@ -180,6 +187,26 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
         . Enter the mint address, how much to destroy, and decimals (same numbers you used
         at launch). We don&apos;t charge a RootRecord fee for burns—you only pay
         Solana&apos;s small network fee.
+      </p>
+    ),
+  },
+  {
+    n: '09',
+    title: 'Printable paper wallet (cold storage)',
+    body: (
+      <p>
+        The{' '}
+        <Link href="/wallet-generator" className="text-sol-green hover:underline">
+          Wallet generator
+        </Link>{' '}
+        creates a random Solana keypair in your browser and lays out a tent-fold printable
+        sheet: receive address and private key as QR codes plus base58 text. It is{' '}
+        <strong className="text-foreground">not</strong> a BIP-39 mnemonic or batch HD
+        wallet tool—one keypair per print, designed for gifting or vaulting. Use{' '}
+        the <strong className="text-foreground">Print</strong> menu (<strong className="text-foreground">Save ink</strong>,{' '}
+        <strong className="text-foreground">Vivid</strong>, <strong className="text-foreground">Premium dark</strong>, or{' '}
+        <strong className="text-foreground">Warm paper</strong>);
+        nothing is uploaded to RootRecord for key generation.
       </p>
     ),
   },

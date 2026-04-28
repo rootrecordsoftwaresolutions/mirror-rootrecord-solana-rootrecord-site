@@ -11,6 +11,7 @@ import {
   Flame,
   Zap,
   Pencil,
+  Scroll,
   Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,8 @@ const FEATURES: {
   icon: LucideIcon;
   /** When set, the whole card links (e.g. to a tool on /tools). */
   href?: string;
+  /** Footer line when `href` is set (default: Open on Tools →). */
+  cta?: string;
 }[] = [
   {
     n: '01',
@@ -80,6 +83,14 @@ const FEATURES: {
     desc: 'Remove tokens from your wallet’s token account for a mint and shrink circulating supply. No RootRecord fee — only Solana network fees.',
     icon: Flame,
     href: '/tools?action=burn',
+  },
+  {
+    n: '06',
+    title: 'Paper wallet',
+    desc: 'Generate a random keypair in-browser and print a tent-fold sheet: public + private QR codes, base58 text, several print styles (save ink, vivid, premium dark, warm paper).',
+    icon: Scroll,
+    href: '/wallet-generator',
+    cta: 'Open wallet generator →',
   },
 ];
 
@@ -195,7 +206,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => {
             const card = (
               <Card
@@ -220,7 +231,7 @@ export default function HomePage() {
                   </CardDescription>
                   {f.href && (
                     <p className="mt-3 text-xs font-medium text-sol-green">
-                      Open on Tools →
+                      {f.cta ?? 'Open on Tools →'}
                     </p>
                   )}
                 </CardContent>

@@ -1,14 +1,172 @@
 'use client';
 
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import QRCode from 'react-qr-code';
-import { Palette, Printer, RefreshCw, Scissors, ShieldAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  Copy,
+  Download,
+  Droplets,
+  FileText,
+  LayoutTemplate,
+  Leaf,
+  Printer,
+  RefreshCw,
+  Scissors,
+  ShieldAlert,
+  Sparkles,
+  Sunrise,
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+
+/** Mutually exclusive `document.documentElement` classes for print themes (economy = none). */
+const PRINT_THEME_HTML_CLASSES = ['wallet-print--color', 'wallet-print--premium', 'wallet-print--sepia'] as const;
+
+export type WalletPrintTheme = 'economy' | 'vivid' | 'premium' | 'sepia';
+
+function clearPrintThemeClasses() {
+  if (typeof document === 'undefined') return;
+  const el = document.documentElement;
+  PRINT_THEME_HTML_CLASSES.forEach((c) => el.classList.remove(c));
+}
+
+function applyPrintTheme(theme: WalletPrintTheme) {
+  clearPrintThemeClasses();
+  if (theme === 'vivid') document.documentElement.classList.add('wallet-print--color');
+  if (theme === 'premium') document.documentElement.classList.add('wallet-print--premium');
+  if (theme === 'sepia') document.documentElement.classList.add('wallet-print--sepia');
+}
+
+const PRINT_MENU: {
+  theme: WalletPrintTheme;
+  label: string;
+  hint: string;
+  icon: typeof Printer;
+}[] = [
+  { theme: 'economy', label: 'Save ink', hint: 'Light panels, outline Solana mark', icon: Leaf },
+  { theme: 'vivid', label: 'Vivid', hint: 'Brand gradients & dark panels', icon: Sparkles },
+  { theme: 'premium', label: 'Premium dark', hint: 'Matte charcoal, high-contrast type', icon: Droplets },
+  { theme: 'sepia', label: 'Warm paper', hint: 'Cream & sepia tones', icon: Sunrise },
+];
+
+function PrintStyleDropdown() {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const runPrint = useCallback((theme: WalletPrintTheme) => {
+    if (typeof window === 'undefined') return;
+    applyPrintTheme(theme);
+    setOpen(false);
+    requestAnimationFrame(() => window.print());
+  }, []);
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <Button
+        type="button"
+        variant="purple"
+        className="min-w-[10.5rem] justify-between gap-2"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="inline-flex items-center gap-2">
+          <Printer className="h-4 w-4 shrink-0" aria-hidden />
+          Print…
+        </span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 opacity-80 transition-transform', open && 'rotate-180')} />
+      </Button>
+      {open ? (
+        <div
+          role="menu"
+          aria-orientation="vertical"
+          className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,17.5rem)] overflow-hidden rounded-xl border border-border bg-ink-800 py-1 shadow-xl ring-1 ring-black/40"
+        >
+          {PRINT_MENU.map((item) => (
+            <button
+              key={item.theme}
+              type="button"
+              role="menuitem"
+              className="flex w-full items-start gap-3 px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-white/10"
+              onClick={() => runPrint(item.theme)}
+            >
+              <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-sol-green" aria-hidden />
+              <span className="min-w-0">
+                <span className="block font-medium leading-tight">{item.label}</span>
+                <span className="mt-0.5 block text-xs font-normal text-muted-foreground leading-snug">
+                  {item.hint}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ModeSegmented({
+  mode,
+  onMode,
+}: {
+  mode: 'paper' | 'text';
+  onMode: (m: 'paper' | 'text') => void;
+}) {
+  return (
+    <div
+      className="inline-flex rounded-full border border-border bg-ink-900/60 p-0.5"
+      role="group"
+      aria-label="Output format"
+    >
+      <button
+        type="button"
+        onClick={() => onMode('paper')}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors',
+          mode === 'paper' ? 'bg-sol-green/20 text-foreground' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        <LayoutTemplate className="h-3.5 w-3.5" aria-hidden />
+        Paper wallet
+      </button>
+      <button
+        type="button"
+        onClick={() => onMode('text')}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors',
+          mode === 'text' ? 'bg-sol-green/20 text-foreground' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        <FileText className="h-3.5 w-3.5" aria-hidden />
+        Text list
+      </button>
+    </div>
+  );
+}
 
 export type PaperWalletRow = {
   publicKey: string;
@@ -29,6 +187,20 @@ function generateOne(): PaperWalletRow {
     privateKeyB58: bs58.encode(kp.secretKey),
     fingerprintHex,
   };
+}
+
+function generateMany(count: number): PaperWalletRow[] {
+  const n = Math.min(100, Math.max(1, Math.floor(count)));
+  return Array.from({ length: n }, () => generateOne());
+}
+
+function rowsToTsv(rows: PaperWalletRow[]): string {
+  const header = '#\tpublic_key\tprivate_key_base58\tid_fingerprint_hex';
+  const lines = rows.map(
+    (r, i) =>
+      `${i + 1}\t${r.publicKey}\t${r.privateKeyB58}\t${r.fingerprintHex}`,
+  );
+  return [header, ...lines].join('\n');
 }
 
 function SolanaMark({ className }: { className?: string }) {
@@ -93,14 +265,14 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
     <div
       className={cn(
         'wallet-tent-sheet mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-border shadow-lg',
-        'print:max-w-[178mm] print:rounded-none print:border print:border-dashed print:border-neutral-500 print:shadow-none',
+        'print:mx-0 print:w-full print:max-w-none print:rounded-none print:border-0 print:shadow-none',
         'print-economy-sheet',
       )}
     >
-      {/* Cut border hint */}
-      <div className="wallet-cut-hint border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-neutral-300 print:bg-white print:py-1">
-        <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground print:text-[7px] print:text-neutral-600">
-          Cut outer dashed border · one wallet per sheet
+      {/* Screen-only: print is full paper width — no trim line */}
+      <div className="wallet-cut-hint border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:hidden">
+        <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
+          Print tip: set margins to <span className="text-foreground">None</span> (or minimum) and turn off headers &amp; footers for a true edge-to-edge sheet.
         </p>
       </div>
 
@@ -215,106 +387,248 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
   );
 }
 
-const PRINT_COLOR_CLASS = 'wallet-print--color';
+function TextBatchList({
+  rows,
+}: {
+  rows: PaperWalletRow[];
+}) {
+  if (rows.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed border-border/60 bg-ink-900/40 px-4 py-8 text-center text-sm text-muted-foreground">
+        Choose how many wallets (1–100) and click <span className="text-foreground">Generate list</span>.
+      </p>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full min-w-[40rem] text-left text-xs font-mono">
+        <thead>
+          <tr className="border-b border-border bg-ink-900/80 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <th className="px-2 py-2.5 w-8">#</th>
+            <th className="px-2 py-2.5">Public key</th>
+            <th className="px-2 py-2.5">Private (base58)</th>
+            <th className="px-2 py-2.5 w-32">ID (fingerprint)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr
+              key={`${r.publicKey}-${i}`}
+              className="border-b border-border/50 bg-ink-950/20 odd:bg-ink-950/40"
+            >
+              <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
+              <td className="px-2 py-1.5 break-all text-sol-green/90">{r.publicKey}</td>
+              <td className="px-2 py-1.5 break-all text-foreground/90">{r.privateKeyB58}</td>
+              <td className="px-2 py-1.5 text-muted-foreground">{r.fingerprintHex}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function WalletGeneratorClient() {
+  const [mode, setMode] = useState<'paper' | 'text'>('paper');
   const [wallet, setWallet] = useState<PaperWalletRow>(() => generateOne());
+  const [batchCount, setBatchCount] = useState(10);
+  const [batchRows, setBatchRows] = useState<PaperWalletRow[]>([]);
 
   const regenerate = useCallback(() => {
     setWallet(generateOne());
   }, []);
 
+  const generateTextBatch = useCallback(() => {
+    const n = Math.min(100, Math.max(1, Math.floor(batchCount) || 1));
+    setBatchCount(n);
+    setBatchRows(generateMany(n));
+    toast.success(`Generated ${n} wallet${n === 1 ? '' : 's'}`);
+  }, [batchCount]);
+
+  const copyTsv = useCallback(async () => {
+    if (batchRows.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(rowsToTsv(batchRows));
+      toast.success('Copied TSV to clipboard');
+    } catch {
+      toast.error('Could not copy—try Download instead');
+    }
+  }, [batchRows]);
+
+  const downloadTsv = useCallback(() => {
+    if (batchRows.length === 0) return;
+    const blob = new Blob([rowsToTsv(batchRows)], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `solana-wallets-${batchRows.length}-${Date.now()}.tsv.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success('Download started');
+  }, [batchRows]);
+
+  const printTextList = useCallback(() => {
+    if (typeof window === 'undefined' || batchRows.length === 0) return;
+    requestAnimationFrame(() => window.print());
+  }, [batchRows]);
+
   useEffect(() => {
-    const clearPrintMode = () => {
-      document.documentElement.classList.remove(PRINT_COLOR_CLASS);
-    };
-    window.addEventListener('afterprint', clearPrintMode);
-    return () => window.removeEventListener('afterprint', clearPrintMode);
-  }, []);
-
-  const printEconomy = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    document.documentElement.classList.remove(PRINT_COLOR_CLASS);
-    requestAnimationFrame(() => window.print());
-  }, []);
-
-  const printColor = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    document.documentElement.classList.add(PRINT_COLOR_CLASS);
-    requestAnimationFrame(() => window.print());
+    const onAfterPrint = () => clearPrintThemeClasses();
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => window.removeEventListener('afterprint', onAfterPrint);
   }, []);
 
   return (
-    <div className="container relative py-10 md:py-14 print:max-w-none print:w-full print:px-6 print:py-0">
+    <div className="container relative py-10 md:py-14 print:m-0 print:max-w-none print:w-full print:min-w-0 print:p-0 print:py-0">
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-50 bg-aurora" />
       <div className="pointer-events-none absolute inset-0 -z-10 grid-faint-bg opacity-40" />
 
-      <div
-        id="wallet-paper-print-root"
-        className="wallet-paper-print-root mx-auto max-w-2xl print:max-w-none print-economy-sheet"
-      >
-        <div className="mb-2 text-center print:hidden">
-          <Badge className="mb-2">Tent-fold · one per page</Badge>
-        </div>
-        <div className="mb-4 text-center print:mb-3 print:hidden">
-          <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
-            Wallet <em className="not-italic text-sol-green">Generator</em>
-          </h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            One Solana keypair per sheet, shaped like a classic tent-fold paper wallet: public address on
-            one face, RootRecord branding on the other, private key on the middle band you tuck inside
-            before folding the ridge.
-          </p>
-        </div>
-        <div className="wallet-gen-no-print mb-6 flex flex-col flex-wrap items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <Button type="button" onClick={regenerate} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            New wallet
-          </Button>
-          <Button type="button" onClick={printEconomy} variant="outline" className="gap-2">
-            <Printer className="h-4 w-4" />
-            Print (save ink)
-          </Button>
-          <Button type="button" onClick={printColor} variant="purple" className="gap-2">
-            <Palette className="h-4 w-4" />
-            Print (full color)
-          </Button>
-        </div>
-
-        <div className="wallet-gen-no-print mb-6 max-w-xl mx-auto rounded-lg border border-border bg-ink-800/60 px-4 py-3 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">Assembly</p>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[13px] leading-relaxed">
-            <li>
-              Along <strong className="text-foreground">Fold 1</strong>, fold the <strong className="text-foreground">middle (private)</strong>{' '}
-              section backward behind the <strong className="text-foreground">branding</strong> panel so the secret faces the back of that panel.
-            </li>
-            <li>
-              Along <strong className="text-foreground">Fold 2</strong>, bring the <strong className="text-foreground">address</strong> panel down to meet the ridge so the tent stands: branding on one slope, public QR on the other. The private strip stays sandwiched inside.
-            </li>
-            <li>Optional: tape the open long edges. Hand-write your balance on the vertical Amount line.</li>
-          </ol>
-        </div>
-
-        <div className="wallet-gen-no-print mb-6 max-w-2xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <div className="flex gap-2 text-sm text-foreground/95">
-            <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" aria-hidden />
-            <p>
-              Keys stay in this tab until you print. Treat the private band like cash—anyone with the QR or
-              base58 string can spend everything in this address.
-            </p>
-          </div>
-        </div>
-
-        <div className="wallet-page-print-shell">
-          <div className="flex justify-center print:px-0">
-            <TentFoldWallet row={wallet} />
+      {mode === 'paper' ? (
+        <div
+          id="wallet-paper-print-root"
+          className="wallet-paper-print-root mx-auto max-w-2xl print:max-w-none print-economy-sheet"
+        >
+          <div className="wallet-gen-no-print mb-6 flex flex-col items-stretch gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+              <ModeSegmented mode={mode} onMode={setMode} />
+            </div>
+            <div className="flex flex-col flex-wrap items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Button type="button" onClick={regenerate} variant="outline" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                New wallet
+              </Button>
+              <PrintStyleDropdown />
+            </div>
           </div>
 
-          <p className="wallet-print-footer mt-8 hidden shrink-0 text-center text-xs text-muted-foreground print:mt-6 print:block print:text-[9px] print:text-neutral-500">
-            solana.rootrecord.info · tri-fold paper wallet
-          </p>
+          <div className="wallet-gen-no-print mb-6 max-w-xl mx-auto rounded-lg border border-border bg-ink-800/60 px-4 py-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Assembly</p>
+            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[13px] leading-relaxed">
+              <li>
+                In the print dialog, set <strong className="text-foreground">margins to None</strong> (or minimum) and
+                disable browser headers/footers so the layout runs wall-to-wall—no trimming.
+              </li>
+              <li>
+                Along <strong className="text-foreground">Fold 1</strong>, fold the{' '}
+                <strong className="text-foreground">middle (private)</strong> section backward behind the{' '}
+                <strong className="text-foreground">branding</strong> panel so the secret faces the back of that
+                panel.
+              </li>
+              <li>
+                Along <strong className="text-foreground">Fold 2</strong>, bring the{' '}
+                <strong className="text-foreground">address</strong> panel down to meet the ridge so the tent stands:
+                branding on one slope, public QR on the other. The private strip stays sandwiched inside.
+              </li>
+              <li>Optional: tape the open long edges. Hand-write your balance on the vertical Amount line.</li>
+            </ol>
+          </div>
+
+          <div className="wallet-gen-no-print mb-6 max-w-2xl mx-auto rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex gap-2 text-sm text-foreground/95">
+              <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" aria-hidden />
+              <p>
+                Keys stay in this tab until you print. Treat the private band like cash—anyone with the QR or
+                base58 string can spend everything in this address.
+              </p>
+            </div>
+          </div>
+
+          <div className="wallet-page-print-shell">
+            <div className="flex w-full justify-center print:px-0">
+              <TentFoldWallet row={wallet} />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div
+          id="wallet-text-list-root"
+          className="wallet-text-list-root mx-auto max-w-4xl print:max-w-none"
+        >
+          <div className="wallet-gen-no-print mb-6 flex flex-col items-stretch gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+              <ModeSegmented mode={mode} onMode={setMode} />
+            </div>
+
+            <div className="flex max-w-md flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label htmlFor="batch-count" className="text-xs text-muted-foreground">
+                  Number of wallets (1–100)
+                </Label>
+                <Input
+                  id="batch-count"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={batchCount}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (Number.isNaN(v)) {
+                      setBatchCount(1);
+                      return;
+                    }
+                    setBatchCount(Math.min(100, Math.max(1, v)));
+                  }}
+                />
+              </div>
+              <Button type="button" onClick={generateTextBatch} className="gap-2 sm:shrink-0">
+                <RefreshCw className="h-4 w-4" />
+                Generate list
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={copyTsv}
+                disabled={batchRows.length === 0}
+              >
+                <Copy className="h-4 w-4" />
+                Copy TSV
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={downloadTsv}
+                disabled={batchRows.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+              <Button
+                type="button"
+                variant="purple"
+                className="gap-2"
+                onClick={printTextList}
+                disabled={batchRows.length === 0}
+              >
+                <Printer className="h-4 w-4" />
+                Print list
+              </Button>
+            </div>
+          </div>
+
+          <div className="wallet-gen-no-print mb-6 max-w-2xl rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex gap-2 text-sm text-foreground/95">
+              <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" aria-hidden />
+              <p>
+                Each line is a full keypair. Anyone with a private key can move funds. Store exports offline; clear
+                clipboard if you copy keys on a shared machine.
+              </p>
+            </div>
+          </div>
+
+          <p className="wallet-gen-no-print mb-3 text-center text-xs text-muted-foreground">
+            TSV: tab-separated columns; paste into a spreadsheet. For print, only the table below is intended to
+            appear on the page.
+          </p>
+
+          <div className="wallet-text-print-area wallet-text-page-print min-h-0 print:bg-white print:p-4">
+            <TextBatchList rows={batchRows} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

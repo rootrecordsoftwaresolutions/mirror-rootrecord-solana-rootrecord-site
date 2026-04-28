@@ -200,6 +200,24 @@ export default function ContractsPage() {
         </div>
       </div>
 
+      <Card className="mt-14 border-sol-green/30 bg-ink-950/40 max-w-3xl">
+        <CardHeader>
+          <CardTitle className="text-lg">Live: linear vesting</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">
+            Fund a Streamflow vesting stream from your wallet—equal periods on a fixed calendar,
+            recipient claims through Streamflow. SPL and Token-2022 mints supported.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="purple">
+            <Link href="/contracts/vesting">
+              Open vesting tool
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <section className="mt-20 space-y-6">
         <div>
           <h2 className="font-display text-2xl md:text-3xl tracking-tight">Vesting schedules</h2>

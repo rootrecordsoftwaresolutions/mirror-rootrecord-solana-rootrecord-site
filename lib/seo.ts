@@ -79,6 +79,7 @@ export const SEO_STATIC_PATHS: readonly string[] = [
   '/liquidity',
   '/tools',
   '/contracts',
+  '/contracts/vesting',
   '/recent-tokens',
   '/token-stats',
   '/ecosystem',

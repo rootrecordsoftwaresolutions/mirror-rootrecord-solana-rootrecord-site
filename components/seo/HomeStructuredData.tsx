@@ -66,6 +66,19 @@ const FAQ_MAIN_ENTITY = [
 export function HomeStructuredData() {
   const base = getPublicSiteOrigin().replace(/\/$/, '');
   const logo = `${base}${SEO_OG_IMAGE_PATH}`;
+  const walletGenUrl = `${base}/wallet-generator`;
+
+  const faqMainEntity = [
+    ...FAQ_MAIN_ENTITY,
+    {
+      '@type': 'Question',
+      name: 'Does RootRecord have a Solana paper wallet generator?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: `Yes. Open ${walletGenUrl} for a printable tent-fold sheet with public-address and private-key QR codes, base58 text, and a short fingerprint ID. Keys are created in your browser only; the Print menu offers save ink, vivid, premium dark, and warm paper styles.`,
+      },
+    },
+  ];
 
   const software = {
     '@context': 'https://schema.org',
@@ -97,7 +110,7 @@ export function HomeStructuredData() {
   const faq = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQ_MAIN_ENTITY,
+    mainEntity: faqMainEntity,
   };
 
   return (
