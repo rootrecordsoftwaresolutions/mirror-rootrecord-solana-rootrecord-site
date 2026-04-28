@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import QRCode from 'react-qr-code';
-import { Printer, RefreshCw, Scissors, ShieldAlert } from 'lucide-react';
+import { Palette, Printer, RefreshCw, Scissors, ShieldAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,15 +46,15 @@ function SolanaMark({ className }: { className?: string }) {
           <stop offset="100%" stopColor="#9945FF" />
         </linearGradient>
       </defs>
-      {/* Screen: filled gradient bars */}
-      <g className="print:hidden" transform="skewX(-8)">
+      {/* Screen + color print: filled gradient bars */}
+      <g className="solana-mark-gradient print:hidden" transform="skewX(-8)">
         <rect x="6" y="8" width="56" height="9" rx="2" fill={`url(#${gradId})`} />
         <rect x="6" y="22" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.85} />
         <rect x="6" y="36" width="56" height="9" rx="2" fill={`url(#${gradId})`} opacity={0.7} />
       </g>
-      {/* Print: outline only — minimal ink */}
+      {/* Economy print: outline only */}
       <g
-        className="hidden print:block"
+        className="solana-mark-outline hidden print:block"
         transform="skewX(-8)"
         fill="none"
         stroke="#525252"
@@ -73,7 +73,7 @@ function FoldRule({ label }: { label: string }) {
   return (
     <div
       className={cn(
-        'relative flex h-7 shrink-0 items-center justify-center gap-2 border-y border-dashed border-white/35',
+        'wallet-fold-rule relative flex h-7 shrink-0 items-center justify-center gap-2 border-y border-dashed border-white/35',
         'bg-ink-900/90 print:h-6 print:border-neutral-400 print:bg-white',
       )}
       aria-hidden
@@ -92,13 +92,13 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-border shadow-lg',
+        'wallet-tent-sheet mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-border shadow-lg',
         'print:max-w-[178mm] print:rounded-none print:border print:border-dashed print:border-neutral-500 print:shadow-none',
         'print-economy-sheet',
       )}
     >
       {/* Cut border hint */}
-      <div className="border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-neutral-300 print:bg-white print:py-1">
+      <div className="wallet-cut-hint border-b border-border/60 bg-ink-900/80 px-3 py-1.5 text-center print:border-neutral-300 print:bg-white print:py-1">
         <p className="text-[8px] uppercase tracking-[0.18em] text-muted-foreground print:text-[7px] print:text-neutral-600">
           Cut outer dashed border · one wallet per sheet
         </p>
@@ -107,11 +107,11 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       {/* —— Panel 1: Public (reads upright from opposite side of tent) —— */}
       <div
         className={cn(
-          'relative bg-[#f4f6fa] text-ink-900 print:flex print:min-h-[92mm] print:flex-col print:justify-center print:bg-white',
+          'wallet-panel-public relative bg-[#f4f6fa] text-ink-900 print:flex print:min-h-[92mm] print:flex-col print:justify-center print:bg-white',
         )}
         style={{ transform: 'rotate(180deg)' }}
       >
-        <div className="pointer-events-none absolute inset-0 opacity-[0.07] print:hidden">
+        <div className="wallet-panel-public-deco pointer-events-none absolute inset-0 opacity-[0.07] print:hidden">
           <div
             className="absolute -right-6 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full"
             style={{ background: 'radial-gradient(circle, #9945FF 0%, transparent 70%)' }}
@@ -129,7 +129,7 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
             </div>
             <SolanaMark className="h-12 w-14 opacity-40 print:h-12 print:w-14" />
           </div>
-          <div className="mx-auto flex w-fit rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5 print:p-4 print:shadow-none print:ring-1 print:ring-neutral-300">
+          <div className="wallet-public-qr-wrap mx-auto flex w-fit rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5 print:p-4 print:shadow-none print:ring-1 print:ring-neutral-300">
             <QRCode value={row.publicKey} size={140} level="M" className="h-36 w-36 print:h-44 print:w-44" />
           </div>
           <p className="mt-3 text-center text-[9px] text-ink-900/55 print:mt-4 print:text-[10px]">
@@ -143,11 +143,11 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       {/* —— Panel 2: Private (sandwiched inside when assembled) —— */}
       <div
         className={cn(
-          'relative border-x border-sol-purple/30 bg-gradient-to-b from-ink-800 to-ink-900',
+          'wallet-panel-private relative border-x border-sol-purple/30 bg-gradient-to-b from-ink-800 to-ink-900',
           'print:flex print:min-h-[68mm] print:flex-col print:justify-center print:border-x print:border-neutral-400 print:bg-neutral-50',
         )}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(153,69,255,0.06),transparent)] print:hidden" />
+        <div className="wallet-panel-private-shine pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(153,69,255,0.06),transparent)] print:hidden" />
         <div className="relative px-3 py-4 text-center print:px-5 print:py-4">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sol-purple print:text-[10px] print:text-neutral-800">
             Concealed · private key
@@ -155,7 +155,7 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
           <p className="mx-auto mt-1 max-w-[18rem] text-[8px] leading-relaxed text-muted-foreground print:max-w-[38rem] print:text-[8px] print:text-neutral-600">
             Fold this section behind the branding panel first (Fold 1). It stays inside the tent.
           </p>
-          <div className="mx-auto mt-3 flex w-fit rounded-lg bg-white p-2 ring-2 ring-sol-purple/40 print:mt-3 print:p-2.5 print:ring-1 print:ring-neutral-400">
+          <div className="wallet-private-qr-wrap mx-auto mt-3 flex w-fit rounded-lg bg-white p-2 ring-2 ring-sol-purple/40 print:mt-3 print:p-2.5 print:ring-1 print:ring-neutral-400">
             <QRCode value={row.privateKeyB58} size={100} level="M" className="h-[100px] w-[100px] print:h-32 print:w-32" />
           </div>
           <p className="mx-auto mt-2 max-w-[20rem] break-all font-mono text-[7px] leading-relaxed text-foreground/85 print:max-w-[38rem] print:text-[7px] print:text-neutral-800">
@@ -167,20 +167,20 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
       <FoldRule label="Fold 1 — tuck private behind branding" />
 
       {/* —— Panel 3: Branding + amount (outward face of tent) —— */}
-      <div className="relative overflow-hidden bg-ink-800 print:flex print:min-h-[72mm] print:flex-col print:justify-center print:border-t print:border-neutral-200 print:bg-white">
+      <div className="wallet-panel-branding relative overflow-hidden bg-ink-800 print:flex print:min-h-[72mm] print:flex-col print:justify-center print:border-t print:border-neutral-200 print:bg-white">
         <div
-          className="absolute inset-0 opacity-30 print:hidden"
+          className="wallet-branding-gradient absolute inset-0 opacity-30 print:hidden"
           style={{
             background:
               'linear-gradient(135deg, rgba(20,241,149,0.2) 0%, transparent 42%), linear-gradient(315deg, rgba(153,69,255,0.18) 0%, transparent 45%)',
           }}
         />
-        {/* Print: single slim accent line (saves ink vs full gradient) */}
+        {/* Economy print: slim neutral accent */}
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 hidden h-0.5 print:block print:bg-neutral-700"
+          className="wallet-branding-accent-bar pointer-events-none absolute inset-x-0 top-0 hidden h-0.5 print:block print:bg-neutral-700"
           aria-hidden
         />
-        <div className="absolute bottom-0 right-0 top-0 flex w-12 flex-col border-l border-white/10 bg-ink-900/50 py-3 print:w-11 print:border-neutral-300 print:bg-neutral-100 print:py-2">
+        <div className="wallet-amount-rail absolute bottom-0 right-0 top-0 flex w-12 flex-col border-l border-white/10 bg-ink-900/50 py-3 print:w-11 print:border-neutral-300 print:bg-neutral-100 print:py-2">
           <div
             className="flex flex-1 flex-col items-center justify-center gap-3 text-[8px] font-semibold uppercase tracking-[0.18em] text-muted-foreground print:text-[7px] print:text-neutral-600"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
@@ -205,7 +205,7 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
                 paper wallet
               </span>
             </h2>
-            <p className="mt-1 font-mono text-[9px] text-muted-foreground print:text-[8px] print:text-neutral-500">
+            <p className="wallet-branding-id mt-1 font-mono text-[9px] text-muted-foreground print:text-[8px] print:text-neutral-500">
               ID {row.fingerprintHex}
             </p>
           </div>
@@ -215,6 +215,8 @@ function TentFoldWallet({ row }: { row: PaperWalletRow }) {
   );
 }
 
+const PRINT_COLOR_CLASS = 'wallet-print--color';
+
 export function WalletGeneratorClient() {
   const [wallet, setWallet] = useState<PaperWalletRow>(() => generateOne());
 
@@ -222,9 +224,24 @@ export function WalletGeneratorClient() {
     setWallet(generateOne());
   }, []);
 
-  const print = useCallback(() => {
+  useEffect(() => {
+    const clearPrintMode = () => {
+      document.documentElement.classList.remove(PRINT_COLOR_CLASS);
+    };
+    window.addEventListener('afterprint', clearPrintMode);
+    return () => window.removeEventListener('afterprint', clearPrintMode);
+  }, []);
+
+  const printEconomy = useCallback(() => {
     if (typeof window === 'undefined') return;
-    window.print();
+    document.documentElement.classList.remove(PRINT_COLOR_CLASS);
+    requestAnimationFrame(() => window.print());
+  }, []);
+
+  const printColor = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    document.documentElement.classList.add(PRINT_COLOR_CLASS);
+    requestAnimationFrame(() => window.print());
   }, []);
 
   return (
@@ -254,9 +271,13 @@ export function WalletGeneratorClient() {
             <RefreshCw className="h-4 w-4" />
             New wallet
           </Button>
-          <Button type="button" onClick={print} className="gap-2">
+          <Button type="button" onClick={printEconomy} variant="outline" className="gap-2">
             <Printer className="h-4 w-4" />
-            Print sheet
+            Print (save ink)
+          </Button>
+          <Button type="button" onClick={printColor} variant="purple" className="gap-2">
+            <Palette className="h-4 w-4" />
+            Print (full color)
           </Button>
         </div>
 
@@ -289,7 +310,7 @@ export function WalletGeneratorClient() {
             <TentFoldWallet row={wallet} />
           </div>
 
-          <p className="mt-8 hidden shrink-0 text-center text-xs text-muted-foreground print:mt-6 print:block print:text-[9px] print:text-neutral-500">
+          <p className="wallet-print-footer mt-8 hidden shrink-0 text-center text-xs text-muted-foreground print:mt-6 print:block print:text-[9px] print:text-neutral-500">
             solana.rootrecord.info · tri-fold paper wallet
           </p>
         </div>

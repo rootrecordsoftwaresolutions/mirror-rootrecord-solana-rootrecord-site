@@ -144,4 +144,109 @@ body {
     min-height: 277mm !important;
     box-sizing: border-box !important;
   }
+
+  /* Full-color paper wallet (second print button) */
+  html.wallet-print--color body {
+    background: #06090f !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  html.wallet-print--color .wallet-paper-print-root,
+  html.wallet-print--color .wallet-tent-sheet,
+  html.wallet-print--color .print-economy-sheet {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  html.wallet-print--color .wallet-tent-sheet {
+    border-color: rgba(255, 255, 255, 0.35) !important;
+  }
+  html.wallet-print--color .solana-mark-gradient {
+    display: block !important;
+  }
+  html.wallet-print--color .solana-mark-outline {
+    display: none !important;
+  }
+  html.wallet-print--color .wallet-cut-hint {
+    background: rgba(10, 15, 26, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  html.wallet-print--color .wallet-cut-hint p {
+    color: #9aa4b2 !important;
+  }
+  html.wallet-print--color .wallet-panel-public {
+    background: #f0f2f6 !important;
+  }
+  html.wallet-print--color .wallet-panel-public-deco {
+    display: block !important;
+    opacity: 0.07 !important;
+  }
+  html.wallet-print--color .wallet-fold-rule {
+    background: rgba(6, 9, 15, 0.92) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+  }
+  html.wallet-print--color .wallet-fold-rule span,
+  html.wallet-print--color .wallet-fold-rule svg {
+    color: #9aa4b2 !important;
+  }
+  html.wallet-print--color .wallet-panel-private {
+    background: linear-gradient(to bottom, #0f1623, #06090f) !important;
+    border-color: rgba(153, 69, 255, 0.35) !important;
+    color: #e2e8f0 !important;
+  }
+  html.wallet-print--color .wallet-panel-private-shine {
+    display: block !important;
+  }
+  html.wallet-print--color .wallet-panel-private .text-sol-purple {
+    color: #c4b5fd !important;
+  }
+  html.wallet-print--color .wallet-panel-private .text-muted-foreground {
+    color: #94a3b8 !important;
+  }
+  html.wallet-print--color .wallet-panel-private .font-mono {
+    color: #e2e8f0 !important;
+  }
+  html.wallet-print--color .wallet-private-qr-wrap {
+    box-shadow: 0 0 0 2px rgba(153, 69, 255, 0.45) !important;
+  }
+  html.wallet-print--color .wallet-panel-branding {
+    background: #0a0f1a !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  html.wallet-print--color .wallet-branding-gradient {
+    display: block !important;
+    opacity: 0.3 !important;
+  }
+  html.wallet-print--color .wallet-branding-accent-bar {
+    display: none !important;
+  }
+  html.wallet-print--color .wallet-amount-rail {
+    background: rgba(6, 9, 15, 0.55) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  html.wallet-print--color .wallet-panel-branding h2 {
+    color: #e6eaf2 !important;
+  }
+  html.wallet-print--color .wallet-panel-branding span.text-sol-green {
+    color: #14f195 !important;
+  }
+  html.wallet-print--color .wallet-panel-branding p.text-muted-foreground {
+    color: #94a3b8 !important;
+  }
+  html.wallet-print--color .wallet-panel-branding span.text-lg {
+    color: #94a3b8 !important;
+  }
+  html.wallet-print--color .wallet-branding-id {
+    color: #9aa4b2 !important;
+  }
+  html.wallet-print--color .wallet-amount-rail .text-neutral-900,
+  html.wallet-print--color .wallet-amount-rail .text-neutral-800,
+  html.wallet-print--color .wallet-amount-rail .text-neutral-600 {
+    color: #e6eaf2 !important;
+  }
+  html.wallet-print--color .wallet-amount-rail .text-sol-green {
+    color: #14f195 !important;
+  }
+  html.wallet-print--color .wallet-print-footer {
+    color: #9aa4b2 !important;
+  }
 }
