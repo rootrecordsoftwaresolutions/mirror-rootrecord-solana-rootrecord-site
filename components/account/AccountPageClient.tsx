@@ -278,6 +278,22 @@ export function AccountPageClient() {
     void loadAccount();
   }, [loadAccount]);
 
+  /** Refresh portal + earn + ledger while signed in (API pulls mainnet and updates D1 cache server-side). */
+  useEffect(() => {
+    if (phase !== 'account' || !hasApi) return;
+    const id = setInterval(() => {
+      void loadAccount();
+    }, 45_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void loadAccount();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [phase, hasApi, loadAccount]);
+
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     applyStatus('', '');
