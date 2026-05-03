@@ -910,6 +910,14 @@ export function AccountPageClient() {
                 />
               </div>
               <RewardsProgramNote earn={earn} />
+              <p className="text-xs text-muted-foreground border-t border-border/60 pt-3 leading-relaxed">
+                <strong className="text-foreground">Automated settlement (UTC):</strong> Once per day at{' '}
+                <strong className="text-foreground">07:00 UTC</strong>, RootRecord&apos;s backend tries to move
+                owed RRTT from your rewards ledger into this custodial wallet and to top up a small SOL reserve when
+                it is below threshold (for fees). Until that job succeeds on-chain, RRTT can show as still settling.
+                Treasury balance, RPC health, or account state can delay a payout; the schedule is daily, not
+                per-event.
+              </p>
             </CardContent>
           </Card>
 
@@ -917,7 +925,8 @@ export function AccountPageClient() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Custodial web wallet</CardTitle>
               <CardDescription className="text-muted-foreground">
-                RootRecord-hosted key for RRTT rewards and optional in-browser signing.
+                RootRecord-hosted key for RRTT rewards and optional in-browser signing. Incoming RRTT and SOL reserve
+                top-ups follow the daily 07:00 UTC job described under Balances.
               </CardDescription>
             </CardHeader>
             <CardContent>
