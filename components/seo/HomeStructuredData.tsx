@@ -99,7 +99,7 @@ export function HomeStructuredData() {
     featureList: [
       'SPL token creation with Metaplex metadata',
       'Token-2022 mints with extensions',
-      'Revoke mint and freeze authority, freeze or thaw token accounts',
+      'Revoke mint and freeze authority, bulk freeze or thaw holder token accounts',
       'Raydium CPMM pool and liquidity helpers',
       'Bulk SOL and token distributions',
       'Printable Solana paper wallet generator',

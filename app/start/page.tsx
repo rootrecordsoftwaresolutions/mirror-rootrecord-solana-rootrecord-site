@@ -69,7 +69,7 @@ const STEPS: {
   {
     n: '05',
     title: 'After launch: tools',
-    body: 'From the success screen or Tools, you can revoke mint or freeze authority, freeze or thaw individual token accounts, mint more supply, update listing metadata, handle Token-2022 transfer fees, or burn tokens. Each action is its own on-chain transaction with the same transparent fee pattern.',
+    body: 'From the success screen or Tools, you can revoke mint or freeze authority, bulk freeze or thaw up to 100 holder wallets (toggle; no RootRecord fee while waived), mint more supply, update listing metadata, handle Token-2022 transfer fees, or burn tokens. Each action uses the same transparent fee pattern except where a tool is explicitly free.',
     icon: Wrench,
   },
   {

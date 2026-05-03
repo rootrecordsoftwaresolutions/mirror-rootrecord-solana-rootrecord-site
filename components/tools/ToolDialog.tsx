@@ -23,8 +23,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   revokeMintAuthority,
   revokeFreezeAuthority,
-  freezeTokenAccount,
-  thawTokenAccount,
+  bulkFreezeOrThawWalletAtas,
+  FREEZE_THAW_BULK_MAX_WALLETS,
   mintMore,
   burnTokens,
   updateTokenMetadata,
@@ -63,8 +63,7 @@ function assertOptionalHttpUrl(raw: string) {
 export type ToolKind =
   | 'revoke-mint'
   | 'revoke-freeze'
-  | 'freeze-account'
-  | 'thaw-account'
+  | 'freeze-thaw-bulk'
   | 'mint-more'
   | 'burn-tokens'
   | 'update-metadata'
@@ -87,17 +86,12 @@ const META: Record<
     desc: 'Removes the ability for anyone to freeze token accounts. Important signal for buyers.',
     cta: `Revoke · ${ACTION_FEE_SOL} SOL`,
   },
-  'freeze-account': {
-    title: 'Freeze token account',
+  'freeze-thaw-bulk': {
+    title: 'Freeze / thaw holder wallets',
     desc:
-      'Block transfers from one SPL or Token-2022 token account (vault, LP token account, holder ATA, etc.). Your wallet must be the mint’s freeze authority. Holders cannot send while frozen.',
-    cta: `Freeze · ${ACTION_FEE_SOL} SOL`,
-  },
-  'thaw-account': {
-    title: 'Thaw token account',
-    desc:
-      'Unfreeze a token account so the owner can transfer again. Your wallet must be the mint’s freeze authority. Legacy SPL and Token-2022.',
-    cta: `Thaw · ${ACTION_FEE_SOL} SOL`,
+      'Toggle freeze or thaw for up to 100 holder **wallet** addresses (uses each wallet’s ATA for the mint). Your connected wallet must be the mint’s freeze authority. RootRecord fee is **0 SOL** per wallet for now — you only pay Solana network fees (often one signature per batch of up to 10 accounts).',
+    cta: 'Sign (free — network fees only)',
+    free: true,
   },
   'mint-more': {
     title: 'Mint more tokens',
@@ -166,7 +160,8 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   const [currentListingImageUrl, setCurrentListingImageUrl] = useState('');
   const [listingHostReady, setListingHostReady] = useState<boolean | null>(null);
   const [destination, setDestination] = useState('');
-  const [tokenAccount, setTokenAccount] = useState('');
+  const [freezeBulkWallets, setFreezeBulkWallets] = useState('');
+  const [freezeBulkMode, setFreezeBulkMode] = useState<'freeze' | 'thaw'>('freeze');
   const [accountList, setAccountList] = useState('');
   const [feeBps, setFeeBps] = useState('500');
   const [maxFee, setMaxFee] = useState('1000000');
@@ -197,7 +192,8 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setCurrentListingImageUrl('');
     setListingHostReady(null);
     setDestination('');
-    setTokenAccount('');
+    setFreezeBulkWallets('');
+    setFreezeBulkMode('freeze');
     setAccountList('');
     setFeeBps('500');
     setMaxFee('1000000');
@@ -374,9 +370,13 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       toast.error('Mint address is required');
       return;
     }
-    if (kind === 'freeze-account' || kind === 'thaw-account') {
-      if (!tokenAccount.trim()) {
-        toast.error('Token account address is required');
+    if (kind === 'freeze-thaw-bulk') {
+      const lines = freezeBulkWallets
+        .split(/[\r\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (!lines.length) {
+        toast.error('Paste at least one holder wallet address');
         return;
       }
     }
@@ -388,10 +388,53 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       if (kind === 'revoke-mint') sig = await revokeMintAuthority(wallet, mint, ref);
       else if (kind === 'revoke-freeze') {
         sig = await revokeFreezeAuthority(wallet, mint, ref);
-      } else if (kind === 'freeze-account') {
-        sig = await freezeTokenAccount(wallet, mint, tokenAccount, ref);
-      } else if (kind === 'thaw-account') {
-        sig = await thawTokenAccount(wallet, mint, tokenAccount, ref);
+      } else if (kind === 'freeze-thaw-bulk') {
+        const lines = freezeBulkWallets
+          .split(/[\r\n,;]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const { signatures, skipped, applied } = await bulkFreezeOrThawWalletAtas(
+          wallet,
+          mint,
+          lines,
+          freezeBulkMode,
+          ref,
+        );
+        const skipNote =
+          skipped.length > 0
+            ? ` ${skipped.length} skipped (e.g. no ATA, wrong state, or invalid line).`
+            : '';
+        toast.success(
+          signatures.length > 1
+            ? `${signatures.length} transactions confirmed`
+            : 'Transaction confirmed',
+          {
+            description: `${applied} account(s) ${freezeBulkMode === 'freeze' ? 'frozen' : 'thawed'}.${skipNote}`,
+            action: {
+              label: 'Solscan',
+              onClick: () => window.open(explorerUrl(signatures[0]!), '_blank'),
+            },
+          },
+        );
+        if (wallet.publicKey && signatures.length) {
+          logSolanaSiteAction({
+            wallet: wallet.publicKey.toBase58(),
+            action: `${SiteAction.TOOL_PREFIX}${kind}`,
+            route: '/tools',
+            signature: signatures[0],
+            metadata: withReferrerMetadata({
+              tool: kind,
+              mint: mint.trim(),
+              mode: freezeBulkMode,
+              applied,
+              skipped: skipped.length,
+              txCount: signatures.length,
+            }),
+          });
+        }
+        reset();
+        onClose();
+        return;
       } else if (kind === 'lock-metadata') {
         sig = await lockLegacyListingMetadata(wallet, mint, ref);
       } else if (kind === 'mint-more') {
@@ -531,9 +574,6 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           metadata: withReferrerMetadata({
             tool: kind,
             mint: mint.trim(),
-            ...(kind === 'freeze-account' || kind === 'thaw-account'
-              ? { tokenAccount: tokenAccount.trim() }
-              : {}),
           }),
         });
       }
@@ -576,8 +616,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               'burn-tokens',
               'revoke-mint',
               'revoke-freeze',
-              'freeze-account',
-              'thaw-account',
+              'freeze-thaw-bulk',
               'update-metadata',
               'lock-metadata',
               'withdraw-fees',
@@ -596,26 +635,48 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             )}
           </div>
 
-          {(kind === 'freeze-account' || kind === 'thaw-account') && (
+          {kind === 'freeze-thaw-bulk' && (
             <>
               <div className="grid gap-2">
-                <Label>Token account to {kind === 'freeze-account' ? 'freeze' : 'thaw'}</Label>
-                <Input
-                  data-testid="tool-token-account-input"
-                  placeholder="Associated token account or vault pubkey"
-                  value={tokenAccount}
-                  onChange={(e) => setTokenAccount(e.target.value.trim())}
+                <Label>Mode</Label>
+                <div className="flex rounded-lg border border-border p-1 gap-1 bg-muted/30">
+                  <Button
+                    type="button"
+                    variant={freezeBulkMode === 'freeze' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setFreezeBulkMode('freeze')}
+                  >
+                    Freeze
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={freezeBulkMode === 'thaw' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setFreezeBulkMode('thaw')}
+                  >
+                    Thaw (unfreeze)
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Holder wallets (up to {FREEZE_THAW_BULK_MAX_WALLETS})</Label>
+                <Textarea
+                  data-testid="tool-freeze-bulk-wallets"
+                  rows={8}
+                  placeholder="One wallet per line (or comma-separated). Uses each wallet’s associated token account for the mint above."
+                  value={freezeBulkWallets}
+                  onChange={(e) => setFreezeBulkWallets(e.target.value)}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Paste the <strong className="text-foreground/90">token account</strong> (the SPL
-                  account that holds the balance), not the wallet owner. Must match the mint above.
-                  On Solscan it is often labeled “Token Account”.
+                  Vaults and LP token accounts are not detected here — only standard ATAs. Invalid
+                  lines are skipped; you may sign multiple transactions if there are many accounts.
                 </p>
               </div>
-              {kind === 'freeze-account' ? (
+              {freezeBulkMode === 'freeze' ? (
                 <p className="text-xs text-amber-200/95 border border-amber-500/30 rounded-lg px-3 py-2 leading-relaxed">
-                  While frozen, that account cannot send tokens. You (freeze authority) can thaw it
-                  later with the Thaw tool.
+                  Frozen accounts cannot send tokens until you thaw them with this tool (Thaw mode).
                 </p>
               ) : null}
             </>
@@ -925,7 +986,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               kind.startsWith('revoke') ||
               kind === 'burn-tokens' ||
               kind === 'lock-metadata' ||
-              kind === 'freeze-account'
+              (kind === 'freeze-thaw-bulk' && freezeBulkMode === 'freeze')
                 ? 'destructive'
                 : 'default'
             }

@@ -56,10 +56,10 @@ function buildRows(): Row[] {
       onchain: '~0.000005 SOL',
     },
     {
-      action: 'Freeze or thaw one token account',
-      us: feeSol(ACTION_FEE_SOL),
+      action: 'Bulk freeze / thaw holder ATAs (up to 100 wallets per run)',
+      us: '0 SOL',
       them: '0.02 – 0.05 SOL',
-      onchain: '~0.000005 SOL',
+      onchain: 'Network fees only (often multiple txs when batching)',
     },
     {
       action: 'Mint additional supply',

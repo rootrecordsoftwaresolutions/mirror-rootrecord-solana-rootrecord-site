@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/',
     title: 'Solana SPL & Token-2022 tools',
     description:
-      'Low-fee Solana token creator and utilities: SPL and Token-2022 mints, Metaplex metadata, revoke mint and freeze authority, freeze or thaw token accounts, Token-2022 transfer fees, Raydium CPMM liquidity, bulk SOL sends, and printable cold-storage paper wallets. Transparent flat SOL pricing — no subscriptions.',
+      'Low-fee Solana token creator and utilities: SPL and Token-2022 mints, Metaplex metadata, revoke mint and freeze authority, bulk freeze or thaw holder ATAs, Token-2022 transfer fees, Raydium CPMM liquidity, bulk SOL sends, and printable cold-storage paper wallets. Transparent flat SOL pricing — no subscriptions.',
     keywords: [
       ...SEO_KEYWORDS.core,
       'cheap Solana token creator',

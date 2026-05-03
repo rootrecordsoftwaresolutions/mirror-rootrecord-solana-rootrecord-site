@@ -115,6 +115,12 @@ export const REMOVE_LIQUIDITY_FEE_SOL = parseFeeSol(
   0.005,
 );
 
+/** Max unique holder wallet lines per bulk freeze/thaw run. */
+export const FREEZE_THAW_BULK_MAX_WALLETS = 100;
+
+/** SPL freeze/thaw instructions per transaction (stay under typical tx size limits). */
+const FREEZE_THAW_BULK_IX_PER_TX = 10;
+
 /** Raydium mainnet CPMM pool-creation fee (SOL); informational — from Raydium public `createPoolFee`. */
 export const RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL = 0.15;
 
@@ -549,108 +555,107 @@ export async function revokeFreezeAuthority(
   return sendSimpleTx(wallet, ixs);
 }
 
-/**
- * Freeze a single SPL or Token-2022 token account for `mint`. Caller must be the mint’s freeze authority.
- */
-export async function freezeTokenAccount(
-  wallet: WalletContextState,
-  mintAddress: string,
-  tokenAccountAddress: string,
-  referrerWallet?: string | null,
-): Promise<string> {
-  if (!wallet.publicKey) throw new Error('Wallet not connected');
-  let tokenAccount: PublicKey;
-  try {
-    tokenAccount = new PublicKey(tokenAccountAddress.trim());
-  } catch {
-    throw new Error('Invalid token account address — must be valid base58.');
-  }
-  const connection = getConnection();
-  const { mint, programId } = await resolveMintAndProgram(mintAddress);
-  const mintInfo = await getMint(connection, mint, 'confirmed', programId);
-  if (mintInfo.freezeAuthority === null) {
-    throw new Error('This mint has no freeze authority — accounts cannot be frozen.');
-  }
-  if (!mintInfo.freezeAuthority.equals(wallet.publicKey)) {
-    throw new Error('Connect the wallet that is the freeze authority for this mint.');
-  }
-  const acc = await getAccount(connection, tokenAccount, 'confirmed', programId);
-  if (!acc.mint.equals(mint)) {
-    throw new Error('That token account belongs to a different mint than the one you entered.');
-  }
-  if (acc.isFrozen) {
-    throw new Error('That token account is already frozen.');
-  }
-  const ixs: TransactionInstruction[] = [
-    createFreezeAccountInstruction(
-      tokenAccount,
-      mint,
-      wallet.publicKey,
-      [],
-      programId,
-    ),
-  ];
-  ixs.push(
-    ...platformFeeTransferInstructions(
-      wallet.publicKey,
-      ACTION_FEE_SOL,
-      referrerWallet,
-    ),
-  );
-  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
-  return sendSimpleTx(wallet, ixs);
-}
+export type FreezeThawBulkMode = 'freeze' | 'thaw';
+
+export type FreezeThawBulkSkip = { owner: string; reason: string };
 
 /**
- * Thaw a frozen SPL or Token-2022 token account for `mint`. Caller must be the mint’s freeze authority.
+ * Freeze or thaw each wallet’s **associated token account** for `mint`.
+ * RootRecord platform fee is **0 SOL** (network fees only). Batches instructions across multiple txs.
  */
-export async function thawTokenAccount(
+export async function bulkFreezeOrThawWalletAtas(
   wallet: WalletContextState,
   mintAddress: string,
-  tokenAccountAddress: string,
+  ownerWalletStrings: string[],
+  mode: FreezeThawBulkMode,
   referrerWallet?: string | null,
-): Promise<string> {
+): Promise<{ signatures: string[]; skipped: FreezeThawBulkSkip[]; applied: number }> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
-  let tokenAccount: PublicKey;
-  try {
-    tokenAccount = new PublicKey(tokenAccountAddress.trim());
-  } catch {
-    throw new Error('Invalid token account address — must be valid base58.');
-  }
   const connection = getConnection();
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const mintInfo = await getMint(connection, mint, 'confirmed', programId);
   if (mintInfo.freezeAuthority === null) {
-    throw new Error('This mint has no freeze authority (unexpected for a frozen account).');
+    throw new Error('This mint has no freeze authority — accounts cannot be frozen or thawed.');
   }
   if (!mintInfo.freezeAuthority.equals(wallet.publicKey)) {
     throw new Error('Connect the wallet that is the freeze authority for this mint.');
   }
-  const acc = await getAccount(connection, tokenAccount, 'confirmed', programId);
-  if (!acc.mint.equals(mint)) {
-    throw new Error('That token account belongs to a different mint than the one you entered.');
+
+  const lineSet = new Set<string>();
+  const lines: string[] = [];
+  for (const raw of ownerWalletStrings) {
+    const s = raw.trim();
+    if (!s) continue;
+    if (lineSet.has(s)) continue;
+    lineSet.add(s);
+    lines.push(s);
+    if (lines.length > FREEZE_THAW_BULK_MAX_WALLETS) {
+      throw new Error(
+        `At most ${FREEZE_THAW_BULK_MAX_WALLETS} unique wallet addresses per run.`,
+      );
+    }
   }
-  if (!acc.isFrozen) {
-    throw new Error('That token account is not frozen.');
+
+  const owners: PublicKey[] = [];
+  const skipped: FreezeThawBulkSkip[] = [];
+  for (const s of lines) {
+    try {
+      owners.push(new PublicKey(s));
+    } catch {
+      skipped.push({ owner: s, reason: 'Invalid pubkey' });
+    }
   }
-  const ixs: TransactionInstruction[] = [
-    createThawAccountInstruction(
-      tokenAccount,
-      mint,
-      wallet.publicKey,
-      [],
-      programId,
-    ),
-  ];
-  ixs.push(
-    ...platformFeeTransferInstructions(
-      wallet.publicKey,
-      ACTION_FEE_SOL,
-      referrerWallet,
-    ),
-  );
-  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
-  return sendSimpleTx(wallet, ixs);
+
+  const ixs: TransactionInstruction[] = [];
+  for (const owner of owners) {
+    const ata = await getAssociatedTokenAddress(mint, owner, false, programId);
+    let acc;
+    try {
+      acc = await getAccount(connection, ata, 'confirmed', programId);
+    } catch {
+      skipped.push({ owner: owner.toBase58(), reason: 'No token account for this mint' });
+      continue;
+    }
+    if (!acc.mint.equals(mint)) {
+      skipped.push({ owner: owner.toBase58(), reason: 'ATA mint mismatch' });
+      continue;
+    }
+    if (mode === 'freeze') {
+      if (acc.isFrozen) {
+        skipped.push({ owner: owner.toBase58(), reason: 'Already frozen' });
+        continue;
+      }
+      ixs.push(
+        createFreezeAccountInstruction(ata, mint, wallet.publicKey, [], programId),
+      );
+    } else {
+      if (!acc.isFrozen) {
+        skipped.push({ owner: owner.toBase58(), reason: 'Not frozen' });
+        continue;
+      }
+      ixs.push(
+        createThawAccountInstruction(ata, mint, wallet.publicKey, [], programId),
+      );
+    }
+  }
+
+  if (ixs.length === 0) {
+    const hint =
+      skipped.length > 0
+        ? ` Nothing to sign (${skipped.length} skipped). First skip: ${skipped[0]?.reason ?? ''}.`
+        : '';
+    throw new Error(`No accounts to ${mode}.${hint}`);
+  }
+
+  const signatures: string[] = [];
+  for (let i = 0; i < ixs.length; i += FREEZE_THAW_BULK_IX_PER_TX) {
+    const chunk = ixs.slice(i, i + FREEZE_THAW_BULK_IX_PER_TX);
+    const batch = [...chunk];
+    appendReferralMemoIfEligible(batch, wallet.publicKey, referrerWallet);
+    signatures.push(await sendSimpleTx(wallet, batch));
+  }
+
+  return { signatures, skipped, applied: ixs.length };
 }
 
 export async function mintMore(
