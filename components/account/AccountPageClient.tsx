@@ -44,6 +44,13 @@ import { fetchCustodialMainnetBalances, type CustodialChainBalances } from '@/li
 
 type Phase = 'loading' | 'forms' | 'account';
 
+const ACCOUNT_LOADING_LINES = [
+  'Loading your account…',
+  'Checking your plan…',
+  'Loading rewards…',
+  'Almost done…',
+];
+
 function bytesToBase64(bytes: Uint8Array): string {
   let bin = '';
   for (let i = 0; i < bytes.length; i++) {
@@ -118,9 +125,9 @@ function solCachedLamportsBigint(me: PortalMeData | null): bigint | null {
 }
 
 function rewardsLedgerKindLabel(row: RewardsLedgerTransaction): string {
-  if (row.kind === 'treasury_to_custodial') return 'Treasury → custodial';
-  if (row.kind === 'withdrawal_to_personal') return 'Custodial → personal wallet';
-  return row.kind || 'Ledger entry';
+  if (row.kind === 'treasury_to_custodial') return 'Rewards moved into your hosted wallet';
+  if (row.kind === 'withdrawal_to_personal') return 'Sent to your own wallet';
+  return row.kind || 'Entry';
 }
 
 function shortenPubkey(s: string): string {
@@ -173,6 +180,38 @@ function SolscanAddressLink({ address, className }: { address: string; className
   );
 }
 
+const SOLSCAN_TX_BASE = 'https://solscan.io/tx/';
+
+function solscanTxHref(signature: string): string {
+  return `${SOLSCAN_TX_BASE}${encodeURIComponent(signature.trim())}`;
+}
+
+function SolscanTxLink({ signature, className }: { signature: string; className?: string }) {
+  const s = signature.trim();
+  if (!s) return null;
+  return (
+    <a
+      href={solscanTxHref(s)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        'inline-flex items-center gap-1.5 font-mono text-xs text-sol-green hover:underline break-all',
+        className,
+      )}
+    >
+      <span>{shortenPubkey(s)}</span>
+      <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+    </a>
+  );
+}
+
+function ledgerTxUrl(row: RewardsLedgerTransaction, explorerTxBase: string | undefined): string | null {
+  const sig = row.tx_signature?.trim();
+  if (!sig) return null;
+  const base = (explorerTxBase || SOLSCAN_TX_BASE).trim();
+  return base.endsWith('/') ? `${base}${encodeURIComponent(sig)}` : `${base}/${encodeURIComponent(sig)}`;
+}
+
 function BalanceStat({
   label,
   value,
@@ -201,7 +240,7 @@ function earnOptionalInt(earn: EarnSummary | null, key: string): number | null {
 function RewardsProgramNote({ earn }: { earn: EarnSummary | null }) {
   const learn = (
     <a
-      href={portalAbsoluteUrl('/beta-tester-rewards.html')}
+      href={portalAbsoluteUrl('/beta-tester-rewards.html#program-details')}
       target="_blank"
       rel="noopener noreferrer"
       className="text-sol-green hover:underline font-medium"
@@ -212,7 +251,7 @@ function RewardsProgramNote({ earn }: { earn: EarnSummary | null }) {
   if (!earn) {
     return (
       <p className="text-sm text-muted-foreground">
-        RRTT summary not loaded. Open the Weather Manager app while signed in, or try refreshing. {learn}
+        Rewards summary didn’t load. Use a RootRecord app while signed in, then refresh this page. {learn}
       </p>
     );
   }
@@ -245,6 +284,7 @@ function DetailRow({ k, children }: { k: string; children: React.ReactNode }) {
 export function AccountPageClient() {
   const { publicKey, signMessage, connected } = useWallet();
   const [phase, setPhase] = useState<Phase>('loading');
+  const [loadingLineIdx, setLoadingLineIdx] = useState(0);
   const [status, setStatus] = useState<{ msg: string; kind: 'ok' | 'warn' | 'err' | '' }>({ msg: '', kind: '' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -254,6 +294,13 @@ export function AccountPageClient() {
   const [withdrawDraft, setWithdrawDraft] = useState('');
   const [withdrawAmtWhole, setWithdrawAmtWhole] = useState('');
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  /** After withdraw: success summary, or on-chain sig when the server reported ledger/update issues. */
+  const [withdrawNotice, setWithdrawNotice] = useState<{
+    tx_signature: string;
+    amount_whole: number;
+    destination: string;
+    error?: string;
+  } | null>(null);
   const [me, setMe] = useState<PortalMeData | null>(null);
   const [earn, setEarn] = useState<EarnSummary | null>(null);
   const [ledger, setLedger] = useState<RewardsLedgerPage | null>(null);
@@ -277,14 +324,20 @@ export function AccountPageClient() {
     }
     if (!soft) {
       setPhase('loading');
+      setLoadingLineIdx(0);
       applyStatus('', '');
     }
-    const r = await fetchPortalMe(token);
+    const [r, e, lg] = await Promise.all([
+      fetchPortalMe(token),
+      fetchEarnSummary(token),
+      fetchRewardsLedger(token, { limit: 25, offset: 0 }),
+    ]);
     if (r.ok === false && r.status === 401) {
       clearPortalSession();
       syncPortalLifetimeFromMe(null);
       setLedger(null);
       setLedgerErr('');
+      setEarn(null);
       applyStatus('Your session ended. Please sign in again.', 'warn');
       setPhase('forms');
       return;
@@ -303,10 +356,6 @@ export function AccountPageClient() {
       return;
     }
     setLedgerErr('');
-    const [e, lg] = await Promise.all([
-      fetchEarnSummary(token),
-      fetchRewardsLedger(token, { limit: 25, offset: 0 }),
-    ]);
     if (lg.ok) setLedger(lg.data);
     else {
       setLedger(null);
@@ -323,6 +372,14 @@ export function AccountPageClient() {
   useEffect(() => {
     void loadAccount();
   }, [loadAccount]);
+
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    const id = window.setInterval(() => {
+      setLoadingLineIdx((i) => (i + 1) % ACCOUNT_LOADING_LINES.length);
+    }, 2200);
+    return () => window.clearInterval(id);
+  }, [phase]);
 
   /** Refresh portal + earn + ledger while signed in (API pulls mainnet and updates D1 cache server-side). */
   useEffect(() => {
@@ -420,10 +477,11 @@ export function AccountPageClient() {
     }
     const ok1 = window.confirm(
       'Delete your RootRecord account?\n\n' +
-        'This removes your portal profile and server data (saved locations, notifications). ' +
-        'It also removes your custodial web wallet from RootRecord: SOL, RRTT, and other SPL in that wallet are swept back to treasury when possible. Encrypted custodial key material is retained in our database for recovery — do not rely on deletion to erase keys. ' +
-        'Withdraw first if you want to keep any balance in your own wallet. ' +
-        'If the on-chain return step fails, deletion is cancelled. This cannot be undone once it succeeds.',
+        'This removes your profile and data we store for you (saved spots, alerts, and similar). ' +
+        'Your hosted reward wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows. ' +
+        'Withdraw anything you want to keep first. If that return step fails, we cancel deletion. ' +
+        'Some encrypted backup data may stay with us for safety — don’t rely on deletion to erase keys. ' +
+        'This cannot be undone once it succeeds.',
     );
     if (!ok1) return;
     const typed = window.prompt('Type DELETE to confirm account deletion.');
@@ -457,7 +515,7 @@ export function AccountPageClient() {
       return;
     }
     if (!connected || !publicKey) {
-      toast.error('Connect your wallet using the control in the site header, then try again.');
+      toast.error('Connect your wallet at the top of the page, then try again.');
       return;
     }
     if (!signMessage) {
@@ -542,7 +600,7 @@ export function AccountPageClient() {
       applyStatus(r.detail, 'err');
       return;
     }
-    toast.success('Custodial wallet ready');
+    toast.success('Hosted wallet ready');
     await loadAccount(true);
   }
 
@@ -613,13 +671,30 @@ export function AccountPageClient() {
     }
     setWithdrawBusy(true);
     applyStatus('', '');
+    setWithdrawNotice(null);
     try {
       const r = await portalWithdrawRrtt(token, amount != null ? { amount_whole: amount } : {});
       if (!r.ok) {
         toast.error(r.detail);
+        if (r.tx_signature) {
+          setWithdrawNotice({
+            tx_signature: r.tx_signature,
+            amount_whole: 0,
+            destination: '',
+            error: r.detail,
+          });
+        }
         return;
       }
-      toast.success(`Sent ${r.amount_whole.toLocaleString()} RRTT — ${r.tx_signature.slice(0, 12)}…`);
+      setWithdrawNotice({
+        tx_signature: r.tx_signature,
+        amount_whole: r.amount_whole,
+        destination: r.destination,
+      });
+      toast.success(`Sent ${r.amount_whole.toLocaleString()} RRTT to your payout address.`, {
+        description: 'Confirmation and Solscan link stay on this page below.',
+        duration: 10_000,
+      });
       setWithdrawAmtWhole('');
       await loadAccount(true);
     } finally {
@@ -629,7 +704,7 @@ export function AccountPageClient() {
 
   function onUseConnectedForWithdraw() {
     if (!publicKey) {
-      toast.error('Connect a wallet in the header first');
+      toast.error('Connect a wallet at the top of the page first');
       return;
     }
     setWithdrawDraft(publicKey.toBase58());
@@ -676,7 +751,7 @@ export function AccountPageClient() {
 
   const balancesLearnLink = (
     <a
-      href={portalAbsoluteUrl('/beta-tester-rewards.html')}
+      href={portalAbsoluteUrl('/beta-tester-rewards.html#program-details')}
       target="_blank"
       rel="noopener noreferrer"
       className="text-sol-green hover:underline font-medium"
@@ -693,8 +768,11 @@ export function AccountPageClient() {
           Your <em className="not-italic text-sol-green">account</em>.
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          Same email and password as rootrecord.info — subscription, RRTT rewards, custodial wallet, and linked Solana
-          address in one place.
+          Same email and password as{' '}
+          <a href="https://rootrecord.info" className="text-sol-green hover:underline">
+            rootrecord.info
+          </a>
+          . Your membership, test rewards, hosted reward wallet, and linked personal wallet are together here.
         </p>
       </div>
 
@@ -718,16 +796,29 @@ export function AccountPageClient() {
       {!hasApi ? (
         <Card className="border-border bg-ink-800/40">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            Account API is not configured. Add{' '}
-            <code className="text-xs text-foreground/90">NEXT_PUBLIC_ROOTRECORD_API_BASE</code> (same as production
-            portal, e.g. <code className="text-xs">https://api.rootrecord.info</code>) to enable sign-in here.
+            Sign-in isn’t available on this build (missing site configuration). If you’re the host, set the public API
+            URL env var so this page can reach RootRecord — see project docs.
           </CardContent>
         </Card>
       ) : null}
 
       {phase === 'loading' && hasApi ? (
         <Card className="border-border bg-ink-800/40">
-          <CardContent className="pt-6 text-sm text-muted-foreground">Loading…</CardContent>
+          <CardContent className="py-10 sm:py-12">
+            <div className="flex flex-col items-center justify-center gap-5 text-center" aria-busy="true" aria-live="polite">
+              <div
+                className="h-9 w-9 rounded-full border-2 border-sol-green/25 border-t-sol-green animate-spin"
+                aria-hidden
+              />
+              <p
+                key={loadingLineIdx}
+                className="text-sm text-muted-foreground max-w-md animate-in fade-in duration-300"
+              >
+                {ACCOUNT_LOADING_LINES[loadingLineIdx]}
+              </p>
+              <p className="text-xs text-muted-foreground/80">This usually takes only a moment.</p>
+            </div>
+          </CardContent>
         </Card>
       ) : null}
 
@@ -777,12 +868,12 @@ export function AccountPageClient() {
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-0">
               <CardTitle className="text-lg">Profile</CardTitle>
-              <CardDescription className="text-muted-foreground">Your RootRecord identity and plan.</CardDescription>
+              <CardDescription className="text-muted-foreground">Your email, account id, and plan.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-xl border border-border/60 bg-background/30 px-3 sm:px-4">
                 <DetailRow k="Email">{String(me.email || '—')}</DetailRow>
-                <DetailRow k="Your RootRecord ID">
+                <DetailRow k="Account ID">
                   <span className="font-mono text-xs break-all">{String(me.account_id || '—')}</span>
                 </DetailRow>
                 <DetailRow k="Account created">{formatAccountCreatedAt(me)}</DetailRow>
@@ -812,18 +903,59 @@ export function AccountPageClient() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Balances</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Ledger (earn program) plus what Solana shows in your custodial wallet — API and, when mint is
-                configured, a direct mainnet read in this browser (Solscan). RootRecord covers network costs for{' '}
-                <span className="text-foreground font-medium">RRTT</span> withdrawals to your payout address; you pay
-                on-chain fees for moving <span className="text-foreground font-medium">SOL</span> (from balance above
-                the ~0.001 SOL reserve), <span className="text-foreground font-medium">USDC</span>, or other SPL from
-                this wallet.
+                Numbers come from RootRecord and, when possible, a live check on Solana. We pay the network fee when
+                you cash out <span className="text-foreground font-medium">RRTT</span> rewards to your saved or linked
+                address. If you move <span className="text-foreground font-medium">SOL</span>,{' '}
+                <span className="text-foreground font-medium">USDC</span>, or other tokens out of your hosted wallet, you
+                pay those fees yourself (keep a little SOL in that wallet for fees).
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <BalanceStat
-                  label="Total RRTT (ledger + custodial)"
+                  label="Pending rewards"
+                  value={
+                    pendingUnits != null ? (
+                      <span className={pendingUnits > 0 ? 'text-amber-200/95' : undefined}>
+                        {pendingUnits.toLocaleString()}{' '}
+                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )
+                  }
+                  hint="Rewards we’ve counted for you that haven’t been moved into your hosted wallet yet (same label as RootRecord apps)."
+                />
+                <BalanceStat
+                  label="Wallet balance"
+                  value={
+                    availWithdraw != null ? (
+                      <span className={availWithdraw > 0 ? 'text-sol-green' : undefined}>
+                        {availWithdraw.toLocaleString()}{' '}
+                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )
+                  }
+                  hint="RRTT already in your hosted wallet — what you can cash out to your payout address (RootRecord pays the RRTT transfer fee)."
+                />
+                <BalanceStat
+                  label="Lifetime rewards"
+                  value={
+                    totalEarnUnits != null ? (
+                      <>
+                        {totalEarnUnits.toLocaleString()}{' '}
+                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )
+                  }
+                  hint="Program lifetime total from RootRecord apps (`balance` in the earn API) — not the same as pending + wallet."
+                />
+                <BalanceStat
+                  label="Total (pending + wallet)"
                   value={
                     sumLedgerWallet != null ? (
                       <>
@@ -836,40 +968,12 @@ export function AccountPageClient() {
                   }
                   hint={
                     totalEarnUnits != null
-                      ? `Not yet custodial ${pendingUnits?.toLocaleString() ?? '—'} + custodial SPL ${rrttInWallet.toLocaleString()} = ${sumLedgerWallet?.toLocaleString() ?? '—'} total (earn ledger credits ${totalEarnUnits.toLocaleString()}).`
-                      : 'Pending ledger slice plus RRTT SPL in your custodial wallet.'
+                      ? `Matches the headline total in RootRecord apps: still settling (${pendingUnits?.toLocaleString() ?? '—'}) + in hosted wallet (${rrttInWallet.toLocaleString()}). Lifetime credits from apps: ${totalEarnUnits.toLocaleString()}.`
+                      : 'Credits we owe you plus RRTT already sitting in your hosted wallet (same headline as apps).'
                   }
                 />
                 <BalanceStat
-                  label="Not yet in custodial wallet"
-                  value={
-                    pendingUnits != null ? (
-                      <span className={pendingUnits > 0 ? 'text-amber-200/95' : undefined}>
-                        {pendingUnits.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )
-                  }
-                  hint="Earn credits not yet recorded as moved to custodial (`balance` − `units_sent_to_custodial`). Matches what the treasury sweep targets."
-                />
-                <BalanceStat
-                  label="Available to withdraw"
-                  value={
-                    availWithdraw != null ? (
-                      <span className={availWithdraw > 0 ? 'text-sol-green' : undefined}>
-                        {availWithdraw.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )
-                  }
-                  hint="RRTT SPL in your custodial wallet. RootRecord pays the fees for RRTT payout to your saved or linked address; amounts follow browser or API read."
-                />
-                <BalanceStat
-                  label="SOL in custodial wallet"
+                  label="SOL in hosted wallet"
                   value={
                     solLamportsDisplay != null ? (
                       <span className="font-mono text-sm tabular-nums">
@@ -879,10 +983,10 @@ export function AccountPageClient() {
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="Exact lamports as decimal SOL. A small floor (~0.001 SOL) stays for rent and signing; any SOL above that is yours to spend on network fees when you move SOL, USDC, or other SPL yourself."
+                  hint="SOL you can use for fees when you move tokens yourself. A small amount usually stays put so the account stays open."
                 />
                 <BalanceStat
-                  label="USDC in custodial wallet"
+                  label="USDC in hosted wallet"
                   value={
                     usdcDisplay != null ? (
                       <span className="font-mono text-sm tabular-nums">{usdcDisplay}</span>
@@ -890,21 +994,17 @@ export function AccountPageClient() {
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="SPL USDC at your custodial address (browser read). Withdrawing or sending USDC uses your custodial SOL (above the reserve) for Solana fees — RootRecord does not subsidize USDC moves."
+                  hint="USDC balance in your hosted wallet. Moving USDC uses SOL from that same wallet for fees — we don’t cover those."
                 />
                 <BalanceStat
-                  label="How to read this"
+                  label="Quick guide"
                   value={
                     <span className="block text-xs font-normal font-sans leading-relaxed text-muted-foreground tracking-normal">
-                      The earn ledger (`balance`) is your lifetime credited rewards. &ldquo;Not yet in custodial
-                      wallet&rdquo; is <span className="font-mono text-foreground">balance − units_sent_to_custodial</span>{' '}
-                      (not the same as adding full ledger + SPL — that would double-count). Headline total = that pending
-                      slice + in-wallet SPL.{' '}
-                      <span className="text-foreground font-medium">RRTT in the custodial wallet is available to withdraw</span>{' '}
-                      (same number as &ldquo;Available to withdraw&rdquo;).{' '}
-                      <span className="text-foreground font-medium">Fees:</span> RootRecord pays network costs for RRTT
-                      withdrawals; you pay Solana fees for SOL (from balance over ~0.001 SOL), USDC, or any other token
-                      you move out. {balancesLearnLink}
+                      <strong className="text-foreground font-medium">Total (pending + wallet)</strong> = pending rewards + RRTT
+                      already in your hosted wallet (we don’t double-count). <strong className="text-foreground font-medium">Wallet balance</strong>{' '}
+                      is the RRTT you can cash out now. <strong className="text-foreground font-medium">Fees:</strong>{' '}
+                      RootRecord pays the network fee for RRTT cash-outs to your linked or saved address; you pay fees
+                      for other moves. {balancesLearnLink}
                     </span>
                   }
                 />
@@ -913,7 +1013,7 @@ export function AccountPageClient() {
               <p className="text-xs text-muted-foreground border-t border-border/60 pt-3 leading-relaxed">
                 <strong className="text-foreground">Automated settlement (UTC):</strong> Once per day at{' '}
                 <strong className="text-foreground">07:00 UTC</strong>, RootRecord&apos;s backend tries to move
-                owed RRTT from your rewards ledger into this custodial wallet and to top up a small SOL reserve when
+                owed RRTT from your rewards ledger into this hosted wallet and to top up a small SOL reserve when
                 it is below threshold (for fees). Until that job succeeds on-chain, RRTT can show as still settling.
                 Treasury balance, RPC health, or account state can delay a payout; the schedule is daily, not
                 per-event.
@@ -923,10 +1023,11 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Custodial web wallet</CardTitle>
+              <CardTitle className="text-lg">Hosted reward wallet</CardTitle>
               <CardDescription className="text-muted-foreground">
-                RootRecord-hosted key for RRTT rewards and optional in-browser signing. Incoming RRTT and SOL reserve
-                top-ups follow the daily 07:00 UTC job described under Balances.
+                A wallet RootRecord holds for you so test rewards (RRTT) can land in one place. You still control
+                cash-outs to your own address. Incoming RRTT and SOL reserve top-ups follow the daily 07:00 UTC job
+                described under Balances.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -935,9 +1036,9 @@ export function AccountPageClient() {
                   <div className="min-w-0 flex-1 space-y-2">
                     <SolscanAddressLink address={custodialPk} />
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-                      Deposit SOL if you will move USDC, other SPL, or native SOL yourself — those use your SOL for
-                      network fees (above the ~0.001 SOL kept on the account). RRTT withdrawals to your payout address
-                      are fee-subsidized by RootRecord. Scan the QR from a phone wallet to deposit.
+                      Add SOL here if you plan to move USDC or other tokens yourself — those moves use SOL for network
+                      fees. RRTT cash-outs to your payout address use a fee we pay. Scan the QR from your phone to
+                      deposit.
                     </p>
                   </div>
                   <div className="flex flex-col items-center gap-2 shrink-0 mx-auto lg:mx-0">
@@ -945,13 +1046,13 @@ export function AccountPageClient() {
                       <QRCode value={custodialPk} size={168} style={{ height: 'auto', maxWidth: '100%' }} />
                     </div>
                     <span className="text-[10px] text-muted-foreground text-center max-w-[11rem] leading-snug">
-                      QR encodes this public address only — not a private key.
+                      QR is only your public address — never a secret key.
                     </span>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <EmptyLine>No wallet yet — create one to hold RRTT and sign on the web.</EmptyLine>
+                  <EmptyLine>No hosted wallet yet — create one to receive RRTT rewards here.</EmptyLine>
                   <Button
                     type="button"
                     size="sm"
@@ -959,7 +1060,7 @@ export function AccountPageClient() {
                     disabled={busy || linkBusy || genBusy}
                     onClick={() => void onGenerateCustodialWallet()}
                   >
-                    {genBusy ? 'Creating…' : 'Generate wallet'}
+                    {genBusy ? 'Creating…' : 'Create wallet'}
                   </Button>
                 </div>
               )}
@@ -968,9 +1069,271 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Linked wallet</CardTitle>
+              <CardTitle className="text-lg">Hosted wallet activity</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Personal wallet for OTC and verification (connect in the header, link once).
+                On-chain moves for your hosted reward wallet: rewards paid in, and RRTT you cashed out. Each entry links
+                to Solscan (mainnet).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs">
+              <details className="group text-muted-foreground">
+                <summary className="cursor-pointer text-xs hover:text-foreground [&::-webkit-details-marker]:hidden">
+                  <span className="underline-offset-2 group-open:underline">What this list is</span>
+                </summary>
+                <p className="mt-2 leading-relaxed pl-0.5 border-l-2 border-border/80 pl-3">
+                  Each row is a finished move on Solana — into your hosted wallet or out to you. We show which apps the
+                  rewards came from when we have that detail.
+                </p>
+              </details>
+              {ledgerErr ? (
+                <p className="text-destructive text-xs">{ledgerErr}</p>
+              ) : !ledger || ledger.total === 0 ? (
+                <p className="text-muted-foreground">
+                  No moves yet — they’ll show up here after the first treasury or cash-out transfer.
+                </p>
+              ) : (
+                <>
+                  <p className="text-muted-foreground">
+                    Showing{' '}
+                    <strong className="tabular-nums text-foreground">{ledger.transactions.length}</strong> of{' '}
+                    <strong className="tabular-nums text-foreground">{ledger.total}</strong> entries
+                    {ledger.solana_cluster ? (
+                      <>
+                        {' '}
+                        <span className="opacity-80">({ledger.solana_cluster})</span>
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                  <div className="space-y-3 md:hidden">
+                    {ledger.transactions.map((row) => {
+                      const txUrl = ledgerTxUrl(row, ledger.explorer_tx_base);
+                      const recv = row.recipient_pubkey?.trim();
+                      const recvUrl = recv ? solscanAccountHref(recv) : null;
+                      const att = row.app_snapshot.attributed_to_this_transfer;
+                      const totals = row.app_snapshot.per_app_totals_at_transfer;
+                      return (
+                        <div
+                          key={row.id}
+                          className="rounded-lg border border-border/80 bg-background/40 p-3 space-y-2 text-xs"
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2 gap-y-1">
+                            <span className="text-muted-foreground">{formatLedgerWhen(row.created_at)}</span>
+                            <span className="tabular-nums font-semibold text-foreground">
+                              {row.direction === 'out' ? '−' : '+'}
+                              {row.units.toLocaleString()} RRTT
+                            </span>
+                          </div>
+                          <p className="font-medium text-foreground leading-snug">{rewardsLedgerKindLabel(row)}</p>
+                          {row.kind === 'treasury_to_custodial' && row.earn_balance_snapshot != null ? (
+                            <p className="text-muted-foreground">
+                              Rewards total at that time:{' '}
+                              <span className="tabular-nums text-foreground">{row.earn_balance_snapshot}</span>
+                            </p>
+                          ) : null}
+                          <div className="flex flex-col gap-1.5 min-w-0">
+                            <span className="text-muted-foreground">Transaction</span>
+                            {txUrl && row.tx_signature ? (
+                              <a
+                                href={txUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 font-mono text-sol-green hover:underline break-all text-[11px]"
+                              >
+                                View on Solscan
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                          {row.kind === 'withdrawal_to_personal' && recv ? (
+                            <div className="min-w-0">
+                              <span className="text-muted-foreground">Sent to </span>
+                              <a
+                                href={recvUrl!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-sol-green hover:underline break-all text-[11px]"
+                                title={recv}
+                              >
+                                {shortenPubkey(recv)}
+                              </a>
+                            </div>
+                          ) : null}
+                          {row.notes ? (
+                            <p className="text-muted-foreground">
+                              Note: <span className="text-foreground break-words">{row.notes}</span>
+                            </p>
+                          ) : null}
+                          {att.length ? (
+                            <details className="text-muted-foreground">
+                              <summary className="cursor-pointer hover:text-foreground">From apps ({att.length})</summary>
+                              <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                                {att.map((a) => (
+                                  <li key={a.app_id}>
+                                    <span className="font-mono text-[11px] break-all">{a.app_id}</span>
+                                    <span className="text-muted-foreground"> — </span>
+                                    <span className="tabular-nums">{a.units.toLocaleString()}</span> units
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          ) : (
+                            <p className="text-muted-foreground">No app breakdown for this row</p>
+                          )}
+                          {totals.length ? (
+                            <details className="text-muted-foreground">
+                              <summary className="cursor-pointer hover:text-foreground">Totals per app (at that time)</summary>
+                              <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                                {totals.map((t) => (
+                                  <li key={t.app_id}>
+                                    <span className="font-mono text-[11px] break-all">{t.app_id}</span>
+                                    <span> — </span>
+                                    <span className="tabular-nums">{t.total_units.toLocaleString()}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden md:block overflow-x-auto rounded-md border border-border/80 -mx-1">
+                    <table className="w-full min-w-[640px] text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-border/80 bg-background/50 text-muted-foreground">
+                          <th className="py-2 px-2 font-medium whitespace-nowrap">When</th>
+                          <th className="py-2 px-2 font-medium">What</th>
+                          <th className="py-2 px-2 font-medium text-right whitespace-nowrap">RRTT</th>
+                          <th className="py-2 px-2 font-medium min-w-[11rem]">From apps</th>
+                          <th className="py-2 px-2 font-medium min-w-[9rem]">Transaction</th>
+                          <th className="py-2 px-2 font-medium min-w-[9rem]">To / note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ledger.transactions.map((row) => {
+                          const txUrl = ledgerTxUrl(row, ledger.explorer_tx_base);
+                          const recv = row.recipient_pubkey?.trim();
+                          const recvUrl = recv ? solscanAccountHref(recv) : null;
+                          const att = row.app_snapshot.attributed_to_this_transfer;
+                          const totals = row.app_snapshot.per_app_totals_at_transfer;
+                          return (
+                            <tr key={row.id} className="border-b border-border/50 align-top last:border-0">
+                              <td className="py-2 px-2 text-muted-foreground whitespace-nowrap">
+                                {formatLedgerWhen(row.created_at)}
+                              </td>
+                              <td className="py-2 px-2">
+                                <div>{rewardsLedgerKindLabel(row)}</div>
+                                {row.kind === 'treasury_to_custodial' && row.earn_balance_snapshot != null ? (
+                                  <div className="text-muted-foreground mt-0.5">
+                                    Rewards total at that time:{' '}
+                                    <span className="tabular-nums">{row.earn_balance_snapshot}</span>
+                                  </div>
+                                ) : null}
+                              </td>
+                              <td className="py-2 px-2 text-right tabular-nums font-medium">
+                                {row.direction === 'out' ? '−' : '+'}
+                                {row.units.toLocaleString()}
+                              </td>
+                              <td className="py-2 px-2">
+                                {att.length ? (
+                                  <ul className="list-disc pl-4 space-y-0.5">
+                                    {att.map((a) => (
+                                      <li key={a.app_id}>
+                                        <span className="font-mono text-[11px] break-all">{a.app_id}</span>
+                                        <span className="text-muted-foreground"> — </span>
+                                        <span className="tabular-nums">{a.units.toLocaleString()}</span>
+                                        <span className="text-muted-foreground"> units</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <span className="text-muted-foreground">No app breakdown for this row</span>
+                                )}
+                                {totals.length ? (
+                                  <details className="mt-1.5">
+                                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                      Totals per app (at that time)
+                                    </summary>
+                                    <ul className="list-disc pl-4 mt-1 space-y-0.5 text-muted-foreground">
+                                      {totals.map((t) => (
+                                        <li key={t.app_id}>
+                                          <span className="font-mono text-[11px] break-all">{t.app_id}</span>
+                                          <span> — </span>
+                                          <span className="tabular-nums">{t.total_units.toLocaleString()}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </details>
+                                ) : null}
+                              </td>
+                              <td className="py-2 px-2 font-mono text-[11px]">
+                                {txUrl && row.tx_signature ? (
+                                  <a
+                                    href={txUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sol-green hover:underline break-all"
+                                    title={row.tx_signature}
+                                  >
+                                    {shortenPubkey(row.tx_signature)}
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="py-2 px-2">
+                                {row.kind === 'withdrawal_to_personal' && recv ? (
+                                  <div>
+                                    <span className="text-muted-foreground">Sent to: </span>
+                                    <a
+                                      href={recvUrl!}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-mono text-sol-green hover:underline break-all text-[11px]"
+                                      title={recv}
+                                    >
+                                      {shortenPubkey(recv)}
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                                {row.notes ? (
+                                  <div className="mt-1 text-muted-foreground">
+                                    Note: <span className="text-foreground break-words">{row.notes}</span>
+                                  </div>
+                                ) : null}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {ledger.transactions.length < ledger.total ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={ledgerLoadingMore || genBusy}
+                      onClick={() => void onLoadMoreLedger()}
+                    >
+                      {ledgerLoadingMore ? 'Loading…' : 'Load more'}
+                    </Button>
+                  ) : null}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border bg-ink-800/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Your own wallet</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                The Solana wallet you connect at the top of the site. Link it once so we know payouts go to you.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -986,16 +1349,16 @@ export function AccountPageClient() {
                       ) : null}
                     </>
                   ) : (
-                    <EmptyLine>Not linked — connect a header wallet and sign once to attach it.</EmptyLine>
+                    <EmptyLine>Not linked yet — connect your wallet at the top, then sign once here.</EmptyLine>
                   )}
                   {linkedPk && connectedPk && !linkedMatchesConnected ? (
                     <p className="text-xs text-amber-200/90 leading-relaxed">
-                      Header wallet ({connectedPk.slice(0, 4)}…{connectedPk.slice(-4)}) is not your linked wallet. OTC
-                      uses the linked address.
+                      The wallet connected up top ({connectedPk.slice(0, 4)}…{connectedPk.slice(-4)}) isn’t your linked
+                      wallet. Payouts use the linked address below.
                     </p>
                   ) : null}
                   {!connected && !linkedPk ? (
-                    <p className="text-xs text-muted-foreground">Use the wallet control in the site header first.</p>
+                    <p className="text-xs text-muted-foreground">Connect a wallet from the button at the top of the page first.</p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2 self-start lg:justify-end">
@@ -1020,8 +1383,8 @@ export function AccountPageClient() {
                       {linkBusy
                         ? 'Confirm in wallet…'
                         : linkedPk
-                          ? 'Link header instead'
-                          : 'Link header wallet'}
+                          ? 'Use connected wallet instead'
+                          : 'Link connected wallet'}
                     </Button>
                   ) : null}
                 </div>
@@ -1031,188 +1394,72 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Rewards & withdrawal history</CardTitle>
+              <CardTitle className="text-lg">Cash out RRTT</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Treasury → custodial credits and on-chain transfers (Solscan links on txs and addresses).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-                    <details className="group text-muted-foreground">
-                      <summary className="cursor-pointer text-xs hover:text-foreground [&::-webkit-details-marker]:hidden">
-                        <span className="underline-offset-2 group-open:underline">What this table shows</span>
-                      </summary>
-                      <p className="mt-2 leading-relaxed pl-0.5 border-l-2 border-border/80 pl-3">
-                        Treasury → custodial credits and transfers to your personal wallet, with per-app splits and
-                        Solana tx links. Rows appear after each confirmed on-chain transfer.
-                      </p>
-                    </details>
-                    {ledgerErr ? (
-                      <p className="text-destructive text-xs">{ledgerErr}</p>
-                    ) : !ledger || ledger.total === 0 ? (
-                      <p className="text-muted-foreground">No ledger entries yet.</p>
-                    ) : (
-                      <>
-                        <p className="text-muted-foreground">
-                          Showing{' '}
-                          <strong className="tabular-nums text-foreground">{ledger.transactions.length}</strong> of{' '}
-                          <strong className="tabular-nums text-foreground">{ledger.total}</strong> entries
-                          {ledger.solana_cluster ? (
-                            <>
-                              {' '}
-                              <span className="opacity-80">({ledger.solana_cluster})</span>
-                            </>
-                          ) : null}
-                          .
-                        </p>
-                        <div className="overflow-x-auto rounded-md border border-border/80 -mx-1">
-                          <table className="w-full min-w-[720px] text-left border-collapse">
-                            <thead>
-                              <tr className="border-b border-border/80 bg-background/50 text-muted-foreground">
-                                <th className="py-2 px-2 font-medium whitespace-nowrap">When</th>
-                                <th className="py-2 px-2 font-medium">Type</th>
-                                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">RRTT</th>
-                                <th className="py-2 px-2 font-medium min-w-[11rem]">From apps (this event)</th>
-                                <th className="py-2 px-2 font-medium min-w-[9rem]">Tx hash</th>
-                                <th className="py-2 px-2 font-medium min-w-[9rem]">To / receipt</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ledger.transactions.map((row) => {
-                                const txUrl =
-                                  row.tx_signature && ledger.explorer_tx_base
-                                    ? `${ledger.explorer_tx_base}${encodeURIComponent(row.tx_signature)}`
-                                    : null;
-                                const recv = row.recipient_pubkey?.trim();
-                                const recvUrl = recv ? `https://solscan.io/account/${encodeURIComponent(recv)}` : null;
-                                const att = row.app_snapshot.attributed_to_this_transfer;
-                                const totals = row.app_snapshot.per_app_totals_at_transfer;
-                                return (
-                                  <tr key={row.id} className="border-b border-border/50 align-top last:border-0">
-                                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap">
-                                      {formatLedgerWhen(row.created_at)}
-                                    </td>
-                                    <td className="py-2 px-2">
-                                      <div>{rewardsLedgerKindLabel(row)}</div>
-                                      {row.kind === 'treasury_to_custodial' &&
-                                      row.earn_balance_snapshot != null ? (
-                                        <div className="text-muted-foreground mt-0.5">
-                                          Earn balance snapshot:{' '}
-                                          <span className="tabular-nums">{row.earn_balance_snapshot}</span>
-                                        </div>
-                                      ) : null}
-                                    </td>
-                                    <td className="py-2 px-2 text-right tabular-nums font-medium">
-                                      {row.direction === 'out' ? '−' : '+'}
-                                      {row.units.toLocaleString()}
-                                    </td>
-                                    <td className="py-2 px-2">
-                                      {att.length ? (
-                                        <ul className="list-disc pl-4 space-y-0.5">
-                                          {att.map((a) => (
-                                            <li key={a.app_id}>
-                                              <span className="font-mono text-[11px] break-all">{a.app_id}</span>
-                                              <span className="text-muted-foreground"> — </span>
-                                              <span className="tabular-nums">{a.units.toLocaleString()}</span>
-                                              <span className="text-muted-foreground"> units</span>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : (
-                                        <span className="text-muted-foreground">No per-app split recorded</span>
-                                      )}
-                                      {totals.length ? (
-                                        <details className="mt-1.5">
-                                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                                            Per-app lifetime totals at time of event
-                                          </summary>
-                                          <ul className="list-disc pl-4 mt-1 space-y-0.5 text-muted-foreground">
-                                            {totals.map((t) => (
-                                              <li key={t.app_id}>
-                                                <span className="font-mono text-[11px] break-all">{t.app_id}</span>
-                                                <span> — </span>
-                                                <span className="tabular-nums">{t.total_units.toLocaleString()}</span>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </details>
-                                      ) : null}
-                                    </td>
-                                    <td className="py-2 px-2 font-mono text-[11px]">
-                                      {txUrl && row.tx_signature ? (
-                                        <a
-                                          href={txUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sol-green hover:underline break-all"
-                                          title={row.tx_signature}
-                                        >
-                                          {shortenPubkey(row.tx_signature)}
-                                        </a>
-                                      ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      )}
-                                    </td>
-                                    <td className="py-2 px-2">
-                                      {row.kind === 'withdrawal_to_personal' && recv ? (
-                                        <div>
-                                          <span className="text-muted-foreground">Recipient: </span>
-                                          <a
-                                            href={recvUrl!}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="font-mono text-sol-green hover:underline break-all text-[11px]"
-                                            title={recv}
-                                          >
-                                            {shortenPubkey(recv)}
-                                          </a>
-                                        </div>
-                                      ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      )}
-                                      {row.notes ? (
-                                        <div className="mt-1 text-muted-foreground">
-                                          Receipt / notes:{' '}
-                                          <span className="text-foreground break-words">{row.notes}</span>
-                                        </div>
-                                      ) : null}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        {ledger.transactions.length < ledger.total ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={ledgerLoadingMore || genBusy}
-                            onClick={() => void onLoadMoreLedger()}
-                          >
-                            {ledgerLoadingMore ? 'Loading…' : 'Load more'}
-                          </Button>
-                        ) : null}
-                      </>
-                    )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border bg-ink-800/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Withdraw RRTT to</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Optional payout address if you are not using your linked header wallet. RootRecord covers Solana
-                network fees for <span className="text-foreground font-medium">RRTT</span> sent from custodial to this
-                address; you remain responsible for fees on any other assets you move from the custodial wallet.
+                Send RRTT to your linked wallet, or to another Solana address you save below. We pay the network fee for
+                that RRTT send. Other tokens you move from your hosted wallet still use your SOL for fees.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {withdrawNotice ? (
+                <div
+                  role="status"
+                  className={cn(
+                    'rounded-lg border p-3 space-y-2 text-sm',
+                    withdrawNotice.error
+                      ? 'border-amber-500/45 bg-amber-500/10 text-amber-50'
+                      : 'border-sol-green/35 bg-sol-green/10 text-foreground',
+                  )}
+                >
+                  {withdrawNotice.error ? (
+                    <>
+                      <p className="font-medium text-amber-100">Something went wrong after signing</p>
+                      <p className="text-xs leading-relaxed opacity-95">{withdrawNotice.error}</p>
+                      <p className="text-xs leading-relaxed text-amber-100/90">
+                        If the transfer actually landed on-chain, use this signature when you contact support. It may
+                        still appear under <strong className="font-medium">Hosted wallet activity</strong> after a
+                        refresh.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-foreground">Withdrawal confirmed on Solana</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Sent{' '}
+                        <strong className="tabular-nums text-foreground">
+                          {withdrawNotice.amount_whole.toLocaleString()} RRTT
+                        </strong>
+                        {withdrawNotice.destination ? (
+                          <>
+                            {' '}
+                            to{' '}
+                            <span className="font-mono text-foreground break-all">{withdrawNotice.destination}</span>
+                          </>
+                        ) : null}
+                        . It will show in <strong className="text-foreground font-medium">Hosted wallet activity</strong>{' '}
+                        on this page after the list refreshes.
+                      </p>
+                    </>
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between pt-1">
+                    <SolscanTxLink signature={withdrawNotice.tx_signature} className="text-sm font-medium" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 shrink-0 text-muted-foreground hover:text-foreground self-start sm:self-center"
+                      onClick={() => setWithdrawNotice(null)}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
               <div className="space-y-2 max-w-lg">
                 <Input
                   value={withdrawDraft}
                   onChange={(e) => setWithdrawDraft(e.target.value)}
-                  placeholder="Solana address (base58)"
+                  placeholder="Solana wallet address"
                   className="font-mono text-xs"
                   spellCheck={false}
                 />
@@ -1224,7 +1471,7 @@ export function AccountPageClient() {
                     disabled={genBusy || !connected}
                     onClick={() => onUseConnectedForWithdraw()}
                   >
-                    Use header wallet
+                    Use connected wallet
                   </Button>
                   <Button type="button" size="sm" disabled={genBusy} onClick={() => void onSaveWithdrawDest()}>
                     Save address
@@ -1233,16 +1480,16 @@ export function AccountPageClient() {
               </div>
               {savedWithdrawDest ? (
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-muted-foreground">Saved payout: </span>
+                  <span className="text-muted-foreground">Saved address: </span>
                   <SolscanAddressLink address={savedWithdrawDest} />
                 </p>
               ) : null}
               <div className="space-y-2 max-w-lg pt-4 border-t border-border/60 mt-4">
-                <Label className="text-xs">Withdraw now (whole RRTT)</Label>
+                <Label className="text-xs">Withdraw RRTT (whole numbers)</Label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sends from your custodial wallet to your verified linked wallet, or your saved payout address if no
-                  linked wallet. Leave blank to withdraw the full on-chain balance. Treasury pays this transaction&apos;s
-                  Solana fee.
+                  Sends from your hosted wallet to your verified linked wallet, or to the saved address if you
+                  don’t use a linked wallet. Leave the amount blank to send everything that’s ready. We pay the fee for
+                  this RRTT send.
                 </p>
                 <Input
                   value={withdrawAmtWhole}
@@ -1269,7 +1516,7 @@ export function AccountPageClient() {
                 </Button>
                 {!canWithdrawDest ? (
                   <p className="text-xs text-amber-200/90">
-                    Link and verify a header wallet, or save a payout address, before withdrawing.
+                    Link and verify your own wallet, or save a payout address here, before you can withdraw.
                   </p>
                 ) : null}
               </div>
@@ -1278,16 +1525,13 @@ export function AccountPageClient() {
 
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="pt-6 space-y-3">
-              <h3 className="text-base font-semibold text-foreground">Danger zone</h3>
+              <h3 className="text-base font-semibold text-foreground">Delete account</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Deleting your account removes your RootRecord portal profile and server-stored data (saved locations,
-                notifications). It also ends your{' '}
-                <strong className="text-foreground font-medium">custodial web wallet</strong> here: RootRecord returns{' '}
-                <strong className="text-foreground font-medium">SOL, RRTT, and other SPL tokens</strong> from that
-                wallet to our treasury when possible. Encrypted custodial keys are not deleted from our database (custody
-                / recovery). Anything you want under your
-                own control should be <strong className="text-foreground font-medium">withdrawn first</strong>. If the
-                on-chain sweep cannot complete, deletion is blocked until that is fixed.
+                This removes your RootRecord profile and data we keep for you (like saved spots or alerts). Your hosted
+                reward wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows
+                it. <strong className="text-foreground font-medium">Withdraw anything you want to keep first.</strong>{' '}
+                If the return step can’t finish, we’ll block deletion until it does. Some encrypted backup data may stay
+                in our systems for safety and recovery — don’t rely on deletion to erase keys.
               </p>
               <Button
                 type="button"

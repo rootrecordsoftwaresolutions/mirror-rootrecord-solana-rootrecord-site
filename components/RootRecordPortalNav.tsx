@@ -160,7 +160,7 @@ export function RootRecordPortalNav() {
               </a>
             ) : null}
             <a
-              href={portalAbsoluteUrl('/beta-tester-rewards.html')}
+              href={portalAbsoluteUrl('/beta-tester-rewards.html#program-details')}
               role="menuitem"
               className={menuItemClass()}
               target="_blank"

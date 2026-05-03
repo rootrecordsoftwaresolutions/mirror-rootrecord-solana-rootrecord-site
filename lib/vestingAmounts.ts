@@ -27,7 +27,7 @@ export function parseHumanAmountToRaw(
 }
 
 const SECONDS_PER_DAY = 86_400;
-/** Default cadence: 30-day months (Streamflow `period` is a fixed second interval). */
+/** Default cadence: 30-day periods (fixed second interval) for future native vesting math. */
 export const DEFAULT_PERIOD_SECONDS = 30 * SECONDS_PER_DAY;
 
 /**

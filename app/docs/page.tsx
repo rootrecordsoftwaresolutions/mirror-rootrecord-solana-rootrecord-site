@@ -96,7 +96,9 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
         Most creators use <strong className="text-foreground">Tools</strong> to{' '}
         <strong className="text-foreground">revoke mint</strong> (so the total supply can
         never increase) and <strong className="text-foreground">revoke freeze</strong>{' '}
-        (so holder balances can&apos;t be frozen). Each step costs{' '}
+        (so holder balances can&apos;t be frozen). If you still hold freeze authority, you
+        can also <strong className="text-foreground">freeze or thaw</strong> specific token
+        accounts from Tools. Each step costs{' '}
         <strong className="text-foreground">0.01 SOL</strong> through us, plus the usual
         network fee.
       </p>

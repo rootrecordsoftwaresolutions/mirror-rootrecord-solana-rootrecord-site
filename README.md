@@ -1,5 +1,9 @@
 # RootRecord Solana Tools
 
+> **Deploy / git:** The public app is built from **`https://github.com/RootRecord/solana-rootrecord-site`** (`main`).  
+> This copy inside **Web-Development-2026** should live at `Web/solana/solana-rootrecord-site` (run `Web/solana/rename-solanasite-folder.ps1` if the folder is still named `solanasite`).  
+> See **`Web/solana/SOLANA-SITE-CANONICAL-REPO.md`** — pushing only the monorepo does not update production unless you also push that repo.
+
 Fast, cheap, on-chain SPL token creator and management suite for Solana —
 designed as a calm, no-BS extension of [rootrecord.info](https://rootrecord.info).
 
@@ -8,7 +12,10 @@ Lives at: **solana.rootrecord.info**
 ## Features
 
 - **Create Token** (`/create`) — Single-tx SPL mint creation with Metaplex v3
-  metadata pinned to IPFS via Pinata. Pays a 0.025 SOL platform fee.
+  metadata pinned to IPFS via Pinata. Pays a 0.025 SOL platform fee. Optional
+  **Discord embed** for each new mint: set Worker secret `DISCORD_TOKEN_CREATE_WEBHOOK_URL`
+  (same pipeline as `/api/solana-site/log` — Next proxies with `SOLANA_SITE_LOG_URL` + `SOLANA_SITE_LOG_SECRET`).
+  For local dev without the Worker, you can set `DISCORD_TOKEN_CREATE_WEBHOOK_URL` on Vercel only (see `.env.example`).
 - **Revoke Mint / Freeze Authority** (`/tools`) — One-click, on-chain.
 - **Mint More** — Top up supply (mint authority must be active).
 - **Update Metadata** — Change name / symbol / URI on a mutable mint.

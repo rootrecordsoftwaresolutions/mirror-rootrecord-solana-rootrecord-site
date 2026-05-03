@@ -9,8 +9,12 @@ import {
   ECOSYSTEM_SOLSCAN_CPMM_POOL_RAY_RRTT,
   ECOSYSTEM_SOLSCAN_CPMM_POOL_SOL,
   ECOSYSTEM_SOLSCAN_CPMM_POOL_USDC,
+  ECOSYSTEM_RRESERVE_TOKEN_MINT,
   ECOSYSTEM_SOLSCAN_DEVELOPER,
+  ECOSYSTEM_SOLSCAN_RRESERVE,
   ECOSYSTEM_SOLSCAN_TREASURY,
+  RRESERVE_RRTT_RATIO_DENOMINATOR,
+  RRESERVE_TOKEN_SUPPLY_CAP,
   OTC_USD_PER_TOKEN,
   ecosystemOtcQuoteRetainPercentLabel,
   solscanAccount,
@@ -36,6 +40,10 @@ export const metadata: Metadata = pageSeo({
     'Raydium CPMM',
     'liquidity pools',
     'treasury token',
+    'RRESERVE',
+    'RRESERVE pool',
+    'RRESERVE pool token',
+    'uncirculated supply',
   ],
 });
 
@@ -133,7 +141,10 @@ export default function TokenomicsPage() {
             Pool id is the Raydium <strong className="text-foreground">pool state</strong> account
             (what explorers label as the pool), not the SPL mint address for {ECOSYSTEM_LISTING_SYMBOL}.
             The table lists <strong className="text-foreground">SOL, USDC, JUP, and RAY</strong> quote
-            pairs against {ECOSYSTEM_LISTING_SYMBOL} on mainnet.
+            pairs against {ECOSYSTEM_LISTING_SYMBOL} on mainnet. The separate uncirculated{' '}
+            <strong className="text-foreground">RRESERVE / {ECOSYSTEM_LISTING_SYMBOL}</strong> pair
+            (mint + pair addresses below; no SOL/USDC or WSOL leg) is not a row in this quote-pair
+            table.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -231,6 +242,60 @@ export default function TokenomicsPage() {
               </Link>{' '}
               flow for a snapshot; this page does not cache supply.
             </p>
+          </section>
+
+          <section className="space-y-3" id="rrreserve">
+            <h2 className="text-base font-semibold text-foreground">
+              RRESERVE — pool token &amp; uncirculated reserve
+            </h2>
+            <p>
+              The uncirculated reserve is an on-chain <strong className="text-foreground">pair</strong>{' '}
+              (pair / pool state below) that vaults <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong>{' '}
+              and the separate SPL mint{' '}
+              <strong className="text-foreground">RRESERVE</strong>{' '}
+              (<strong className="text-foreground">RRESERVE is a token in the pool</strong>—mint address
+              is not the same as the pair account). RRESERVE supply is capped at a maximum of{' '}
+              <strong className="text-foreground">{RRESERVE_TOKEN_SUPPLY_CAP}</strong> whole tokens.
+              Accounting in the pool uses a fixed{' '}
+              <strong className="text-foreground">
+                1 : {RRESERVE_RRTT_RATIO_DENOMINATOR.toLocaleString('en-US')}
+              </strong>{' '}
+              relationship—<strong className="text-foreground">1</strong> RRESERVE token to{' '}
+              <strong className="text-foreground">
+                {RRESERVE_RRTT_RATIO_DENOMINATOR.toLocaleString('en-US')}
+              </strong>{' '}
+              {ECOSYSTEM_LISTING_SYMBOL} in the mint&apos;s smallest on-chain unit (atomic SPL amount;
+              confirm decimals on Solscan when converting to human-readable {ECOSYSTEM_LISTING_SYMBOL}).
+            </p>
+            <p>
+              This reserve pool <strong className="text-foreground">does not</strong> have a WSOL/SOL
+              or USDC Raydium quote pair; do not expect Jupiter-style routing against SOL or USDC at
+              this pool id. Verify vault balances and both mints on Solscan.
+            </p>
+            <div className="space-y-2">
+              <p>
+                <span className="text-muted-foreground">RRESERVE mint (Solscan token):</span>{' '}
+                <a
+                  href={solscanToken(ECOSYSTEM_RRESERVE_TOKEN_MINT)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-sol-green hover:underline break-all"
+                >
+                  {ECOSYSTEM_RRESERVE_TOKEN_MINT}
+                </a>
+              </p>
+              <p>
+                <span className="text-muted-foreground">RRESERVE / {ECOSYSTEM_LISTING_SYMBOL} pair (Solscan):</span>{' '}
+                <a
+                  href={solscanAccount(ECOSYSTEM_SOLSCAN_RRESERVE)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-sol-green hover:underline break-all"
+                >
+                  {ECOSYSTEM_SOLSCAN_RRESERVE}
+                </a>
+              </p>
+            </div>
           </section>
 
           <section className="space-y-3" id="fees-and-treasury">

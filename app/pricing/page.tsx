@@ -56,6 +56,12 @@ function buildRows(): Row[] {
       onchain: '~0.000005 SOL',
     },
     {
+      action: 'Freeze or thaw one token account',
+      us: feeSol(ACTION_FEE_SOL),
+      them: '0.02 – 0.05 SOL',
+      onchain: '~0.000005 SOL',
+    },
+    {
       action: 'Mint additional supply',
       us: feeSol(ACTION_FEE_SOL),
       them: '0.02 – 0.05 SOL',

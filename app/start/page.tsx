@@ -69,7 +69,7 @@ const STEPS: {
   {
     n: '05',
     title: 'After launch: tools',
-    body: 'From the success screen or Tools, you can revoke mint or freeze authority, mint more supply, update listing metadata, handle Token-2022 transfer fees, or burn tokens. Each action is its own on-chain transaction with the same transparent fee pattern.',
+    body: 'From the success screen or Tools, you can revoke mint or freeze authority, freeze or thaw individual token accounts, mint more supply, update listing metadata, handle Token-2022 transfer fees, or burn tokens. Each action is its own on-chain transaction with the same transparent fee pattern.',
     icon: Wrench,
   },
   {

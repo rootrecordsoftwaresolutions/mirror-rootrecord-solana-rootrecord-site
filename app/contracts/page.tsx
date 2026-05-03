@@ -200,18 +200,19 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <Card className="mt-14 border-sol-green/30 bg-ink-950/40 max-w-3xl">
+      <Card className="mt-14 border-sol-purple/30 bg-ink-950/40 max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-lg">Live: linear vesting</CardTitle>
+          <CardTitle className="text-lg">Native vesting (in development)</CardTitle>
           <CardDescription className="text-sm leading-relaxed">
-            Fund a Streamflow vesting stream from your wallet—equal periods on a fixed calendar,
-            recipient claims through Streamflow. SPL and Token-2022 mints supported.
+            Root Record is implementing our own Solana programs for linear vesting, cliffs, and
+            treasury locks — explorer-verifiable, no third-party vesting protocol. Follow progress on
+            the vesting page; token issuance and tools elsewhere are already live.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="purple">
             <Link href="/contracts/vesting">
-              Open vesting tool
+              Vesting roadmap
               <ArrowRight className="h-4 w-4 ml-2" />
             </Link>
           </Button>

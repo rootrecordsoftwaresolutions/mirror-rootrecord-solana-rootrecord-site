@@ -6,16 +6,16 @@ import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/contracts/vesting',
-  title: 'Linear vesting (Streamflow)',
+  title: 'Linear vesting (Root Record)',
   description:
-    'Create an on-chain SPL token vesting stream from your wallet: fund from your ATA, unlock on a fixed period schedule via Streamflow on Solana.',
+    'Roadmap for Root Record native SPL and Token-2022 vesting on Solana — linear schedules, cliffs, and treasury locks without third-party vesting protocols.',
   keywords: [
     ...SEO_KEYWORDS.core,
     'vesting',
-    'Streamflow',
     'token vesting',
     'SPL vesting',
     'Solana vesting',
+    'treasury lock',
   ],
 });
 
@@ -34,8 +34,12 @@ export default function ContractsVestingPage() {
           Linear <em className="italic text-sol-green">vesting</em>
         </h1>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          Lock tokens into a Streamflow contract and release them on a steady cadence. Works with SPL
-          and Token-2022 mints you already hold.
+          Root Record is building native on-chain vesting for SPL and Token-2022 — no Streamflow or
+          other external vesting integration. The live token toolkit stays on{' '}
+          <Link href="/tools" className="text-sol-green hover:underline">
+            Tools
+          </Link>
+          .
         </p>
       </div>
 

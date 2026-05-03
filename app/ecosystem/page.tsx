@@ -24,8 +24,12 @@ import {
   ECOSYSTEM_SOLSCAN_CPMM_POOL_USDC,
   ECOSYSTEM_SOLSCAN_CPMM_POOL_JUP_RRTT,
   ECOSYSTEM_SOLSCAN_CPMM_POOL_RAY_RRTT,
+  ECOSYSTEM_RRESERVE_TOKEN_MINT,
   ECOSYSTEM_SOLSCAN_DEVELOPER,
+  ECOSYSTEM_SOLSCAN_RRESERVE,
   ECOSYSTEM_SOLSCAN_TREASURY,
+  RRESERVE_RRTT_RATIO_DENOMINATOR,
+  RRESERVE_TOKEN_SUPPLY_CAP,
   OTC_USD_PER_TOKEN,
   ecosystemOtcQuoteRetainPercentLabel,
   solscanAccount,
@@ -699,6 +703,40 @@ export default function EcosystemPage() {
                 <a href="#ecosystem-treasury" className="text-sol-green hover:underline">
                   below
                 </a>
+                .
+              </li>
+              <li>
+                <a
+                  href={solscanAccount(ECOSYSTEM_SOLSCAN_RRESERVE)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  RRESERVE pair
+                </a>{' '}
+                <span className="font-mono text-xs text-foreground/80">
+                  ({ECOSYSTEM_SOLSCAN_RRESERVE})
+                </span>
+                {' · '}
+                <a
+                  href={solscanToken(ECOSYSTEM_RRESERVE_TOKEN_MINT)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sol-green hover:underline font-medium"
+                >
+                  RRESERVE mint
+                </a>{' '}
+                <span className="font-mono text-xs text-foreground/80">
+                  ({ECOSYSTEM_RRESERVE_TOKEN_MINT})
+                </span>
+                {' — '}
+                pair vaults {ECOSYSTEM_LISTING_SYMBOL} and the <strong className="text-foreground">RRESERVE</strong>{' '}
+                SPL token (max {RRESERVE_TOKEN_SUPPLY_CAP} tokens; 1 :{' '}
+                {RRESERVE_RRTT_RATIO_DENOMINATOR.toLocaleString('en-US')} vs {ECOSYSTEM_LISTING_SYMBOL}{' '}
+                atomic units); not a treasury wallet; no SOL/USDC or WSOL pair—see{' '}
+                <Link href="/tokenomics#rrreserve" className="text-sol-green hover:underline">
+                  Tokenomics → RRESERVE
+                </Link>
                 .
               </li>
               <li>

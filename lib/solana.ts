@@ -22,6 +22,8 @@ import {
   getMint,
   getAccount,
   createBurnCheckedInstruction,
+  createFreezeAccountInstruction,
+  createThawAccountInstruction,
 } from '@solana/spl-token';
 import {
   createCreateMetadataAccountV3Instruction,
@@ -532,6 +534,110 @@ export async function revokeFreezeAuthority(
       wallet.publicKey,
       AuthorityType.FreezeAccount,
       null,
+      [],
+      programId,
+    ),
+  ];
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
+  return sendSimpleTx(wallet, ixs);
+}
+
+/**
+ * Freeze a single SPL or Token-2022 token account for `mint`. Caller must be the mint’s freeze authority.
+ */
+export async function freezeTokenAccount(
+  wallet: WalletContextState,
+  mintAddress: string,
+  tokenAccountAddress: string,
+  referrerWallet?: string | null,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error('Wallet not connected');
+  let tokenAccount: PublicKey;
+  try {
+    tokenAccount = new PublicKey(tokenAccountAddress.trim());
+  } catch {
+    throw new Error('Invalid token account address — must be valid base58.');
+  }
+  const connection = getConnection();
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  const mintInfo = await getMint(connection, mint, 'confirmed', programId);
+  if (mintInfo.freezeAuthority === null) {
+    throw new Error('This mint has no freeze authority — accounts cannot be frozen.');
+  }
+  if (!mintInfo.freezeAuthority.equals(wallet.publicKey)) {
+    throw new Error('Connect the wallet that is the freeze authority for this mint.');
+  }
+  const acc = await getAccount(connection, tokenAccount, 'confirmed', programId);
+  if (!acc.mint.equals(mint)) {
+    throw new Error('That token account belongs to a different mint than the one you entered.');
+  }
+  if (acc.isFrozen) {
+    throw new Error('That token account is already frozen.');
+  }
+  const ixs: TransactionInstruction[] = [
+    createFreezeAccountInstruction(
+      tokenAccount,
+      mint,
+      wallet.publicKey,
+      [],
+      programId,
+    ),
+  ];
+  ixs.push(
+    ...platformFeeTransferInstructions(
+      wallet.publicKey,
+      ACTION_FEE_SOL,
+      referrerWallet,
+    ),
+  );
+  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrerWallet);
+  return sendSimpleTx(wallet, ixs);
+}
+
+/**
+ * Thaw a frozen SPL or Token-2022 token account for `mint`. Caller must be the mint’s freeze authority.
+ */
+export async function thawTokenAccount(
+  wallet: WalletContextState,
+  mintAddress: string,
+  tokenAccountAddress: string,
+  referrerWallet?: string | null,
+): Promise<string> {
+  if (!wallet.publicKey) throw new Error('Wallet not connected');
+  let tokenAccount: PublicKey;
+  try {
+    tokenAccount = new PublicKey(tokenAccountAddress.trim());
+  } catch {
+    throw new Error('Invalid token account address — must be valid base58.');
+  }
+  const connection = getConnection();
+  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  const mintInfo = await getMint(connection, mint, 'confirmed', programId);
+  if (mintInfo.freezeAuthority === null) {
+    throw new Error('This mint has no freeze authority (unexpected for a frozen account).');
+  }
+  if (!mintInfo.freezeAuthority.equals(wallet.publicKey)) {
+    throw new Error('Connect the wallet that is the freeze authority for this mint.');
+  }
+  const acc = await getAccount(connection, tokenAccount, 'confirmed', programId);
+  if (!acc.mint.equals(mint)) {
+    throw new Error('That token account belongs to a different mint than the one you entered.');
+  }
+  if (!acc.isFrozen) {
+    throw new Error('That token account is not frozen.');
+  }
+  const ixs: TransactionInstruction[] = [
+    createThawAccountInstruction(
+      tokenAccount,
+      mint,
+      wallet.publicKey,
       [],
       programId,
     ),

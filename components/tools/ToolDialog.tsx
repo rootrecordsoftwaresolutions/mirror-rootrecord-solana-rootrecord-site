@@ -23,6 +23,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   revokeMintAuthority,
   revokeFreezeAuthority,
+  freezeTokenAccount,
+  thawTokenAccount,
   mintMore,
   burnTokens,
   updateTokenMetadata,
@@ -61,6 +63,8 @@ function assertOptionalHttpUrl(raw: string) {
 export type ToolKind =
   | 'revoke-mint'
   | 'revoke-freeze'
+  | 'freeze-account'
+  | 'thaw-account'
   | 'mint-more'
   | 'burn-tokens'
   | 'update-metadata'
@@ -82,6 +86,18 @@ const META: Record<
     title: 'Revoke freeze authority',
     desc: 'Removes the ability for anyone to freeze token accounts. Important signal for buyers.',
     cta: `Revoke · ${ACTION_FEE_SOL} SOL`,
+  },
+  'freeze-account': {
+    title: 'Freeze token account',
+    desc:
+      'Block transfers from one SPL or Token-2022 token account (vault, LP token account, holder ATA, etc.). Your wallet must be the mint’s freeze authority. Holders cannot send while frozen.',
+    cta: `Freeze · ${ACTION_FEE_SOL} SOL`,
+  },
+  'thaw-account': {
+    title: 'Thaw token account',
+    desc:
+      'Unfreeze a token account so the owner can transfer again. Your wallet must be the mint’s freeze authority. Legacy SPL and Token-2022.',
+    cta: `Thaw · ${ACTION_FEE_SOL} SOL`,
   },
   'mint-more': {
     title: 'Mint more tokens',
@@ -150,6 +166,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
   const [currentListingImageUrl, setCurrentListingImageUrl] = useState('');
   const [listingHostReady, setListingHostReady] = useState<boolean | null>(null);
   const [destination, setDestination] = useState('');
+  const [tokenAccount, setTokenAccount] = useState('');
   const [accountList, setAccountList] = useState('');
   const [feeBps, setFeeBps] = useState('500');
   const [maxFee, setMaxFee] = useState('1000000');
@@ -180,6 +197,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setCurrentListingImageUrl('');
     setListingHostReady(null);
     setDestination('');
+    setTokenAccount('');
     setAccountList('');
     setFeeBps('500');
     setMaxFee('1000000');
@@ -356,6 +374,12 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       toast.error('Mint address is required');
       return;
     }
+    if (kind === 'freeze-account' || kind === 'thaw-account') {
+      if (!tokenAccount.trim()) {
+        toast.error('Token account address is required');
+        return;
+      }
+    }
     setBusy(true);
     let repinnedMetadataJson = false;
     try {
@@ -364,6 +388,10 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       if (kind === 'revoke-mint') sig = await revokeMintAuthority(wallet, mint, ref);
       else if (kind === 'revoke-freeze') {
         sig = await revokeFreezeAuthority(wallet, mint, ref);
+      } else if (kind === 'freeze-account') {
+        sig = await freezeTokenAccount(wallet, mint, tokenAccount, ref);
+      } else if (kind === 'thaw-account') {
+        sig = await thawTokenAccount(wallet, mint, tokenAccount, ref);
       } else if (kind === 'lock-metadata') {
         sig = await lockLegacyListingMetadata(wallet, mint, ref);
       } else if (kind === 'mint-more') {
@@ -500,7 +528,13 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           action: `${SiteAction.TOOL_PREFIX}${kind}`,
           route: '/tools',
           signature: sig,
-          metadata: withReferrerMetadata({ tool: kind, mint: mint.trim() }),
+          metadata: withReferrerMetadata({
+            tool: kind,
+            mint: mint.trim(),
+            ...(kind === 'freeze-account' || kind === 'thaw-account'
+              ? { tokenAccount: tokenAccount.trim() }
+              : {}),
+          }),
         });
       }
       reset();
@@ -542,6 +576,8 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               'burn-tokens',
               'revoke-mint',
               'revoke-freeze',
+              'freeze-account',
+              'thaw-account',
               'update-metadata',
               'lock-metadata',
               'withdraw-fees',
@@ -559,6 +595,31 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
               </p>
             )}
           </div>
+
+          {(kind === 'freeze-account' || kind === 'thaw-account') && (
+            <>
+              <div className="grid gap-2">
+                <Label>Token account to {kind === 'freeze-account' ? 'freeze' : 'thaw'}</Label>
+                <Input
+                  data-testid="tool-token-account-input"
+                  placeholder="Associated token account or vault pubkey"
+                  value={tokenAccount}
+                  onChange={(e) => setTokenAccount(e.target.value.trim())}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Paste the <strong className="text-foreground/90">token account</strong> (the SPL
+                  account that holds the balance), not the wallet owner. Must match the mint above.
+                  On Solscan it is often labeled “Token Account”.
+                </p>
+              </div>
+              {kind === 'freeze-account' ? (
+                <p className="text-xs text-amber-200/95 border border-amber-500/30 rounded-lg px-3 py-2 leading-relaxed">
+                  While frozen, that account cannot send tokens. You (freeze authority) can thaw it
+                  later with the Thaw tool.
+                </p>
+              ) : null}
+            </>
+          )}
 
           {kind === 'lock-metadata' ? (
             <p className="text-xs text-amber-200/95 border border-amber-500/30 rounded-lg px-3 py-2 leading-relaxed">
@@ -863,7 +924,8 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             variant={
               kind.startsWith('revoke') ||
               kind === 'burn-tokens' ||
-              kind === 'lock-metadata'
+              kind === 'lock-metadata' ||
+              kind === 'freeze-account'
                 ? 'destructive'
                 : 'default'
             }

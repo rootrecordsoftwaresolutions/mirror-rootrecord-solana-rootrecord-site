@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import dynamic from 'next/dynamic';
 import { Inter, Instrument_Serif } from 'next/font/google';
 import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
 import { Toaster } from 'sonner';
 import './globals.css';
-import { SolanaProviders } from '@/components/providers/SolanaProviders';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ReferralCapture } from '@/components/ReferralCapture';
@@ -123,6 +123,24 @@ const CF_WEB_ANALYTICS_TOKEN =
   process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN?.trim() ||
   'a09f914edc5a428282e32a75198a0921';
 
+/**
+ * Wallet Standard registers wallets on first paint; calling that registry during SSR can throw
+ * in some runtimes and surfaces as a generic "Application error" on routes like /tools.
+ */
+const SolanaProviders = dynamic(
+  () => import('@/components/providers/SolanaProviders').then((m) => m.SolanaProviders),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex min-h-[50vh] flex-1 flex-col"
+        aria-busy="true"
+        aria-label="Loading wallet connection"
+      />
+    ),
+  },
+);
+
 export default function RootLayout({
   children,
 }: {
@@ -143,7 +161,7 @@ export default function RootLayout({
           <Footer />
           <Toaster
             theme="dark"
-            position="bottom-right"
+            position="bottom-center"
             toastOptions={{
               style: {
                 background: '#0A0F1A',

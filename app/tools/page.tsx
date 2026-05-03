@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import {
   ShieldOff,
   Lock,
+  Snowflake,
+  Sun,
   Coins,
   Flame,
   Pencil,
@@ -65,6 +67,20 @@ const TOOLS: (
     desc: 'Tell the market no one can freeze holders\' token accounts. A simple, public guarantee.',
     icon: Lock,
     tone: 'green',
+  },
+  {
+    kind: 'freeze-account',
+    title: 'Freeze token account',
+    desc: 'Freeze one holder, vault, or LP token account for your mint. Requires freeze authority (same fee as other tools).',
+    icon: Snowflake,
+    tone: 'green',
+  },
+  {
+    kind: 'thaw-account',
+    title: 'Thaw token account',
+    desc: 'Unfreeze an account so its owner can transfer again. Requires freeze authority.',
+    icon: Sun,
+    tone: 'purple',
   },
   {
     kind: 'mint-more',

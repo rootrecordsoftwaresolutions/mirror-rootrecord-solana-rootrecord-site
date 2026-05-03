@@ -77,6 +77,29 @@ export const ECOSYSTEM_SOLSCAN_DEVELOPER =
   process.env.NEXT_PUBLIC_ECOSYSTEM_SOLSCAN_DEVELOPER?.trim() ||
   'HCeCfMAAZeFUaBQrzC2t84myrBnvnb3h8M26k4urv2X1';
 
+/**
+ * RRESERVE SPL mint (pool leg / accounting token).
+ * Override with NEXT_PUBLIC_ECOSYSTEM_RRESERVE_TOKEN_MINT if it moves.
+ */
+export const ECOSYSTEM_RRESERVE_TOKEN_MINT =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_RRESERVE_TOKEN_MINT?.trim() ||
+  '5FNiQb4cFcD8wBkivXpeoB5xYb3R6ohU8Y5nKmMRB362';
+
+/**
+ * RRESERVE / RRTT pair account (pool state on Solscan). Holds both mint vaults; no WSOL/SOL or USDC
+ * quote leg (not in the Raydium CPMM table above).
+ * Override with NEXT_PUBLIC_ECOSYSTEM_SOLSCAN_RRESERVE if it moves.
+ */
+export const ECOSYSTEM_SOLSCAN_RRESERVE =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_SOLSCAN_RRESERVE?.trim() ||
+  '9aZ7EEqGHefwvozfjN3PUzBYiDGxgicqjkTgVvjbYUJA';
+
+/** Max whole RRESERVE tokens minted (pool-side accounting token; 1 : RRESERVE_RRTT_RATIO_DENOMINATOR vs RRTT). */
+export const RRESERVE_TOKEN_SUPPLY_CAP = 100;
+
+/** Reserve accounting ratio: 1 RRESERVE token matches this many RRTT atomic units (smallest SPL unit). */
+export const RRESERVE_RRTT_RATIO_DENOMINATOR = 10_000_000;
+
 export const solscanAccount = (pubkey: string) =>
   `https://solscan.io/account/${pubkey.trim()}`;
 
