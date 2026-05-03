@@ -105,7 +105,7 @@ export const solscanAccount = (pubkey: string) =>
 
 export const solscanToken = (mint: string) => `https://solscan.io/token/${mint.trim()}`;
 
-export const OTC_USD_PER_TOKEN = 0.00002;
+export const OTC_USD_PER_TOKEN = 0.00001;
 
 const QUOTE_RETAIN_BPS_MAX = 9_999;
 
