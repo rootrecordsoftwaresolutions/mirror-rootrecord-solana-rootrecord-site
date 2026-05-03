@@ -35,6 +35,7 @@ import {
   solscanAccount,
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
+import { formatOtcUsdPerWholeToken } from '@/lib/ecosystemJupUsd';
 import { getConnection } from '@/lib/solana';
 import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { ExternalLink } from 'lucide-react';
@@ -172,6 +173,7 @@ type OtcCheckoutPayload = {
   tokens_whole: number;
   quoted_at_ms: number;
   quoted_sol_usd: number;
+  quoted_token_usd: number;
   memo_utf8?: string;
 };
 
@@ -251,6 +253,8 @@ export default function EcosystemPage() {
   const [payWith, setPayWith] = useState<'SOL' | 'USDC'>('SOL');
   /** SOL/USD from Jupiter; USDC pay leg uses fixed $1 = 1 USDC (locked USD/token notional). */
   const [solUsd, setSolUsd] = useState<number | null>(null);
+  /** Resolved USD per whole token (Jupiter when available, else site fallback). */
+  const [tokenUsd, setTokenUsd] = useState<number | null>(null);
   const [priceFetchedAt, setPriceFetchedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -321,10 +325,19 @@ export default function EcosystemPage() {
       const j = (await r.json()) as {
         ok?: boolean;
         sol_usd?: number;
+        token_usd?: number;
         detail?: string;
       };
-      if (r.ok && j.ok && j.sol_usd) {
+      if (
+        r.ok &&
+        j.ok &&
+        typeof j.sol_usd === 'number' &&
+        j.sol_usd > 0 &&
+        typeof j.token_usd === 'number' &&
+        j.token_usd > 0
+      ) {
         setSolUsd(j.sol_usd);
+        setTokenUsd(j.token_usd);
         setPriceFetchedAt(Date.now());
       }
     } catch {
@@ -373,7 +386,7 @@ export default function EcosystemPage() {
 
   const otc = useMemo(() => {
     const parsed = parseFloat(tokenAmount.replace(/,/g, ''));
-    if (!Number.isFinite(parsed) || parsed <= 0 || !solUsd) {
+    if (!Number.isFinite(parsed) || parsed <= 0 || !solUsd || !tokenUsd) {
       return {
         tokensWhole: null as number | null,
         usdTotal: null as number | null,
@@ -384,13 +397,13 @@ export default function EcosystemPage() {
       };
     }
     const tokensWhole = Math.max(1, Math.ceil(parsed));
-    const usdTotal = tokensWhole * OTC_USD_PER_TOKEN;
+    const usdTotal = tokensWhole * tokenUsd;
     const solIdeal = usdTotal / solUsd;
     const usdcIdeal = usdTotal;
     const solLamports = Math.max(1, Math.ceil(solIdeal * 1e9));
     const usdcMicro = Math.max(1, Math.ceil(usdcIdeal * 1e6));
     return { tokensWhole, usdTotal, solIdeal, usdcIdeal, solLamports, usdcMicro };
-  }, [tokenAmount, solUsd]);
+  }, [tokenAmount, solUsd, tokenUsd]);
 
   const payAndClaim = useCallback(async () => {
     setFulfillMsg(null);
@@ -430,6 +443,10 @@ export default function EcosystemPage() {
       setFulfillMsg('SOL price not loaded; tap Refresh prices.');
       return;
     }
+    if (tokenUsd == null || !Number.isFinite(tokenUsd) || tokenUsd <= 0) {
+      setFulfillMsg('Token USD mark not loaded; tap Refresh prices.');
+      return;
+    }
 
     const conn = getConnection();
     let finalizeBody: OtcFinalizePayload | undefined;
@@ -440,9 +457,10 @@ export default function EcosystemPage() {
       const mint = ECOSYSTEM_OTC_TOKEN_MINT;
       const mintShort =
         mint.length > 14 ? `${mint.slice(0, 6)}…${mint.slice(-4)}` : mint;
+      const rateLabel = formatOtcUsdPerWholeToken(tokenUsd);
       const usdNotional =
-        otc.usdTotal != null ? otc.usdTotal.toFixed(6) : String(otc.tokensWhole * OTC_USD_PER_TOKEN);
-      const memoUtf8 = `RootRecord treasury transfer: receive ${otc.tokensWhole} tokens (${usdNotional} USD @ $${OTC_USD_PER_TOKEN}/token). Pay ${payWith}. Output mint ${mintShort}.`;
+        otc.usdTotal != null ? otc.usdTotal.toFixed(8) : String(otc.tokensWhole * tokenUsd);
+      const memoUtf8 = `RootRecord treasury transfer: receive ${otc.tokensWhole} tokens (${usdNotional} USD @ $${rateLabel}/token). Pay ${payWith}. Output mint ${mintShort}.`;
 
       const checkoutBase: OtcCheckoutPayload = {
         buyer_wallet: publicKey.toBase58(),
@@ -450,6 +468,7 @@ export default function EcosystemPage() {
         tokens_whole: otc.tokensWhole,
         quoted_at_ms: priceFetchedAt,
         quoted_sol_usd: solUsd,
+        quoted_token_usd: tokenUsd,
         memo_utf8: memoUtf8,
       };
 
@@ -573,6 +592,7 @@ export default function EcosystemPage() {
     priceFetchedAt,
     publicKey,
     solUsd,
+    tokenUsd,
     quoteStale,
     sendTransaction,
     signTransaction,
@@ -868,10 +888,14 @@ export default function EcosystemPage() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Peg &amp; pool stabilization</h2>
             <p>
-              While minted supply is still being distributed or placed into the LP, an in-house
-              program targets a <strong className="text-foreground">flat treasury reference</strong> of{' '}
-              <strong className="text-foreground">${OTC_USD_PER_TOKEN} USD per whole token</strong>{' '}
-              on the Treasury Transfer Tool below. Directionally: when buys hit the LP, treasury-side
+              While minted supply is still being distributed or placed into the LP, the Treasury
+              Transfer Tool below uses a <strong className="text-foreground">Jupiter USD mark</strong>{' '}
+              for this mint (about{' '}
+              <strong className="text-foreground">
+                ${formatOtcUsdPerWholeToken(tokenUsd ?? OTC_USD_PER_TOKEN)} USD per whole token
+              </strong>
+              {tokenUsd == null ? ' — loading quote, or using fallback if feeds are down' : ''}
+              ). Directionally: when buys hit the LP, treasury-side
               flows can sell into strength; when sells hit the LP, flows can buy to support the
               reference—always subject to inventory, caps, and on-chain reality (not a guarantee of
               price).
@@ -992,7 +1016,9 @@ export default function EcosystemPage() {
               <span className="font-mono">{otc.tokensWhole != null ? String(otc.tokensWhole) : '—'}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Notional @ {OTC_USD_PER_TOKEN} USD / token</span>
+              <span className="text-muted-foreground">
+                Notional @ {formatOtcUsdPerWholeToken(tokenUsd ?? OTC_USD_PER_TOKEN)} USD / token
+              </span>
               <span className="font-mono">
                 {otc.usdTotal != null ? `≈ $${otc.usdTotal.toFixed(6)}` : '—'}
               </span>

@@ -17,12 +17,13 @@ import bs58 from 'bs58';
 
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
+  OTC_USD_PER_TOKEN,
   ecosystemOtcUsdcMint,
   resolveOtcCpmmPoolId,
 } from '@/lib/ecosystemOtcConstants';
 import { depositOtcPaymentToCpmmPool } from '@/lib/ecosystemOtcAutoLiquidity';
 import { computeOtcPayAmounts } from '@/lib/ecosystemOtcCompute';
-import { fetchJupiterSolUsdcUsd } from '@/lib/ecosystemJupUsd';
+import { fetchJupiterOtcPriceMarks } from '@/lib/ecosystemJupUsd';
 import { getConnection } from '@/lib/solana';
 import { fetchSolanaWorker } from '@/lib/solanaSiteApi';
 
@@ -237,6 +238,7 @@ export async function workerOtcLiquidityMeta(body: {
 
 /** Max relative drift between client-locked SOL/USD and live Jupiter (anti-gaming). */
 const QUOTED_SOL_USD_MAX_REL_DRIFT = 0.05;
+const QUOTED_TOKEN_USD_MAX_REL_DRIFT = 0.1;
 
 export type FulfillOtcInput = {
   buyer_wallet: string;
@@ -245,6 +247,7 @@ export type FulfillOtcInput = {
   quoted_at_ms: number;
   /** SOL/USD shown when the user built the payment tx; used for min SOL/USDC (must track live within QUOTED_SOL_USD_MAX_REL_DRIFT). */
   quoted_sol_usd: number;
+  quoted_token_usd: number;
   payment_tx_signature: string;
 };
 
@@ -309,9 +312,9 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
   const mintPk = new PublicKey(ECOSYSTEM_OTC_TOKEN_MINT);
   const connection = getConnection();
 
-  let prices: Awaited<ReturnType<typeof fetchJupiterSolUsdcUsd>>;
+  let marks: Awaited<ReturnType<typeof fetchJupiterOtcPriceMarks>>;
   try {
-    prices = await fetchJupiterSolUsdcUsd();
+    marks = await fetchJupiterOtcPriceMarks({ cache: 'no-store' });
   } catch (e) {
     return {
       ok: false,
@@ -324,17 +327,30 @@ export async function fulfillOtcFromTreasury(input: FulfillOtcInput): Promise<Fu
   if (!Number.isFinite(q) || q <= 0) {
     return { ok: false, status: 400, detail: 'Missing or invalid quoted SOL mark.' };
   }
-  const live = prices.solUsd;
-  const drift = Math.abs(q - live) / live;
-  if (drift > QUOTED_SOL_USD_MAX_REL_DRIFT) {
+  const qt = input.quoted_token_usd;
+  if (!Number.isFinite(qt) || qt <= 0) {
+    return { ok: false, status: 400, detail: 'Missing or invalid quoted token USD mark.' };
+  }
+  const liveSol = marks.solUsd;
+  const solDrift = Math.abs(q - liveSol) / liveSol;
+  if (solDrift > QUOTED_SOL_USD_MAX_REL_DRIFT) {
     return {
       ok: false,
       status: 400,
       detail: 'SOL mark moved vs your quote. Refresh prices and try again within the window.',
     };
   }
+  const liveTokenUsd = marks.tokenUsd ?? OTC_USD_PER_TOKEN;
+  const tokenDrift = Math.abs(qt - liveTokenUsd) / liveTokenUsd;
+  if (tokenDrift > QUOTED_TOKEN_USD_MAX_REL_DRIFT) {
+    return {
+      ok: false,
+      status: 400,
+      detail: 'Token USD mark moved vs your quote. Refresh prices and try again within the window.',
+    };
+  }
 
-  const rounded = computeOtcPayAmounts(input.tokens_whole, q, prices.usdcUsd);
+  const rounded = computeOtcPayAmounts(input.tokens_whole, q, marks.usdcUsd, qt);
   const minLamports = rounded.solLamports;
   const minUsdcMicro = rounded.usdcMicro;
 

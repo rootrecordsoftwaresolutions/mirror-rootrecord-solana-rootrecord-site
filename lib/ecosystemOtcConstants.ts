@@ -105,6 +105,10 @@ export const solscanAccount = (pubkey: string) =>
 
 export const solscanToken = (mint: string) => `https://solscan.io/token/${mint.trim()}`;
 
+/**
+ * USD per whole ecosystem token when Jupiter has no USD mark for this mint (feeds down / not listed).
+ * Live tool pricing uses Jupiter; this value is only the fallback.
+ */
 export const OTC_USD_PER_TOKEN = 0.00001;
 
 const QUOTE_RETAIN_BPS_MAX = 9_999;

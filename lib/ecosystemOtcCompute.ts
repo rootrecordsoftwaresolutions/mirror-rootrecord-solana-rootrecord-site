@@ -1,5 +1,3 @@
-import { OTC_USD_PER_TOKEN } from '@/lib/ecosystemOtcConstants';
-
 export type OtcRoundedAmounts = {
   tokensWhole: number;
   usdTotal: number;
@@ -12,9 +10,11 @@ export function computeOtcPayAmounts(
   tokensWhole: number,
   solUsd: number,
   usdcUsd: number,
+  /** USD per whole output token (Jupiter mark or agreed fallback). */
+  usdPerWholeToken: number,
 ): OtcRoundedAmounts {
   const tw = Math.max(1, Math.ceil(tokensWhole));
-  const usdTotal = tw * OTC_USD_PER_TOKEN;
+  const usdTotal = tw * usdPerWholeToken;
   const solIdeal = usdTotal / solUsd;
   const usdcIdeal = usdTotal / usdcUsd;
   const solLamports = BigInt(Math.max(1, Math.ceil(solIdeal * 1e9)));

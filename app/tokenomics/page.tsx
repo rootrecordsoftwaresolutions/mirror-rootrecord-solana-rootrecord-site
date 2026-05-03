@@ -21,6 +21,11 @@ import {
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
 import {
+  fetchJupiterOtcPriceMarks,
+  formatOtcUsdPerWholeToken,
+  resolveOtcUsdPerWholeToken,
+} from '@/lib/ecosystemJupUsd';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -92,8 +97,16 @@ function buildPoolRows(): PoolRow[] {
   return rows;
 }
 
-export default function TokenomicsPage() {
+export default async function TokenomicsPage() {
   const poolRows = buildPoolRows();
+  let otcRefUsd = OTC_USD_PER_TOKEN;
+  try {
+    const marks = await fetchJupiterOtcPriceMarks({ next: { revalidate: 60 } });
+    otcRefUsd = resolveOtcUsdPerWholeToken(marks);
+  } catch {
+    /* keep OTC_USD_PER_TOKEN */
+  }
+  const otcRefLabel = formatOtcUsdPerWholeToken(otcRefUsd);
 
   return (
     <div className="container py-14 md:py-20 max-w-4xl space-y-12">
@@ -350,13 +363,13 @@ export default function TokenomicsPage() {
               <Link href="/ecosystem" className="text-sol-green hover:underline">
                 Purpose
               </Link>{' '}
-              page) offers whole tokens at a published{' '}
-              <strong className="text-foreground">USD reference</strong> of{' '}
-              <strong className="text-foreground">${OTC_USD_PER_TOKEN} per whole token</strong> for
-              the program described there. That reference is a <em>design parameter</em> for the tool,
-              not a guarantee that secondary-market AMM prices will match it at all times. When open
-              pools trade far from the reference, arbitrageurs may appear—that can help convergence
-              but is not assured.
+              page) prices whole tokens from a <strong className="text-foreground">Jupiter USD mark</strong>{' '}
+              for this mint (about <strong className="text-foreground">${otcRefLabel} per whole token</strong>{' '}
+              when this page was built, with a short on-page quote window on Purpose). If Jupiter has
+              no mark, the tool falls back to a fixed numeric floor ({OTC_USD_PER_TOKEN} USD). That
+              mark tracks external pricing, not a guarantee that every AMM print matches it. When
+              pools trade far from the mark, arbitrageurs may appear—that can help convergence but is
+              not assured.
             </p>
             <p>
               After a successful treasury transfer, a configurable share of the SOL or USDC payment

@@ -20,11 +20,15 @@ import { ecosystemOtcMemoInstruction } from '@/lib/ecosystemOtcClientPayment';
 import { computeOtcPayAmounts } from '@/lib/ecosystemOtcCompute';
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
+  OTC_USD_PER_TOKEN,
   ecosystemOtcUsdcMint,
   resolveOtcCpmmPoolId,
 } from '@/lib/ecosystemOtcConstants';
 import { depositOtcPaymentToCpmmPool } from '@/lib/ecosystemOtcAutoLiquidity';
-import { fetchJupiterSolUsdcUsd } from '@/lib/ecosystemJupUsd';
+import {
+  fetchJupiterOtcPriceMarks,
+  type JupiterOtcPriceMark,
+} from '@/lib/ecosystemJupUsd';
 import {
   loadTreasuryKeypair,
   verifyOtcPaymentTx,
@@ -36,6 +40,8 @@ import { getConnection } from '@/lib/solana';
 
 const QUOTE_MAX_AGE_MS = 120_000;
 const QUOTED_SOL_USD_MAX_REL_DRIFT = 0.05;
+/** Micro-cap token marks can be thin; allow a slightly wider band than SOL. */
+const QUOTED_TOKEN_USD_MAX_REL_DRIFT = 0.1;
 
 export type PrepareOtcCheckoutInput = {
   buyer_wallet: string;
@@ -43,6 +49,8 @@ export type PrepareOtcCheckoutInput = {
   tokens_whole: number;
   quoted_at_ms: number;
   quoted_sol_usd: number;
+  /** USD per whole output token (same value shown in the quote window). */
+  quoted_token_usd: number;
   memo_utf8?: string;
 };
 
@@ -75,7 +83,7 @@ async function validateQuoteAndBuyer(input: PrepareOtcCheckoutInput): Promise<
       buyer: PublicKey;
       treasury: Keypair;
       rounded: ReturnType<typeof computeOtcPayAmounts>;
-      prices: Awaited<ReturnType<typeof fetchJupiterSolUsdcUsd>>;
+      marks: JupiterOtcPriceMark;
     }
   | { ok: false; status: number; detail: string }
 > {
@@ -114,9 +122,13 @@ async function validateQuoteAndBuyer(input: PrepareOtcCheckoutInput): Promise<
   if (!Number.isFinite(q) || q <= 0) {
     return { ok: false, status: 400, detail: 'Missing or invalid quoted SOL mark.' };
   }
-  let prices: Awaited<ReturnType<typeof fetchJupiterSolUsdcUsd>>;
+  const qt = input.quoted_token_usd;
+  if (!Number.isFinite(qt) || qt <= 0) {
+    return { ok: false, status: 400, detail: 'Missing or invalid quoted token USD mark.' };
+  }
+  let marks: JupiterOtcPriceMark;
   try {
-    prices = await fetchJupiterSolUsdcUsd();
+    marks = await fetchJupiterOtcPriceMarks({ cache: 'no-store' });
   } catch (e) {
     return {
       ok: false,
@@ -124,17 +136,26 @@ async function validateQuoteAndBuyer(input: PrepareOtcCheckoutInput): Promise<
       detail: e instanceof Error ? e.message : 'Could not fetch USD marks',
     };
   }
-  const live = prices.solUsd;
-  const drift = Math.abs(q - live) / live;
-  if (drift > QUOTED_SOL_USD_MAX_REL_DRIFT) {
+  const liveSol = marks.solUsd;
+  const solDrift = Math.abs(q - liveSol) / liveSol;
+  if (solDrift > QUOTED_SOL_USD_MAX_REL_DRIFT) {
     return {
       ok: false,
       status: 400,
       detail: 'SOL mark moved vs your quote. Refresh prices and try again.',
     };
   }
-  const rounded = computeOtcPayAmounts(input.tokens_whole, q, prices.usdcUsd);
-  return { ok: true, buyer, treasury, rounded, prices };
+  const liveTokenUsd = marks.tokenUsd ?? OTC_USD_PER_TOKEN;
+  const tokenDrift = Math.abs(qt - liveTokenUsd) / liveTokenUsd;
+  if (tokenDrift > QUOTED_TOKEN_USD_MAX_REL_DRIFT) {
+    return {
+      ok: false,
+      status: 400,
+      detail: 'Token USD mark moved vs your quote. Refresh prices and try again.',
+    };
+  }
+  const rounded = computeOtcPayAmounts(input.tokens_whole, q, marks.usdcUsd, qt);
+  return { ok: true, buyer, treasury, rounded, marks };
 }
 
 function buyerProjectTokenRawIncrease(

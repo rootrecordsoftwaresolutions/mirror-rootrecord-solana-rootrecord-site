@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server';
 
-import { fetchJupiterSolUsdcUsd } from '@/lib/ecosystemJupUsd';
+import {
+  fetchJupiterOtcPriceMarks,
+  resolveOtcUsdPerWholeToken,
+} from '@/lib/ecosystemJupUsd';
 
 /**
- * SOL/USD for Treasury Transfer Tool calculator (Jupiter price v3, WSOL only). USDC leg uses fixed $1 = 1 USDC.
+ * SOL/USD + ecosystem token USD for Treasury Transfer Tool (Jupiter v3; v2 fallback for token).
+ * USDC leg uses fixed $1 = 1 USDC.
  */
 export async function GET() {
   try {
-    const { solUsd, usdcUsd, fetchedAt } = await fetchJupiterSolUsdcUsd();
+    const marks = await fetchJupiterOtcPriceMarks({ cache: 'no-store' });
+    const tokenUsd = resolveOtcUsdPerWholeToken(marks);
     return NextResponse.json({
       ok: true,
-      sol_usd: solUsd,
+      sol_usd: marks.solUsd,
       /** Always 1 — locked USD/token notional; no Jupiter USDC fetch. */
-      usdc_usd: usdcUsd,
-      fetched_at: fetchedAt,
+      usdc_usd: marks.usdcUsd,
+      /** USD per whole output token: Jupiter when available, else site fallback constant. */
+      token_usd: tokenUsd,
+      token_usd_from_jupiter: marks.tokenUsd != null,
+      fetched_at: marks.fetchedAt,
     });
   } catch (e) {
     return NextResponse.json(

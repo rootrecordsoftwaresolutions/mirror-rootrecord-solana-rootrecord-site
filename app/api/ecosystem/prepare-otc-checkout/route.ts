@@ -11,6 +11,7 @@ const BodySchema = z.object({
   tokens_whole: z.number().finite().positive(),
   quoted_at_ms: z.number().finite(),
   quoted_sol_usd: z.number().finite().positive(),
+  quoted_token_usd: z.number().finite().positive(),
   memo_utf8: z.string().max(566).optional(),
 });
 
