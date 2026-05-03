@@ -3,30 +3,12 @@ import Link from 'next/link';
 
 import { HomeStructuredData } from '@/components/seo/HomeStructuredData';
 import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
-import {
-  ArrowRight,
-  Sparkles,
-  ShieldCheck,
-  Coins,
-  Flame,
-  Zap,
-  Pencil,
-  Scroll,
-  Wallet,
-} from 'lucide-react';
+import { ArrowRight, Flame, Zap, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
 import { RrttTokenStatsPromo } from '@/components/RrttTokenStatsPromo';
-import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageSeo({
@@ -43,57 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
     ],
   });
 }
-
-const FEATURES: {
-  n: string;
-  title: string;
-  desc: string;
-  icon: LucideIcon;
-  /** When set, the whole card links (e.g. to a tool on /tools). */
-  href?: string;
-  /** Footer line when `href` is set (default: Open on Tools →). */
-  cta?: string;
-}[] = [
-  {
-    n: '01',
-    title: 'Create Token',
-    desc: 'A fresh SPL mint, ATA, supply minted to you, and Metaplex metadata pinned to IPFS — in one signed transaction.',
-    icon: Sparkles,
-  },
-  {
-    n: '02',
-    title: 'Revoke Authorities',
-    desc: 'Burn the mint and freeze authorities the moment you launch. One click each, on-chain and verifiable on Solscan.',
-    icon: ShieldCheck,
-  },
-  {
-    n: '03',
-    title: 'Mint More',
-    desc: 'Top up supply for an airdrop or LP without juggling CLI tools. Same wallet, same authority, two clicks.',
-    icon: Coins,
-  },
-  {
-    n: '04',
-    title: 'Update Metadata',
-    desc: 'Fix a typo, swap a logo, point to a new IPFS URI. As long as metadata is mutable, you stay in control.',
-    icon: Pencil,
-  },
-  {
-    n: '05',
-    title: 'Burn tokens',
-    desc: 'Remove tokens from your wallet’s token account for a mint and shrink circulating supply. No RootRecord fee — only Solana network fees.',
-    icon: Flame,
-    href: '/tools?action=burn',
-  },
-  {
-    n: '06',
-    title: 'Paper wallet',
-    desc: 'Generate a random keypair in-browser and print a tent-fold sheet: public + private QR codes, base58 text, several print styles (save ink, vivid, premium dark, warm paper).',
-    icon: Scroll,
-    href: '/wallet-generator',
-    cta: 'Open wallet generator →',
-  },
-];
 
 const COMPETITORS = [
   { name: 'RootRecord (you)', fee: '0.025 SOL', note: 'No subscriptions. No upsells. No nags.' },
@@ -193,67 +124,6 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
           <JupiterWalletPromo variant="featured" />
           <RrttTokenStatsPromo />
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="container py-20" id="features">
-        <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
-          <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-              What we ship
-            </div>
-            <h2 className="font-display text-3xl md:text-5xl tracking-tight">
-              Practical Solana tools, <em className="text-sol-green italic">carefully made</em>.
-            </h2>
-          </div>
-          <p className="max-w-md text-muted-foreground">
-            Each tool solves one problem end-to-end. No bloat. No analytics dashboard
-            you didn&apos;t ask for. Just on-chain actions that work the first time.
-          </p>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => {
-            const card = (
-              <Card
-                data-testid={`feature-${f.title.toLowerCase().replace(' ', '-')}`}
-                className={cn(
-                  'group h-full transition-all duration-300 hover:-translate-y-1 hover:border-sol-green/40 hover:shadow-[0_0_40px_-12px_rgba(20,241,149,0.25)]',
-                  f.href && 'cursor-pointer',
-                )}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <span className="text-xs font-mono text-sol-green/80 tracking-widest">
-                      {f.n} /
-                    </span>
-                    <f.icon className="h-5 w-5 text-muted-foreground group-hover:text-sol-green transition-colors" />
-                  </div>
-                  <CardTitle className="mt-4">{f.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm leading-relaxed">
-                    {f.desc}
-                  </CardDescription>
-                  {f.href && (
-                    <p className="mt-3 text-xs font-medium text-sol-green">
-                      {f.cta ?? 'Open on Tools →'}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-            return f.href ? (
-              <Link key={f.n} href={f.href} className="block h-full">
-                {card}
-              </Link>
-            ) : (
-              <div key={f.n} className="h-full">
-                {card}
-              </div>
-            );
-          })}
         </div>
       </section>
 
