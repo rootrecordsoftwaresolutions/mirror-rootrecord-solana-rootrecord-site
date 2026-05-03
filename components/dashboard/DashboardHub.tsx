@@ -37,17 +37,6 @@ import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
 import { TOOL_CATALOG, type ToolCatalogEntry } from '@/lib/toolsCatalog';
 import { cn } from '@/lib/utils';
 
-const SIDEBAR_NAV: { id: string; label: string }[] = [
-  { id: 'dashboard-overview', label: 'Overview' },
-  { id: 'dashboard-launch', label: 'Launch' },
-  { id: 'dashboard-token-manage', label: 'Token manage' },
-  { id: 'dashboard-liquidity', label: 'Liquidity' },
-  { id: 'dashboard-distribute', label: 'Distribute' },
-  { id: 'dashboard-discover', label: 'Discover' },
-  { id: 'dashboard-program', label: 'Program & docs' },
-  { id: 'dashboard-account', label: 'Account' },
-];
-
 type LinkCard = {
   type: 'link';
   href: string;
@@ -312,20 +301,6 @@ function Section({
   );
 }
 
-function SidebarLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        'rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors',
-        'hover:bg-white/5 hover:text-foreground',
-      )}
-    >
-      {label}
-    </a>
-  );
-}
-
 function DashboardHubInner() {
   const params = useSearchParams();
   const { connected } = useWallet();
@@ -391,50 +366,9 @@ function DashboardHubInner() {
   );
 
   return (
-    <div className="flex w-full min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
-      {/* Mobile / tablet: horizontal section jump */}
-      <nav
-        className="flex gap-1 overflow-x-auto border-b border-border bg-ink-950/90 px-3 py-2 lg:hidden"
-        aria-label="Dashboard sections"
-      >
-        {SIDEBAR_NAV.map((n) => (
-          <a
-            key={n.id}
-            href={`#${n.id}`}
-            className="shrink-0 rounded-full border border-border/80 bg-ink-900/80 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-sol-green/40 hover:text-foreground"
-          >
-            {n.label}
-          </a>
-        ))}
-      </nav>
-
-      {/* Desktop sidebar */}
-      <aside
-        className="hidden w-60 shrink-0 flex-col border-b border-border bg-ink-950/95 lg:flex lg:border-b-0 lg:border-r"
-        aria-label="Dashboard navigation"
-      >
-        <div className="border-b border-border/80 px-4 py-4">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-foreground">
-            Root<span className="text-sol-green">Record</span>
-          </Link>
-          <p className="mt-1 text-xs text-muted-foreground">Solana Tools · Dashboard</p>
-        </div>
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
-          {SIDEBAR_NAV.map((n) => (
-            <SidebarLink key={n.id} href={`#${n.id}`} label={n.label} />
-          ))}
-        </nav>
-      </aside>
-
-      <div className="min-w-0 flex-1 bg-gradient-to-b from-background to-ink-950/40">
-        <div className="border-b border-border bg-ink-950/80 px-4 py-2.5 text-center text-xs text-muted-foreground">
-          Verify you are on{' '}
-          <span className="font-mono text-sol-green">solana.rootrecord.info</span>
-          {' — '}bookmark the official site. Phishing sites may mimic this layout.
-        </div>
-
-        <div className="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-12">
-          <section id="dashboard-overview" className="scroll-mt-28">
+    <>
+      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
+          <section id="dashboard-overview" className="scroll-mt-24">
             <Badge className="mb-4 border-sol-green/30 bg-sol-green/10 text-sol-green">
               Solana mainnet
             </Badge>
@@ -581,11 +515,10 @@ function DashboardHubInner() {
               </div>
             </Section>
           </div>
-        </div>
       </div>
 
       <ToolDialog kind={active} initialMint={initialMint} onClose={() => setActive(null)} />
-    </div>
+    </>
   );
 }
 
