@@ -560,19 +560,27 @@ export type FreezeThawBulkMode = 'freeze' | 'thaw';
 export type FreezeThawBulkSkip = { owner: string; reason: string };
 
 /**
- * Freeze or thaw each wallet’s **associated token account** for `mint`.
+ * Freeze or thaw SPL token accounts for `mint`.
+ * Each line may be either (1) a **holder wallet** pubkey → we use that wallet’s ATA for `mint`, or
+ * (2) a **token account** pubkey that already holds `mint` → we freeze/thaw that account directly.
  * RootRecord platform fee is **0 SOL** (network fees only). Batches instructions across multiple txs.
  */
 export async function bulkFreezeOrThawWalletAtas(
   wallet: WalletContextState,
   mintAddress: string,
-  ownerWalletStrings: string[],
+  lineStrings: string[],
   mode: FreezeThawBulkMode,
   referrerWallet?: string | null,
 ): Promise<{ signatures: string[]; skipped: FreezeThawBulkSkip[]; applied: number }> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const connection = getConnection();
-  const { mint, programId } = await resolveMintAndProgram(mintAddress);
+  const trimmedMint = mintAddress.trim();
+  if (trimmedMint.length < 32) {
+    throw new Error(
+      'Mint address looks incomplete — paste the full base58 mint (usually 43–44 characters).',
+    );
+  }
+  const { mint, programId } = await resolveMintAndProgram(trimmedMint);
   const mintInfo = await getMint(connection, mint, 'confirmed', programId);
   if (mintInfo.freezeAuthority === null) {
     throw new Error('This mint has no freeze authority — accounts cannot be frozen or thawed.');
@@ -583,7 +591,7 @@ export async function bulkFreezeOrThawWalletAtas(
 
   const lineSet = new Set<string>();
   const lines: string[] = [];
-  for (const raw of ownerWalletStrings) {
+  for (const raw of lineStrings) {
     const s = raw.trim();
     if (!s) continue;
     if (lineSet.has(s)) continue;
@@ -591,38 +599,56 @@ export async function bulkFreezeOrThawWalletAtas(
     lines.push(s);
     if (lines.length > FREEZE_THAW_BULK_MAX_WALLETS) {
       throw new Error(
-        `At most ${FREEZE_THAW_BULK_MAX_WALLETS} unique wallet addresses per run.`,
+        `At most ${FREEZE_THAW_BULK_MAX_WALLETS} unique lines per run.`,
       );
     }
   }
 
-  const owners: PublicKey[] = [];
   const skipped: FreezeThawBulkSkip[] = [];
+  const ixs: TransactionInstruction[] = [];
+
   for (const s of lines) {
+    let pk: PublicKey;
     try {
-      owners.push(new PublicKey(s));
+      pk = new PublicKey(s);
     } catch {
       skipped.push({ owner: s, reason: 'Invalid pubkey' });
+      continue;
     }
-  }
 
-  const ixs: TransactionInstruction[] = [];
-  for (const owner of owners) {
-    const ata = await getAssociatedTokenAddress(mint, owner, false, programId);
-    let acc;
+    let ata: PublicKey;
+    let acc: Awaited<ReturnType<typeof getAccount>>;
     try {
-      acc = await getAccount(connection, ata, 'confirmed', programId);
+      const direct = await getAccount(connection, pk, 'confirmed', programId);
+      if (!direct.mint.equals(mint)) {
+        skipped.push({
+          owner: s,
+          reason: 'This address is a token account for a different mint — paste holder wallet or correct token account',
+        });
+        continue;
+      }
+      ata = pk;
+      acc = direct;
     } catch {
-      skipped.push({ owner: owner.toBase58(), reason: 'No token account for this mint' });
-      continue;
+      ata = await getAssociatedTokenAddress(mint, pk, false, programId);
+      try {
+        acc = await getAccount(connection, ata, 'confirmed', programId);
+      } catch {
+        skipped.push({
+          owner: s,
+          reason: 'Not a token account for this mint and no ATA for this wallet',
+        });
+        continue;
+      }
+      if (!acc.mint.equals(mint)) {
+        skipped.push({ owner: s, reason: 'ATA mint mismatch' });
+        continue;
+      }
     }
-    if (!acc.mint.equals(mint)) {
-      skipped.push({ owner: owner.toBase58(), reason: 'ATA mint mismatch' });
-      continue;
-    }
+
     if (mode === 'freeze') {
       if (acc.isFrozen) {
-        skipped.push({ owner: owner.toBase58(), reason: 'Already frozen' });
+        skipped.push({ owner: s, reason: 'Already frozen' });
         continue;
       }
       ixs.push(
@@ -630,7 +656,7 @@ export async function bulkFreezeOrThawWalletAtas(
       );
     } else {
       if (!acc.isFrozen) {
-        skipped.push({ owner: owner.toBase58(), reason: 'Not frozen' });
+        skipped.push({ owner: s, reason: 'Not frozen' });
         continue;
       }
       ixs.push(

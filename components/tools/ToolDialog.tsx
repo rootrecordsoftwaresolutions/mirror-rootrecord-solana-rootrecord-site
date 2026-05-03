@@ -89,7 +89,7 @@ const META: Record<
   'freeze-thaw-bulk': {
     title: 'Freeze / thaw holder wallets',
     desc:
-      'Toggle freeze or thaw for up to 100 holder **wallet** addresses (uses each wallet’s ATA for the mint). Your connected wallet must be the mint’s freeze authority. RootRecord fee is **0 SOL** per wallet for now — you only pay Solana network fees (often one signature per batch of up to 10 accounts).',
+      'Toggle freeze or thaw for up to 100 lines: each line may be a **holder wallet** (we use its ATA for the mint) **or** a **token account** address that already holds this mint. Your connected wallet must be the mint’s freeze authority. RootRecord fee is **0 SOL** for now — you only pay Solana network fees (often one signature per batch of up to 10 accounts).',
     cta: 'Sign (free — network fees only)',
     free: true,
   },
@@ -661,17 +661,18 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Holder wallets (up to {FREEZE_THAW_BULK_MAX_WALLETS})</Label>
+                <Label>Wallets or token accounts (up to {FREEZE_THAW_BULK_MAX_WALLETS} lines)</Label>
                 <Textarea
                   data-testid="tool-freeze-bulk-wallets"
                   rows={8}
-                  placeholder="One wallet per line (or comma-separated). Uses each wallet’s associated token account for the mint above."
+                  placeholder="One entry per line (or comma-separated): holder wallet pubkey, OR token account pubkey for this mint."
                   value={freezeBulkWallets}
                   onChange={(e) => setFreezeBulkWallets(e.target.value)}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Vaults and LP token accounts are not detected here — only standard ATAs. Invalid
-                  lines are skipped; you may sign multiple transactions if there are many accounts.
+                  If a line is already an SPL token account for the mint above, we freeze/thaw that
+                  account directly. Otherwise we treat the line as a wallet and use its ATA. Paste the
+                  full mint (43–44 chars). Invalid lines are skipped; multiple txs when batching.
                 </p>
               </div>
               {freezeBulkMode === 'freeze' ? (

@@ -70,7 +70,7 @@ const TOOLS: (
   {
     kind: 'freeze-thaw-bulk',
     title: 'Freeze / thaw wallets',
-    desc: 'Toggle freeze or thaw for up to 100 holder wallets (ATAs). Freeze authority required. No RootRecord fee for now — network fees only.',
+    desc: 'Toggle freeze or thaw for up to 100 lines: holder wallets (ATAs) or raw token accounts for the mint. Freeze authority required. No RootRecord fee for now — network fees only.',
     icon: Snowflake,
     tone: 'green',
   },
