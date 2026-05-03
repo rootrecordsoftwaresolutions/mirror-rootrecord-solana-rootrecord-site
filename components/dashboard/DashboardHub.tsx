@@ -19,6 +19,7 @@ import {
   Sparkles,
   Timer,
   User,
+  UserPlus,
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -369,13 +370,21 @@ function DashboardHubInner() {
       },
       {
         type: 'link',
+        href: '/account/signup',
+        title: 'Sign up',
+        desc: 'Create a RootRecord portal account for hosted wallet features where your deployment enables them.',
+        icon: UserPlus,
+        tone: 'purple',
+      },
+      {
+        type: 'link',
         href: '/my-actions',
         title: 'My actions',
         desc: connected
           ? 'Log of actions you ran while connected on this device (local history).'
           : 'Connect a wallet to append on-chain actions to your local history.',
         icon: Activity,
-        tone: 'purple',
+        tone: 'green',
       },
     ],
     [connected],
