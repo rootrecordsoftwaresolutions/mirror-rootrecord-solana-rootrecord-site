@@ -20,6 +20,7 @@ import { RootRecordPortalNav } from '@/components/RootRecordPortalNav';
 
 const NAV = [
   { href: '/start', label: 'Start here' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/create', label: 'Create Token' },
   { href: '/liquidity', label: 'Liquidity' },
   { href: '/tools', label: 'Tools' },
@@ -50,6 +51,7 @@ export function Header() {
     (href === '/tokenomics' && pathname.startsWith('/tokenomics')) ||
     (href === '/referrals' && pathname.startsWith('/referrals')) ||
     (href === '/start' && pathname.startsWith('/start')) ||
+    (href === '/dashboard' && pathname.startsWith('/dashboard')) ||
     (href === '/wallet-generator' && pathname.startsWith('/wallet-generator'));
 
   return (

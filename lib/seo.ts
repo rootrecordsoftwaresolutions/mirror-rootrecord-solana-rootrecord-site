@@ -75,6 +75,7 @@ export function pageSeo(opts: {
 export const SEO_STATIC_PATHS: readonly string[] = [
   '/',
   '/start',
+  '/dashboard',
   '/create',
   '/liquidity',
   '/tools',
