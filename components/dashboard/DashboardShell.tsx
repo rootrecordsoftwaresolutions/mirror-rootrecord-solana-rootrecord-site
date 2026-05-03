@@ -28,48 +28,6 @@ function routeActive(pathname: string, href: string): boolean {
   return false;
 }
 
-/** Stacked: Root + Record (accent), then “Solana Tools” — sidebar / drawer header. */
-function ShellBrandStacked({ className }: { className?: string }) {
-  return (
-    <Link href="/" className={cn('block outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-sol-green/45', className)}>
-      <div className="text-[15px] font-semibold leading-snug tracking-tight text-foreground">
-        Root<span className="text-sol-green">Record</span>
-      </div>
-      <p className="mt-1.5 text-[11px] font-normal leading-snug tracking-wide text-muted-foreground">
-        Solana Tools
-      </p>
-    </Link>
-  );
-}
-
-/** Inline: RootRecord / Solana Tools — compact top bar. */
-function ShellBrandInline({
-  className,
-  onClick,
-}: {
-  className?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href="/"
-      onClick={onClick}
-      className={cn(
-        'flex min-w-0 max-w-[min(100%,20rem)] items-baseline gap-x-1.5 text-sm font-semibold tracking-tight outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-sol-green/45',
-        className,
-      )}
-    >
-      <span className="shrink-0 text-foreground">
-        Root<span className="text-sol-green">Record</span>
-      </span>
-      <span className="shrink-0 text-muted-foreground/60 font-normal" aria-hidden>
-        /
-      </span>
-      <span className="min-w-0 truncate text-xs font-normal text-muted-foreground">Solana Tools</span>
-    </Link>
-  );
-}
-
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || '';
   const { connected } = useWallet();
@@ -137,17 +95,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         className="hidden w-[min(17rem,100%)] shrink-0 flex-col border-b border-border/60 bg-[#05080a] lg:flex lg:min-h-0 lg:border-b-0 lg:border-r lg:border-border/60"
         aria-label="App navigation"
       >
-        <div className="border-b border-border/60 px-4 py-4">
-          <ShellBrandStacked />
-        </div>
-        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto" aria-label="Dashboard sections">
+        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-2" aria-label="Dashboard sections">
           <NavBody />
         </nav>
       </aside>
 
-      {/* Mobile: open full nav */}
-      <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-[#05080a] px-3 py-2.5 lg:hidden">
-        <ShellBrandInline onClick={() => setSheetOpen(false)} className="min-w-0" />
+      {/* Mobile: open full nav (brand lives in site header only) */}
+      <div className="flex items-center justify-end gap-2 border-b border-border/60 bg-[#05080a] px-3 py-2 lg:hidden">
         <Button
           type="button"
           variant="outline"
