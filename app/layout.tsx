@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     template: '%s | RootRecord Solana Tools',
   },
   description:
-    'The easiest way to create a Solana token (SPL) in seconds. Use RootRecord high-speed infrastructure to deploy tokens and manage on-chain assets.',
+    "The easiest way to create a Solana token (SPL) in seconds. Use RootRecord's high-speed infrastructure to deploy tokens and manage on-chain assets.",
   keywords: [...SEO_MASTER_KEYWORDS],
   authors: [{ name: 'RootRecord', url: 'https://rootrecord.info' }],
   creator: 'RootRecord',

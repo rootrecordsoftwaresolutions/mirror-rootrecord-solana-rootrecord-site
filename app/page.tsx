@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/',
     title: 'Create Solana Token',
     description:
-      'The easiest way to create a Solana token (SPL) in seconds. Use RootRecord high-speed infrastructure to deploy tokens and manage on-chain assets.',
+      "The easiest way to create a Solana token (SPL) in seconds. Use RootRecord's high-speed infrastructure to deploy tokens and manage on-chain assets.",
     keywords: [...SEO_MASTER_KEYWORDS],
   });
 }
