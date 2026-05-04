@@ -19,6 +19,10 @@ export const SEO_KEYWORDS = {
     'revoke mint authority',
     'Raydium',
     'paper wallet',
+    'Jupiter',
+    'Solana devnet',
+    'mainnet',
+    'rootrecord',
   ],
 } as const;
 
@@ -88,7 +92,6 @@ export const SEO_STATIC_PATHS: readonly string[] = [
   '/operations/liquidity-timing',
   '/operations/tokenomics',
   '/bulk',
-  '/my-actions',
   '/referrals',
   '/pricing',
   '/privacy',

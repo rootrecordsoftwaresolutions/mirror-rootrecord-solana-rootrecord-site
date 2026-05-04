@@ -29,6 +29,7 @@ export function SiteJsonLd() {
       'https://rootrecord.info',
       'https://github.com/RootRecord',
       'https://twitter.com/rootrecord',
+      'https://x.com/rootrecord',
     ],
   };
 
