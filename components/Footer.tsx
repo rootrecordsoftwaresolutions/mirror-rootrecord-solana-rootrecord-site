@@ -86,6 +86,14 @@ export function Footer() {
             >
               <Github className="h-4 w-4" /> GitHub
             </a>
+            <a
+              href="https://github.com/RootRecord/Doc-Repo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block text-foreground hover:text-sol-green"
+            >
+              Developer documentation
+            </a>
             <p className="mt-6 text-xs text-muted-foreground">
               Made with respect for users. Not financial advice. Verify every
               transaction in your wallet before signing.
