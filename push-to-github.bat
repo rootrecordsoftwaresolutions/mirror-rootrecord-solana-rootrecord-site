@@ -1,6 +1,15 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0" || exit /b 1
+rem Always run from this folder (works when double-clicked or run from elsewhere).
+cd /d "%~dp0"
+if errorlevel 1 (
+  echo ERROR: Could not cd to "%~dp0"
+  exit /b 1
+)
+if not exist ".git" (
+  echo ERROR: No .git here — this script must stay in the solana-rootrecord-site repo folder.
+  exit /b 1
+)
 
 echo.
 echo  RootRecord solana site  ^>^>  git add, commit, push origin main  (Vercel deploys from this branch^)
@@ -29,6 +38,7 @@ if errorlevel 1 (
   git commit -m "%MSG%"
   if errorlevel 1 (
     echo ERROR: git commit failed.
+    echo Tip: avoid ^& and parentheses in the commit message, or use a short default message with no args.
     exit /b 1
   )
 ) else (
@@ -38,6 +48,7 @@ if errorlevel 1 (
 git push origin %BRANCH%
 if errorlevel 1 (
   echo ERROR: git push failed.
+  echo Tip: run "git push origin %BRANCH%" yourself and fix auth ^(Git Credential Manager, PAT, ssh-agent^).
   exit /b 1
 )
 
