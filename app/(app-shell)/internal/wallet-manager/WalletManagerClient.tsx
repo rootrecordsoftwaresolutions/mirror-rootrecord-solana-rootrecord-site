@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { getPortalToken, getRootRecordApiBase } from '@/lib/rootrecordSession';
+import { getPortalToken } from '@/lib/rootrecordSession';
+
+/** Same-origin proxy → primary Worker (see `app/api/internal/wallet-manager/data/route.ts`). */
+const WALLET_DATA_PATH = '/api/internal/wallet-manager/data';
 
 const ADMIN_EMAIL = 'rootrecord@outlook.com';
 
@@ -17,7 +20,6 @@ type LinkedRow = {
 };
 
 export function WalletManagerClient() {
-  const base = getRootRecordApiBase();
   const [token, setToken] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,12 +44,8 @@ export function WalletManagerClient() {
       );
       return;
     }
-    if (!base) {
-      setMsg('NEXT_PUBLIC_ROOTRECORD_API_BASE is not set in this deployment.');
-      return;
-    }
     setLoading(true);
-    void fetch(`${base}/api/internal/wallet-manager/data`, {
+    void fetch(WALLET_DATA_PATH, {
       headers: { Authorization: `Bearer ${t}`, Accept: 'application/json' },
     })
       .then(async (r) => {
@@ -70,7 +68,7 @@ export function WalletManagerClient() {
       })
       .catch((e) => setMsg(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
-  }, [base, token]);
+  }, [token]);
 
   return (
     <div className="container max-w-4xl py-14 md:py-20">
@@ -81,12 +79,6 @@ export function WalletManagerClient() {
         <code className="text-xs font-mono">rootrecord_portal_token</code> after signing in on rootrecord.info. Custodial
         private keys are never sent to the browser.
       </p>
-
-      {!base ? (
-        <p className="mt-6 text-rose-400 text-sm" role="alert">
-          API base is not configured (set <code className="font-mono text-xs">NEXT_PUBLIC_ROOTRECORD_API_BASE</code>).
-        </p>
-      ) : null}
 
       <div className="mt-8 space-y-2">
         <label className="text-xs text-muted-foreground uppercase tracking-wider" htmlFor="wm-tok">
@@ -102,7 +94,7 @@ export function WalletManagerClient() {
           spellCheck={false}
         />
         <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={load} disabled={loading || !base}>
+          <Button type="button" onClick={load} disabled={loading}>
             {loading ? 'Loading…' : 'Load wallets'}
           </Button>
           <Button type="button" variant="outline" onClick={hydrateToken} disabled={loading}>
