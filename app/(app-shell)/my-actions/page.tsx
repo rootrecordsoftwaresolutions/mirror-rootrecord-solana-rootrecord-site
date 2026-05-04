@@ -17,10 +17,9 @@ import { WalletMultiButton } from '@/components/wallet/WalletButton';
 import { explorerUrl } from '@/lib/solana';
 
 type ActionRow = {
-  /** `solana_site.id` or synthetic `otc:<payment_sig>`. */
+  /** `solana_site.id` (or string id if Worker adds synthetic rows later). */
   id: number | string;
-  /** Present when row comes from `ecosystem_otc_fulfillments` (merged in Worker). */
-  source?: 'site' | 'otc_purchase';
+  source?: 'site';
   created_at: string;
   wallet: string;
   action: string;
@@ -51,9 +50,6 @@ function formatMeta(meta: unknown): string {
 }
 
 function actionDisplayLabel(row: ActionRow): string {
-  if (row.source === 'otc_purchase' || row.action === 'otc_checkout') {
-    return 'Treasury transfer';
-  }
   return row.action;
 }
 

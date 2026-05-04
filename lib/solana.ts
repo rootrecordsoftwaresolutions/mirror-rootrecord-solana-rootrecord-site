@@ -159,9 +159,6 @@ export function feeTransferIx(
 
 /**
  * SOL **RootRecord platform fee** only (create, tools, Raydium tool fees, bulk fees).
- * Not used for ecosystem **treasury** checkouts (SOL/USDC paid to the OTC treasury) —
- * those are always full amount to the treasury with no referrer split, by design.
- *
  * When an eligible referrer is set, `REFERRAL_FEE_SHARE_BPS` of the gross fee goes to
  * the referrer and the remainder to the fee wallet. Payer debits the full `amountSol`
  * (rounding: referrer gets floor bps, fee wallet gets the rest).

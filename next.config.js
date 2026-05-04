@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   async redirects() {
-    return [{ source: '/start', destination: '/dashboard', permanent: true }];
+    return [
+      { source: '/start', destination: '/dashboard', permanent: true },
+      { source: '/ecosystem', destination: '/liquidity-timing', permanent: true },
+    ];
   },
   webpack: (config) => {
     config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];

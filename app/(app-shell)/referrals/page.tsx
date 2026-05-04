@@ -7,7 +7,7 @@ export const metadata: Metadata = pageSeo({
   path: '/referrals',
   title: 'Referral program',
   description:
-    'Share RootRecord Solana Tools with ?ref=your wallet address. A configurable share of each referred platform fee is sent to the referrer in the same on-chain transaction. Treasury OTC checkouts are excluded.',
+    'Share RootRecord Solana Tools with ?ref=your wallet address. A configurable share of each referred platform fee is sent to the referrer in the same on-chain transaction.',
   keywords: [...SEO_KEYWORDS.core, 'Solana referral', 'affiliate fee', '?ref='],
 });
 

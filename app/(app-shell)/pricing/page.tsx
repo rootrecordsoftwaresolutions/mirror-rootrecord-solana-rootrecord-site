@@ -155,9 +155,7 @@ export default function PricingPage() {
             )}
             % of that fee is transferred to the referrer and the remainder to
             RootRecord — in the <em className="text-foreground not-italic">same</em>{' '}
-            signed transaction. Ecosystem <strong className="text-foreground">treasury</strong>{' '}
-            checkouts (OTC payments to the treasury) are excluded — no referral share on
-            those. See{' '}
+            signed transaction. See{' '}
             <Link href="/referrals" className="text-sol-green hover:underline">
               Referrals
             </Link>

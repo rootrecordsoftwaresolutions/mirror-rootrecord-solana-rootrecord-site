@@ -337,39 +337,27 @@ export async function createToken2022(
   }
   appendReferralMemoToTransaction(tx2, payer, opts?.referrer ?? null);
 
-  /* ---- Sign + send sequentially. The mint Keypair signs only TX1. ---- */
+  /* ---- One transaction: mint + extensions + ATA + mintTo + platform fee + memo ---- */
+  const tx = new Transaction().add(...tx1.instructions, ...tx2.instructions);
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash('confirmed');
-
-  tx1.recentBlockhash = blockhash;
-  tx1.feePayer = payer;
-  tx1.partialSign(mintKeypair);
-  tx2.recentBlockhash = blockhash;
-  tx2.feePayer = payer;
-
-  const signed = await wallet.signAllTransactions
-    ? await wallet.signAllTransactions!([tx1, tx2])
-    : [await wallet.signTransaction!(tx1), await wallet.signTransaction!(tx2)];
-
-  const sig1 = await connection.sendRawTransaction(signed[0].serialize(), {
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = payer;
+  tx.partialSign(mintKeypair);
+  if (!wallet.signTransaction) {
+    throw new Error('Wallet must support signTransaction');
+  }
+  const signed = await wallet.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,
     maxRetries: 5,
   });
   await connection.confirmTransaction(
-    { signature: sig1, blockhash, lastValidBlockHeight },
+    { signature: sig, blockhash, lastValidBlockHeight },
     'confirmed',
   );
 
-  const sig2 = await connection.sendRawTransaction(signed[1].serialize(), {
-    skipPreflight: false,
-    maxRetries: 5,
-  });
-  await connection.confirmTransaction(
-    { signature: sig2, blockhash, lastValidBlockHeight },
-    'confirmed',
-  );
-
-  return { signature: sig2, mint: mint.toBase58(), ata: ata.toBase58() };
+  return { signature: sig, mint: mint.toBase58(), ata: ata.toBase58() };
 }
 
 /* ---------------- Tools (Token-2022 only) ---------------- */

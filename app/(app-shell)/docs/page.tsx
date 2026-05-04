@@ -171,9 +171,8 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
         <span className="font-mono text-xs">NEXT_PUBLIC_REFERRAL_SHARE_BPS</span>, basis
         points out of 10,000). A small memo may still be written for explorers. Action
         logs can include the referrer address for your records.{' '}
-        <strong className="text-foreground">Treasury OTC payments</strong> (SOL or USDC
-        to the ecosystem deposit treasury on the Purpose page) never pay a referral share;
-        the full quoted amount goes to the treasury only.
+        Referral splits apply only to listed <strong className="text-foreground">platform fees</strong>{' '}
+        on tool actions, not to arbitrary third-party transfers you might construct outside those flows.
       </p>
     ),
   },

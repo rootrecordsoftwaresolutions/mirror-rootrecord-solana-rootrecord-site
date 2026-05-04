@@ -28,7 +28,6 @@ import {
   SOLANA_NETWORK,
   explorerUrl,
   platformFeeTransferInstructions,
-  sendSimpleTx,
   confirmSignatureSucceeded,
   ADD_LIQUIDITY_FEE_SOL,
   LAUNCH_FEE_SOL,
@@ -173,46 +172,31 @@ function orderCpmmPair(
   throw new Error('Cannot create a pool between a mint and itself');
 }
 
-async function sendPlatformFeeSol(
-  wallet: WalletContextState,
+/** Append RootRecord fee (+ optional referral memo) to Raydium CPMM tx builder so one signed tx covers pool action + fee. */
+function appendRootrecordFeeToCpmmBuilder(
+  builder: {
+    addInstruction: (args: {
+      instructions: TransactionInstruction[];
+      instructionTypes?: string[];
+    }) => unknown;
+  },
+  payer: PublicKey,
   amountSol: number,
   referrer: string | null | undefined,
-): Promise<string | null> {
-  if (!wallet.publicKey || amountSol <= 0) return null;
-  const ixs: TransactionInstruction[] = platformFeeTransferInstructions(
-    wallet.publicKey,
-    amountSol,
-    referrer ?? null,
-  );
-  appendReferralMemoIfEligible(ixs, wallet.publicKey, referrer ?? null);
-  if (!ixs.length) return null;
-  return sendSimpleTx(wallet, ixs);
-}
-
-async function sendLaunchPlatformFee(
-  wallet: WalletContextState,
-  referrer: string | null | undefined,
-): Promise<string | null> {
-  return sendPlatformFeeSol(wallet, LAUNCH_FEE_SOL, referrer);
-}
-
-async function sendAddLiquidityPlatformFee(
-  wallet: WalletContextState,
-  referrer: string | null | undefined,
-): Promise<string | null> {
-  return sendPlatformFeeSol(wallet, ADD_LIQUIDITY_FEE_SOL, referrer);
-}
-
-async function sendRemoveLiquidityPlatformFee(
-  wallet: WalletContextState,
-  referrer: string | null | undefined,
-): Promise<string | null> {
-  return sendPlatformFeeSol(wallet, REMOVE_LIQUIDITY_FEE_SOL, referrer);
+): boolean {
+  const feeIxs = platformFeeTransferInstructions(payer, amountSol, referrer ?? null);
+  appendReferralMemoIfEligible(feeIxs, payer, referrer ?? null);
+  if (!feeIxs.length) return false;
+  builder.addInstruction({
+    instructions: feeIxs,
+    instructionTypes: feeIxs.map(() => 'RootRecordPlatformFee'),
+  });
+  return true;
 }
 
 /**
  * Create a Raydium CPMM pool: your base mint vs SOL, USDC, or another SPL / Token-2022 mint.
- * Optionally sends a prior legacy tx for the RootRecord launch fee + referral memo.
+ * RootRecord launch fee (+ referral memo when eligible) is appended to the same Raydium transaction when enabled.
  */
 async function loadRaydiumForOwner(wallet: WalletContextState) {
   if (!wallet.publicKey) {
@@ -347,8 +331,6 @@ export async function addCpmmLiquidity(
     referrer?: string | null;
   },
 ): Promise<{ feeTxId: string | null; txId: string }> {
-  const feeTxId = await sendAddLiquidityPlatformFee(wallet, params.referrer);
-
   const { raydium } = await loadRaydiumForOwner(wallet);
   const trimmed = params.poolId.trim();
   if (!trimmed) throw new Error('Enter a pool address');
@@ -375,17 +357,24 @@ export async function addCpmmLiquidity(
   const bps = params.slippageBps ?? 50;
   const slippage = new Percent(new BN(bps), new BN(10_000));
 
-  const { execute } = await raydium.cpmm.addLiquidity({
+  const built = await raydium.cpmm.addLiquidity({
     poolInfo,
     inputAmount,
     baseIn: params.baseIn,
     slippage,
     txVersion: TxVersion.V0,
   });
-  const { txId } = await execute({ sendAndConfirm: true });
+  const payer = wallet.publicKey!;
+  const feeInSameTx = appendRootrecordFeeToCpmmBuilder(
+    built.builder,
+    payer,
+    ADD_LIQUIDITY_FEE_SOL,
+    params.referrer,
+  );
+  const { txId } = await built.execute({ sendAndConfirm: true });
   if (!txId) throw new Error('Add-liquidity transaction was not submitted');
   await confirmSignatureSucceeded(txId, 'confirmed');
-  return { feeTxId, txId };
+  return { feeTxId: feeInSameTx ? txId : null, txId };
 }
 
 /** Remove liquidity by burning LP from an existing Raydium CPMM pool. */
@@ -399,8 +388,6 @@ export async function removeCpmmLiquidity(
     referrer?: string | null;
   },
 ): Promise<{ feeTxId: string | null; txId: string }> {
-  const feeTxId = await sendRemoveLiquidityPlatformFee(wallet, params.referrer);
-
   const { raydium } = await loadRaydiumForOwner(wallet);
   const trimmed = params.poolId.trim();
   if (!trimmed) throw new Error('Enter a pool address');
@@ -427,16 +414,23 @@ export async function removeCpmmLiquidity(
   const bps = params.slippageBps ?? 50;
   const slippage = new Percent(new BN(bps), new BN(10_000));
 
-  const { execute } = await raydium.cpmm.withdrawLiquidity({
+  const built = await raydium.cpmm.withdrawLiquidity({
     poolInfo,
     lpAmount,
     slippage,
     txVersion: TxVersion.V0,
   });
-  const { txId } = await execute({ sendAndConfirm: true });
+  const payer = wallet.publicKey!;
+  const feeInSameTx = appendRootrecordFeeToCpmmBuilder(
+    built.builder,
+    payer,
+    REMOVE_LIQUIDITY_FEE_SOL,
+    params.referrer,
+  );
+  const { txId } = await built.execute({ sendAndConfirm: true });
   if (!txId) throw new Error('Remove-liquidity transaction was not submitted');
   await confirmSignatureSucceeded(txId, 'confirmed');
-  return { feeTxId, txId };
+  return { feeTxId: feeInSameTx ? txId : null, txId };
 }
 
 export async function createCpmmPoolWithQuote(
@@ -452,8 +446,6 @@ export async function createCpmmPoolWithQuote(
     referrer?: string | null;
   },
 ): Promise<{ feeTxId: string | null; poolTxId: string; poolId: string }> {
-  const feeTxId = await sendLaunchPlatformFee(wallet, params.referrer);
-
   const { raydium, connection, cluster } = await loadRaydiumForOwner(wallet);
 
   const base = await mintToCpmmPick(params.baseMint.trim());
@@ -504,7 +496,7 @@ export async function createCpmmPoolWithQuote(
       ? DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC
       : CREATE_CPMM_POOL_FEE_ACC;
 
-  const { execute, extInfo } = await raydium.cpmm.createPool({
+  const built = await raydium.cpmm.createPool({
     programId,
     poolFeeAccount,
     mintA,
@@ -520,7 +512,15 @@ export async function createCpmmPoolWithQuote(
     txVersion: TxVersion.V0,
   });
 
-  const { txId: poolTxId } = await execute({ sendAndConfirm: true });
+  const payer = wallet.publicKey!;
+  const feeInSameTx = appendRootrecordFeeToCpmmBuilder(
+    built.builder,
+    payer,
+    LAUNCH_FEE_SOL,
+    params.referrer,
+  );
+
+  const { txId: poolTxId } = await built.execute({ sendAndConfirm: true });
   if (!poolTxId) {
     throw new Error('Pool transaction was not submitted');
   }
@@ -528,9 +528,9 @@ export async function createCpmmPoolWithQuote(
   await confirmSignatureSucceeded(poolTxId, 'confirmed');
 
   return {
-    feeTxId,
+    feeTxId: feeInSameTx ? poolTxId : null,
     poolTxId,
-    poolId: extInfo.address.poolId.toBase58(),
+    poolId: built.extInfo.address.poolId.toBase58(),
   };
 }
 

@@ -47,8 +47,8 @@ async function fetchJupiterTokenUsdV2Fallback(
 }
 
 /**
- * SOL/USD plus ecosystem mint USD from Jupiter (v3 multi-id, v2 fallback for token only).
- * Use {@link resolveOtcUsdPerWholeToken} for the number to plug into OTC math/copy.
+ * SOL/USD plus listing mint USD from Jupiter (v3 multi-id, v2 fallback for token only).
+ * Use {@link resolveOtcUsdPerWholeToken} for tokenomics-style copy.
  */
 export async function fetchJupiterOtcPriceMarks(init?: RequestInit): Promise<JupiterOtcPriceMark> {
   const tokenMint = ECOSYSTEM_OTC_TOKEN_MINT.trim();

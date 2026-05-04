@@ -97,10 +97,7 @@ export function ReferralsClient() {
         ). An optional on-chain memo (
         <span className="font-mono text-xs">{REFERRAL_MEMO_PREFIX}</span>…) is still
         included for explorers and analytics.{' '}
-        <strong className="text-foreground">Ecosystem treasury checkouts</strong> (SOL or USDC
-        paid to the OTC treasury on the Purpose page) do{' '}
-        <em className="text-foreground not-italic">not</em> include any referral bonus — the
-        full payment goes to the treasury. See{' '}
+        See{' '}
         <Link href="/docs" className="text-sol-green hover:underline">
           Docs
         </Link>
@@ -116,8 +113,7 @@ export function ReferralsClient() {
             </div>
             <CardDescription>
               This browser will tag your <strong className="text-foreground">platform fee</strong>{' '}
-              transactions for this wallet until you clear it. Treasury OTC checkouts are
-              not affected.
+              transactions for this wallet until you clear it.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2">

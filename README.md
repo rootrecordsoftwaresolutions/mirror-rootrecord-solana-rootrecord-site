@@ -23,8 +23,7 @@ Lives at: **solana.rootrecord.info**
 - **Referrals** — `?ref=WALLET` is stored in the browser; when the visitor pays a
   RootRecord **platform** fee (create, tools, Raydium tool fees, bulk, etc.), a
   configurable share (default **10%**) goes to the referrer in the **same** transaction;
-  the rest goes to the fee wallet. **Treasury OTC checkouts** (ecosystem Purpose page)
-  never include a referral split.
+  the rest goes to the fee wallet.
 
 ## Tech
 

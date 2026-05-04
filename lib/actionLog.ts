@@ -17,8 +17,6 @@ export const SiteAction = {
   LIQ_REMOVE: 'liquidity_remove',
   BULK_SOL_SEND: 'bulk_sol_send',
   BULK_TOKEN_SEND: 'bulk_token_send',
-  /** Treasury Transfer Tool checkout (also listed from D1 fulfillments on My Actions). */
-  OTC_CHECKOUT: 'otc_checkout',
 } as const;
 
 export type SiteActionLogInput = {

@@ -7,15 +7,15 @@ import {
 import { NextResponse } from 'next/server';
 
 import { ECOSYSTEM_OTC_TOKEN_MINT } from '@/lib/ecosystemOtcConstants';
-import { loadTreasuryKeypair } from '@/lib/ecosystemOtcFulfill';
+import { loadListingTreasuryKeypair } from '@/lib/listingTreasury';
 import { getConnection } from '@/lib/solana';
 
 export const dynamic = 'force-dynamic';
 
-/** Public: deposit treasury address + ecosystem token (RRTT) SPL balance on hand (no secret exposed). */
+/** Public: treasury pubkey + RRTT SPL balance (no secret exposed). */
 export async function GET() {
   try {
-    const kp = loadTreasuryKeypair();
+    const kp = loadListingTreasuryKeypair();
     const treasury = kp.publicKey.toBase58();
     let rootr_balance_ui: string | null = null;
     try {

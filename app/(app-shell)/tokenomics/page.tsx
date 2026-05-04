@@ -16,7 +16,6 @@ import {
   RRESERVE_RRTT_RATIO_DENOMINATOR,
   RRESERVE_TOKEN_SUPPLY_CAP,
   OTC_USD_PER_TOKEN,
-  ecosystemOtcQuoteRetainPercentLabel,
   solscanAccount,
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
@@ -37,7 +36,7 @@ import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 export const metadata: Metadata = pageSeo({
   path: '/tokenomics',
   title: `Tokenomics & markets — ${ECOSYSTEM_LISTING_SYMBOL}`,
-  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): all Raydium CPMM pool addresses, treasury mechanics, OTC reference pricing, and how to think about multi-pool markets on Solana — descriptive, not investment advice.`,
+  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): Raydium CPMM pool addresses, treasury mechanics, Jupiter reference pricing, multi-pool context on Solana — descriptive, not investment advice.`,
   keywords: [
     ...SEO_KEYWORDS.core,
     ECOSYSTEM_LISTING_SYMBOL,
@@ -69,13 +68,13 @@ function buildPoolRows(): PoolRow[] {
       pair: 'SOL (WSOL) / RRTT',
       poolId: ECOSYSTEM_SOLSCAN_CPMM_POOL_SOL,
       role:
-        'Raydium CPMM. Matched by the Treasury Transfer Tool when buyers pay in SOL: quote is routed into this pool after the configured treasury reserve.',
+        'Raydium CPMM (WSOL quote vs RRTT). Open-market venue; typical path for SOL-side swaps and LP.',
     },
     {
       pair: 'USDC / RRTT',
       poolId: usdcPoolId,
       role:
-        'Raydium CPMM. Matched when buyers pay in USDC: quote is routed into this pool after the same reserve logic.',
+        'Raydium CPMM (USDC quote vs RRTT). Open-market venue; stablecoin-quoted depth for the listing mint.',
     },
   ];
   if (ECOSYSTEM_SOLSCAN_CPMM_POOL_JUP_RRTT.trim()) {
@@ -135,9 +134,9 @@ export default async function TokenomicsPage() {
           , Raydium, or your aggregator of choice.
         </p>
         <p className="text-sm text-muted-foreground">
-          For the live Treasury Transfer Tool and interactive narrative, see{' '}
-          <Link href="/ecosystem" className="text-sol-green hover:underline font-medium">
-            Purpose
+          For the UTC schedule of treasury Raydium maintenance (native SOL and RRTT/RRESERVE floors), see{' '}
+          <Link href="/liquidity-timing" className="text-sol-green hover:underline font-medium">
+            Liquidity timing
           </Link>
           . For a shareable mint dashboard, see{' '}
           <Link href="/token-stats" className="text-sol-green hover:underline font-medium">
@@ -191,10 +190,15 @@ export default async function TokenomicsPage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground border-t border-border/60 pt-4">
-            For a custom or non-mainnet USDC pool, set{' '}
-            <span className="font-mono">NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID_USDC</span> (and server{' '}
-            <span className="font-mono">ECOSYSTEM_OTC_CPMM_POOL_ID_USDC</span> for treasury auto-LP).
-            Treasury Worker envs are independent of this page—verify they match the pool you operate.
+            For a custom or non-mainnet USDC pool id shown here, set{' '}
+            <span className="font-mono">NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID_USDC</span>. Raydium
+            maintenance pool ids for automation live on the treasury Workers (
+            <span className="font-mono">TREASURY_SOL_CP_POOL_ID</span>,{' '}
+            <span className="font-mono">TREASURY_CP_MM_POOL_ID</span>)—see{' '}
+            <Link href="/liquidity-timing" className="text-sol-green hover:underline">
+              Liquidity timing
+            </Link>
+            .
           </p>
           <p className="text-xs text-muted-foreground">
             Trade or add liquidity through{' '}
@@ -225,7 +229,7 @@ export default async function TokenomicsPage() {
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">Tokenomics — how the pieces fit</CardTitle>
           <CardDescription className="leading-relaxed text-base">
-            High-level map of supply, fees, treasury, OTC reference, and automation. Numbers that
+            High-level map of supply, fees, treasury, external marks, and automation. Numbers that
             are configurable in this app are called out explicitly; everything else is chain-observed.
           </CardDescription>
         </CardHeader>
@@ -354,32 +358,23 @@ export default async function TokenomicsPage() {
             </p>
           </section>
 
-          <section className="space-y-3" id="otc-reference">
-            <h2 className="text-base font-semibold text-foreground">
-              Treasury Transfer Tool &amp; USD reference
-            </h2>
+          <section className="space-y-3" id="treasury-automation">
+            <h2 className="text-base font-semibold text-foreground">Treasury automation &amp; USD mark</h2>
             <p>
-              The in-site Treasury Transfer Tool (on the{' '}
-              <Link href="/ecosystem" className="text-sol-green hover:underline">
-                Purpose
-              </Link>{' '}
-              page) prices whole tokens from a <strong className="text-foreground">Jupiter USD mark</strong>{' '}
-              for this mint (about <strong className="text-foreground">${otcRefLabel} per whole token</strong>{' '}
-              when this page was built, with a short on-page quote window on Purpose). If Jupiter has
-              no mark, the tool falls back to a fixed numeric floor ({OTC_USD_PER_TOKEN} USD). That
-              mark tracks external pricing, not a guarantee that every AMM print matches it. When
-              pools trade far from the mark, arbitrageurs may appear—that can help convergence but is
-              not assured.
+              This page fetches a <strong className="text-foreground">Jupiter USD mark</strong> for
+              the listing mint server-side (about{' '}
+              <strong className="text-foreground">${otcRefLabel} per whole token</strong> when this page
+              was built, subject to cache). If Jupiter has no mark, the build falls back to a fixed
+              numeric floor ({OTC_USD_PER_TOKEN} USD). That value tracks external pricing for
+              documentation; it is not a guarantee that every AMM mid matches it at execution time.
             </p>
             <p>
-              After a successful treasury transfer, a configurable share of the SOL or USDC payment
-              can remain in treasury (default{' '}
-              <strong className="text-foreground">{ecosystemOtcQuoteRetainPercentLabel()}</strong> of
-              the quote, unless operators change the basis-points setting). The remainder is the
-              portion intended for automated add-liquidity into the Raydium CPMM pool that matches
-              the payment rail (WSOL pair for SOL, USDC pair for USDC). JUP and RAY pools listed
-              above are <strong className="text-foreground">not</strong> deposit targets for that
-              automation path unless code and env are explicitly extended later.
+              Scheduled Raydium maintenance for the earn treasury (native SOL floor and RRTT/RRESERVE
+              SPL floors) runs on a fixed UTC cadence described on{' '}
+              <Link href="/liquidity-timing" className="text-sol-green hover:underline">
+                Liquidity timing
+              </Link>
+              . It is separate from the daily custodial settlement cron summarized below.
             </p>
           </section>
 
@@ -392,8 +387,7 @@ export default async function TokenomicsPage() {
               <Link href="/referrals" className="text-sol-green hover:underline">
                 Referrals
               </Link>{' '}
-              for mechanics; treasury OTC checkouts are documented on Purpose as excluded from that
-              split where applicable.
+              for mechanics.
             </p>
           </section>
 
@@ -469,9 +463,9 @@ export default async function TokenomicsPage() {
                 DEX dashboards; use them for activity, not for extrapolating future price.
               </li>
               <li>
-                <strong className="text-foreground">Implied price vs. Treasury Transfer reference</strong>{' '}
-                — large sustained deviations may attract arb between the tool and AMMs, subject to
-                inventory, caps, gas, and execution risk.
+                <strong className="text-foreground">Implied price vs. external USD marks</strong> — large
+                sustained gaps between pools and index-style marks may attract arbitrage, subject to
+                inventory, fees, and execution risk.
               </li>
               <li>
                 <strong className="text-foreground">Concentration of LP</strong> — who holds LP

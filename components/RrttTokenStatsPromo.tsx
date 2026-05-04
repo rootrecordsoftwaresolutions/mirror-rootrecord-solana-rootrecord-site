@@ -58,7 +58,7 @@ function formatDelta(ui: number): string {
 }
 
 /**
- * Live treasury RRTT balance from the public otc-treasury route; 24h change uses
+ * Live treasury RRTT balance from the public treasury-listing route; 24h change uses
  * repeated visits (localStorage samples within 48h) to approximate balance vs ~24h ago.
  */
 export function RrttTokenStatsPromo() {
@@ -71,7 +71,7 @@ export function RrttTokenStatsPromo() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/ecosystem/otc-treasury');
+      const r = await fetch('/api/ecosystem/treasury-listing');
       const j = (await r.json()) as {
         ok?: boolean;
         configured?: boolean;
@@ -209,9 +209,9 @@ export function RrttTokenStatsPromo() {
 
           <div className="flex flex-wrap gap-3 pt-1 mt-auto">
             <Button asChild size="sm" className="gap-1.5">
-              <Link href="/ecosystem#ecosystem-treasury">
+              <Link href="/liquidity-timing">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
-                Transfer from treasury
+                Liquidity timing
               </Link>
             </Button>
           </div>
