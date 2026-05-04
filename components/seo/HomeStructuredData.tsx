@@ -55,7 +55,7 @@ const FAQ_MAIN_ENTITY = [
     acceptedAnswer: {
       '@type': 'Answer',
       text:
-        'Optional logo and JSON metadata are pinned to IPFS via Pinata through server-side routes so your Pinata JWT is not exposed in the browser bundle.',
+        'Optional logo and JSON metadata are pinned to IPFS via Pinata through server-side routes so secrets stay off the client.',
     },
   },
 ];
