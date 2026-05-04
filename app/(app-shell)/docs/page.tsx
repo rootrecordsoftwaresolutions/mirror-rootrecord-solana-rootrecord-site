@@ -32,7 +32,7 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
       <>
         <p>
           Brand new? Read the short guided walkthrough on{' '}
-          <Link href="/start" className="text-sol-green hover:underline">
+          <Link href="/dashboard#dashboard-start" className="text-sol-green hover:underline">
             Start here
           </Link>{' '}
           first, then come back for detail.

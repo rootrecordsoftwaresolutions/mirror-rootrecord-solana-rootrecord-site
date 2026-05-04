@@ -18,7 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             ? 0.93
             : path === '/contracts/vesting'
               ? 0.88
-              : path === '/pricing' || path === '/docs' || path === '/start'
+              : path === '/pricing' || path === '/docs'
               ? 0.85
               : 0.75;
     const changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] =

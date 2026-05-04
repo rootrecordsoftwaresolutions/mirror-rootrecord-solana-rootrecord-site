@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -26,15 +27,6 @@ import {
   ACTION_FEE_SOL,
   REFERRAL_FEE_SHARE_BPS,
 } from '@/lib/solana';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
-
-export const metadata: Metadata = pageSeo({
-  path: '/start',
-  title: 'Start here',
-  description:
-    'Step-by-step: install a Solana wallet, connect on RootRecord Solana Tools, understand flat SOL fees and referrals, create or manage a token, and verify transactions on a block explorer.',
-  keywords: [...SEO_KEYWORDS.core, 'Phantom wallet', 'Solflare', 'Jupiter wallet', 'beginner'],
-});
 
 const STEPS: {
   n: string;
@@ -80,27 +72,27 @@ const STEPS: {
   },
 ];
 
-export default function StartPage() {
+/** Former /start page — lives on the dashboard hub only. */
+export function StartHereMerged() {
   return (
-    <div className="container py-14 md:py-20">
-      <div className="max-w-3xl">
-        <Badge className="mb-6 border-sol-green/40 bg-sol-green/10 text-sol-green">
-          For new visitors
-        </Badge>
-        <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.08]">
+    <div className="space-y-12 md:space-y-16">
+      <div>
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Start here</div>
+        <Badge className="mb-4 border-sol-green/40 bg-sol-green/10 text-sol-green">For new visitors</Badge>
+        <h2 className="font-display text-3xl tracking-tight text-foreground md:text-5xl leading-[1.08]">
           How RootRecord works,{' '}
           <em className="text-sol-green not-italic font-display italic">step by step</em>.
-        </h1>
-        <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-          RootRecord Solana Tools helps you launch and manage SPL tokens on Solana with
-          clear pricing and wallet-only signing. This page is the short path from “I just
-          arrived” to “I know what to click next.”
+        </h2>
+        <p className="mt-5 max-w-3xl text-base text-muted-foreground leading-relaxed md:text-lg">
+          RootRecord Solana Tools helps you launch and manage SPL tokens on Solana with clear pricing and
+          wallet-only signing. This block is the short path from “I just arrived” to “I know what to click
+          next.”
         </p>
-        <div className="mt-10 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg" className="group">
             <Link href="/create">
               Go to Create
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
@@ -115,13 +107,10 @@ export default function StartPage() {
         </div>
       </div>
 
-      <section className="mt-20 md:mt-24" aria-labelledby="start-steps-heading">
-        <h2
-          id="start-steps-heading"
-          className="sr-only"
-        >
+      <section aria-labelledby="start-steps-heading">
+        <h3 id="start-steps-heading" className="sr-only">
           Steps from wallet to verified transaction
-        </h2>
+        </h3>
         <div className="grid gap-5 md:grid-cols-2">
           {STEPS.map((s) => (
             <Card
@@ -130,12 +119,10 @@ export default function StartPage() {
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-xs font-mono text-sol-green/80 tracking-widest">
-                    {s.n} /
-                  </span>
-                  <s.icon className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden />
+                  <span className="text-xs font-mono text-sol-green/80 tracking-widest">{s.n} /</span>
+                  <s.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
                 </div>
-                <CardTitle className="mt-3 text-xl">{s.title}</CardTitle>
+                <CardTitle className="mt-3 text-lg md:text-xl">{s.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-sm leading-relaxed text-muted-foreground">
@@ -147,61 +134,57 @@ export default function StartPage() {
         </div>
       </section>
 
-      <section className="mt-16 md:mt-20 max-w-3xl">
-        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-          Before you spend SOL
-        </div>
+      <section className="max-w-3xl">
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">Before you spend SOL</div>
         <h3 className="font-display text-2xl md:text-3xl tracking-tight mb-6">
           Quick <em className="italic text-sol-purple">checklist</em>
         </h3>
-        <ul className="space-y-3 text-muted-foreground text-sm md:text-base leading-relaxed">
+        <ul className="space-y-3 text-sm text-muted-foreground md:text-base leading-relaxed">
           <li className="flex gap-3">
-            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sol-green shrink-0" />
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sol-green" />
             <span>
-              You are on <strong className="text-foreground">Solana mainnet</strong> unless
-              you intentionally use a dev build pointed at devnet — wrong network means
-              failed or confusing transactions.
+              You are on <strong className="text-foreground">Solana mainnet</strong> unless you intentionally
+              use a dev build pointed at devnet — wrong network means failed or confusing transactions.
             </span>
           </li>
           <li className="flex gap-3">
-            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sol-green shrink-0" />
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sol-green" />
             <span>
-              Your wallet has <strong className="text-foreground">enough SOL</strong> for
-              the RootRecord fee plus rent (create is the heaviest; pricing breaks it down).
+              Your wallet has <strong className="text-foreground">enough SOL</strong> for the RootRecord fee
+              plus rent (create is the heaviest; pricing breaks it down).
             </span>
           </li>
           <li className="flex gap-3">
-            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sol-green shrink-0" />
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sol-green" />
             <span>
-              You understand <strong className="text-foreground">mint authority</strong>: if
-              you keep it, you can mint more; if you revoke it, supply is fixed — common for
-              memecoins and transparency.
+              You understand <strong className="text-foreground">mint authority</strong>: if you keep it, you
+              can mint more; if you revoke it, supply is fixed — common for memecoins and transparency.
             </span>
           </li>
         </ul>
       </section>
 
-      <section className="mt-16 md:mt-20">
+      <section>
         <Card className="overflow-hidden border-border bg-ink-800/30">
-          <CardContent className="p-8 md:p-10 grid md:grid-cols-2 gap-8 items-center">
+          <CardContent className="grid items-center gap-8 p-8 md:grid-cols-2 md:p-10">
             <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Optional next reads
               </div>
-              <h3 className="font-display text-2xl md:text-3xl tracking-tight">
+              <h3 className="font-display text-2xl tracking-tight md:text-3xl">
                 Referrals, liquidity, and <em className="italic text-sol-green">bulk sends</em>
               </h3>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                If you share links with <span className="font-mono text-xs">?ref=</span> your
-                wallet, attribution can be recorded for future programs — see{' '}
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                If you share links with <span className="font-mono text-xs">?ref=</span> your wallet,
+                attribution can be recorded for future programs — see{' '}
                 <Link href="/referrals" className="text-sol-green hover:underline">
                   Referrals
                 </Link>
-                . Liquidity and bulk tools are separate flows with their own screens and
-                fees; start with Create until you need them.
+                . Liquidity and bulk tools are separate flows with their own screens and fees; start with
+                Create until you need them.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:items-stretch">
+            <div className="flex flex-col gap-3 sm:flex-row md:flex-col md:items-stretch">
               <Button asChild variant="outline">
                 <Link href="/referrals">Referral program</Link>
               </Button>
@@ -216,9 +199,9 @@ export default function StartPage() {
         </Card>
       </section>
 
-      <p className="mt-12 text-center text-sm text-muted-foreground">
-        Not financial advice. Tokens can be worthless or illiquid. If something errors, read
-        the message, check your balance, and try again — or open{' '}
+      <p className="text-center text-sm text-muted-foreground">
+        Not financial advice. Tokens can be worthless or illiquid. If something errors, read the message,
+        check your balance, and try again — or open{' '}
         <Link href="/docs" className="text-sol-green hover:underline">
           Docs
         </Link>{' '}
@@ -228,7 +211,7 @@ export default function StartPage() {
           href="https://solscan.io"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sol-green hover:underline inline-flex items-center gap-1"
+          className="inline-flex items-center gap-1 text-sol-green hover:underline"
         >
           Solscan <ExternalLink className="h-3 w-3" />
         </a>

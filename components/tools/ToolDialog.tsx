@@ -45,7 +45,7 @@ import {
   updateTransferFee,
   readMintInfo,
 } from '@/lib/token2022';
-import { cn, parseSupply } from '@/lib/utils';
+import { cn, parseSupply, parseUiAmountToRawUnits } from '@/lib/utils';
 import { getStoredReferrer, withReferrerMetadata } from '@/lib/referral';
 import { logSolanaSiteAction, SiteAction } from '@/lib/actionLog';
 
@@ -174,6 +174,11 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     feeBps?: number;
     withheldRaw?: string;
   } | null>(null);
+  const [burnMintMeta, setBurnMintMeta] = useState<{
+    loading: boolean;
+    error?: string;
+    decimals?: number;
+  } | null>(null);
 
   const reset = useCallback(() => {
     setMint('');
@@ -198,6 +203,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
     setFeeBps('500');
     setMaxFee('1000000');
     setMintPreview(null);
+    setBurnMintMeta(null);
   }, []);
 
   useEffect(() => {
@@ -255,6 +261,46 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
       } catch (e) {
         if (!cancelled) {
           setMintPreview({
+            loading: false,
+            error: e instanceof Error ? e.message : 'Could not load mint',
+          });
+        }
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, mint]);
+
+  useEffect(() => {
+    if (kind !== 'burn-tokens') {
+      setBurnMintMeta(null);
+      return;
+    }
+    const trimmed = mint.trim();
+    if (!trimmed) {
+      setBurnMintMeta(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        new PublicKey(trimmed);
+      } catch {
+        if (!cancelled) {
+          setBurnMintMeta({ loading: false, error: 'Invalid mint address' });
+        }
+        return;
+      }
+      if (!cancelled) setBurnMintMeta({ loading: true });
+      try {
+        const info = await readMintInfo(getConnection(), trimmed);
+        if (cancelled) return;
+        setBurnMintMeta({ loading: false, decimals: info.decimals });
+      } catch (e) {
+        if (!cancelled) {
+          setBurnMintMeta({
             loading: false,
             error: e instanceof Error ? e.message : 'Could not load mint',
           });
@@ -447,13 +493,22 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           ref,
         );
       } else if (kind === 'burn-tokens') {
-        if (!amount) throw new Error('Amount is required');
-        sig = await burnTokens(
-          wallet,
-          mint,
-          parseSupply(amount),
-          parseInt(decimals, 10) || 9,
-        );
+        if (!amount.trim()) throw new Error('Amount is required');
+        if (burnMintMeta?.loading) {
+          throw new Error('Still loading mint — wait a moment or check the mint address');
+        }
+        if (
+          !burnMintMeta ||
+          burnMintMeta.error ||
+          burnMintMeta.decimals === undefined
+        ) {
+          throw new Error(
+            burnMintMeta?.error ||
+              'Enter a valid mint address and wait until decimals are loaded',
+          );
+        }
+        const raw = parseUiAmountToRawUnits(amount, burnMintMeta.decimals);
+        sig = await burnTokens(wallet, mint, raw);
       } else if (kind === 'update-metadata') {
         if (!name.trim() || !symbol.trim())
           throw new Error('Name and symbol are required');
@@ -736,7 +791,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             </div>
           )}
 
-          {(kind === 'mint-more' || kind === 'burn-tokens') && (
+          {kind === 'mint-more' && (
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label>Amount</Label>
@@ -756,6 +811,32 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                   onChange={(e) => setDecimals(e.target.value)}
                 />
               </div>
+            </div>
+          )}
+
+          {kind === 'burn-tokens' && (
+            <div className="grid gap-2">
+              <Label>Amount</Label>
+              <Input
+                data-testid="tool-amount-input"
+                placeholder="Exact amount (same units as your wallet)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              {burnMintMeta?.loading ? (
+                <p className="text-[11px] text-muted-foreground">Loading mint…</p>
+              ) : burnMintMeta?.error ? (
+                <p className="text-[11px] text-amber-200/95">{burnMintMeta.error}</p>
+              ) : burnMintMeta?.decimals !== undefined ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Use the token amount your wallet shows for this mint (on-chain decimals:{' '}
+                  {burnMintMeta.decimals}).
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Paste a valid mint address above; we load decimals from the chain automatically.
+                </p>
+              )}
             </div>
           )}
 
@@ -982,7 +1063,14 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
           <Button
             data-testid="tool-submit"
             onClick={handle}
-            disabled={busy}
+            disabled={
+              busy ||
+              (kind === 'burn-tokens' &&
+                (!burnMintMeta ||
+                  burnMintMeta.loading ||
+                  burnMintMeta.decimals === undefined ||
+                  burnMintMeta.error))
+            }
             variant={
               kind.startsWith('revoke') ||
               kind === 'burn-tokens' ||

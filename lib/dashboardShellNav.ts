@@ -44,7 +44,6 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
       { href: '/referrals', label: 'Referrals' },
       { href: '/pricing', label: 'Pricing' },
       { href: '/docs', label: 'Docs' },
-      { href: '/start', label: 'Start here' },
     ],
   },
   {
@@ -60,6 +59,7 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
 /** In-page sections on `/dashboard` (hash links). */
 export const DASHBOARD_HUB_ANCHORS: { hash: string; label: string }[] = [
   { hash: 'dashboard-overview', label: 'Overview' },
+  { hash: 'dashboard-start', label: 'Start here' },
   { hash: 'dashboard-launch', label: 'Launch' },
   { hash: 'dashboard-token-manage', label: 'Token manage' },
   { hash: 'dashboard-liquidity', label: 'Liquidity' },

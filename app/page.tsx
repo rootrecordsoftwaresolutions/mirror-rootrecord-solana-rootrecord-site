@@ -85,7 +85,7 @@ export default function HomePage() {
                 <Link href="/pricing">See the receipts</Link>
               </Button>
               <Button asChild size="lg" variant="ghost" data-testid="cta-start">
-                <Link href="/start">New? Start here</Link>
+                <Link href="/dashboard#dashboard-start">New? Start here</Link>
               </Button>
             </div>
 

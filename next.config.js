@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [{ source: '/start', destination: '/dashboard', permanent: true }];
+  },
   webpack: (config) => {
     config.externals = [...(config.externals || []), 'pino-pretty', 'lokijs', 'encoding'];
     config.resolve.fallback = {

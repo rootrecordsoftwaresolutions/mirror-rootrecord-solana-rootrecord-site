@@ -74,7 +74,6 @@ export function pageSeo(opts: {
 /** Static routes for sitemap (no dynamic `[mint]` enumeration). */
 export const SEO_STATIC_PATHS: readonly string[] = [
   '/',
-  '/start',
   '/dashboard',
   '/create',
   '/liquidity',

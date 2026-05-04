@@ -19,7 +19,6 @@ import { ReferralPill } from '@/components/ReferralPill';
 import { RootRecordPortalNav } from '@/components/RootRecordPortalNav';
 
 const NAV = [
-  { href: '/start', label: 'Start here' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/create', label: 'Create Token' },
   { href: '/liquidity', label: 'Liquidity' },
@@ -46,7 +45,6 @@ export function Header() {
     (href === '/token-stats' && pathname.startsWith('/ref/')) ||
     (href === '/recent-tokens' && pathname.startsWith('/recent-tokens')) ||
     (href === '/referrals' && pathname.startsWith('/referrals')) ||
-    (href === '/start' && pathname.startsWith('/start')) ||
     (href === '/dashboard' && pathname.startsWith('/dashboard')) ||
     (href === '/wallet-generator' && pathname.startsWith('/wallet-generator'));
 

@@ -739,16 +739,19 @@ export async function mintMore(
 /**
  * Burn tokens from the connected wallet's ATA for this mint (legacy SPL or Token-2022).
  * No platform fee — user only pays Solana network fees.
+ *
+ * @param rawBurnAmount Amount in smallest on-chain units (same as wallet “raw” balance).
  */
 export async function burnTokens(
   wallet: WalletContextState,
   mintAddress: string,
-  amount: bigint,
-  decimals: number,
+  rawBurnAmount: bigint,
 ): Promise<string> {
   if (!wallet.publicKey) throw new Error('Wallet not connected');
   const { mint, programId } = await resolveMintAndProgram(mintAddress);
   const connection = getConnection();
+  const mintInfo = await getMint(connection, mint, 'confirmed', programId);
+  const decimals = mintInfo.decimals;
   const ata = await getAssociatedTokenAddress(
     mint,
     wallet.publicKey,
@@ -756,20 +759,19 @@ export async function burnTokens(
     programId,
   );
   const acc = await getAccount(connection, ata, 'confirmed', programId);
-  const rawBurn = amount * BigInt(10) ** BigInt(decimals);
-  if (rawBurn <= 0n) {
+  if (rawBurnAmount <= 0n) {
     throw new Error('Amount must be greater than zero');
   }
-  if (rawBurn > acc.amount) {
+  if (rawBurnAmount > acc.amount) {
     throw new Error(
-      `This wallet only holds ${acc.amount.toString()} raw units in its token account for that mint; cannot burn ${rawBurn.toString()}.`,
+      `This wallet only holds ${acc.amount.toString()} raw units in its token account for that mint; cannot burn ${rawBurnAmount.toString()}.`,
     );
   }
   const ix = createBurnCheckedInstruction(
     ata,
     mint,
     wallet.publicKey,
-    rawBurn,
+    rawBurnAmount,
     decimals,
     [],
     programId,

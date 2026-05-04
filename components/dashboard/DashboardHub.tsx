@@ -11,7 +11,6 @@ import {
   BarChart3,
   BookOpen,
   Globe2,
-  PlayCircle,
   Receipt,
   Scroll,
   Share2,
@@ -33,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ToolDialog, type ToolKind } from '@/components/tools/ToolDialog';
+import { StartHereMerged } from '@/components/dashboard/StartHereMerged';
 import { TOOL_CATALOG, type ToolCatalogEntry } from '@/lib/toolsCatalog';
 import { cn } from '@/lib/utils';
 
@@ -166,14 +166,6 @@ const PROGRAM_CARDS: LinkCard[] = [
     desc: 'Technical notes, env setup, and how flows map to on-chain programs.',
     icon: BookOpen,
     tone: 'green',
-  },
-  {
-    type: 'link',
-    href: '/start',
-    title: 'Start here',
-    desc: 'Install a wallet, connect, understand fees, and verify transactions on an explorer.',
-    icon: PlayCircle,
-    tone: 'purple',
   },
 ];
 
@@ -392,6 +384,10 @@ function DashboardHubInner() {
           </section>
 
           <div className="mt-16 space-y-20">
+            <div id="dashboard-start" className="scroll-mt-24">
+              <StartHereMerged />
+            </div>
+
             <Section
               id="dashboard-launch"
               kicker="Launch"
