@@ -19,7 +19,7 @@ import {
   getPublicSiteOrigin,
 } from '@/lib/siteOrigin';
 import { explorerUrl } from '@/lib/solana';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -42,7 +42,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: `/ref/${mint}`,
     title,
     description: desc,
-    keywords: [...SEO_KEYWORDS.core, 'token stats', 'SPL mint', mint.slice(0, 12)],
+    keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'tokenDashboard', 'toolActions'), [
+      'token stats',
+      'SPL mint',
+      mint.slice(0, 12),
+    ]),
   });
 }
 

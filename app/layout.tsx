@@ -9,6 +9,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ReferralCapture } from '@/components/ReferralCapture';
 import { SiteJsonLd } from '@/components/seo/SiteJsonLd';
+import { SEO_MASTER_KEYWORDS } from '@/lib/seo';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -58,19 +59,8 @@ export const metadata: Metadata = {
     template: '%s | RootRecord Solana Tools',
   },
   description:
-    'Fast, cheap, on-chain SPL and Token-2022 token tools on Solana: create mints, Metaplex metadata, revoke authorities, Raydium liquidity, bulk sends, and paper wallets. Flat SOL fees, no subscriptions.',
-  keywords: [
-    'Solana',
-    'SPL token',
-    'Token-2022',
-    'token creator',
-    'Solana token creator',
-    'revoke mint authority',
-    'Metaplex',
-    'Raydium CPMM',
-    'paper wallet',
-    'RootRecord',
-  ],
+    'Solana SPL & Token-2022 toolkit: create mints + Metaplex metadata (Pinata IPFS), revoke mint/freeze authority, bulk freeze or thaw holder ATAs, mint more or burn, update or lock listing metadata, Token-2022 withdraw/harvest fees and fee config, Raydium CPMM pools and liquidity, bulk SOL/SPL sends, paper wallet generator, token stats & referrals. Flat SOL fees, no subscriptions.',
+  keywords: [...SEO_MASTER_KEYWORDS],
   authors: [{ name: 'RootRecord', url: 'https://rootrecord.info' }],
   creator: 'RootRecord',
   formatDetection: { email: false, address: false, telephone: false },
@@ -82,7 +72,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
     description:
-      'Fast, cheap, on-chain SPL token creation that respects your SOL.',
+      'Create SPL & Token-2022 tokens, manage authorities & metadata, Raydium liquidity, bulk sends, paper wallets — low flat SOL fees.',
     url: SITE.href.replace(/\/$/, ''),
     siteName: 'RootRecord Solana Tools',
     type: 'website',
@@ -100,7 +90,7 @@ export const metadata: Metadata = {
     creator: '@rootrecord',
     title: 'RootRecord Solana Tools',
     description:
-      'Cheap, fast, no-BS Solana token creator. ~Half the cost of competitors.',
+      'Full Solana token stack: create, tools, liquidity, bulk, cold wallets — flat SOL fees vs typical 2× elsewhere.',
     images: [SOCIAL_IMAGE_PATH],
   },
   robots: {

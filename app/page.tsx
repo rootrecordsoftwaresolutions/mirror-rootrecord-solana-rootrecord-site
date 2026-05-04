@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { HomeStructuredData } from '@/components/seo/HomeStructuredData';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, SEO_MASTER_KEYWORDS } from '@/lib/seo';
 import { ArrowRight, Flame, Zap, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,14 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/',
     title: 'Solana SPL & Token-2022 tools',
     description:
-      'Low-fee Solana token creator and utilities: SPL and Token-2022 mints, Metaplex metadata, revoke mint and freeze authority, bulk freeze or thaw holder ATAs, Token-2022 transfer fees, Raydium CPMM liquidity, bulk SOL sends, and printable cold-storage paper wallets. Transparent flat SOL pricing — no subscriptions.',
-    keywords: [
-      ...SEO_KEYWORDS.core,
-      'cheap Solana token creator',
-      'SPL token creator',
-      'create token on Solana',
-      'update Metaplex metadata',
-    ],
+      'Low-fee Solana token creator and full tool suite: SPL & Token-2022 mints, Metaplex metadata via Pinata IPFS, revoke mint & freeze authority, bulk freeze/thaw holder ATAs, mint more & burn, update & lock listing metadata, Token-2022 withdraw/harvest fees & fee config, Raydium CPMM liquidity, bulk SOL & SPL sends, shareable token stats, referrals, printable paper wallets. Flat SOL pricing — no subscriptions.',
+    keywords: [...SEO_MASTER_KEYWORDS],
   });
 }
 

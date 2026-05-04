@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 import { Check, Flame, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ export const metadata: Metadata = pageSeo({
   title: 'Pricing — flat SOL per action',
   description:
     'Transparent Solana tool pricing: create token, revoke authority, metadata updates, Raydium liquidity fees, bulk sends, and more. Compare to typical market rates — no subscriptions.',
-  keywords: [...SEO_KEYWORDS.core, 'Solana token creator pricing', 'token tool fees', 'flat fee SOL'],
+  keywords: pickSeoKeywords('core', 'pricingFees', 'toolActions', 'raydiumLiquidity', 'bulkSends', 'createMint'),
 });
 
 function feeSol(n: number): string {

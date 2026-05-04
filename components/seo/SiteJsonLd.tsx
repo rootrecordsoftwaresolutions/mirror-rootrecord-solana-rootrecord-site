@@ -39,7 +39,7 @@ export function SiteJsonLd() {
     name: 'RootRecord Solana Tools',
     url: base,
     description:
-      'Low-fee Solana utilities to create SPL and Token-2022 tokens, manage authorities and metadata, Raydium liquidity, bulk sends, and printable paper wallets.',
+      'Create SPL & Token-2022 mints with Metaplex + Pinata IPFS; revoke mint/freeze authority; bulk freeze or thaw holder ATAs; mint more or burn; update or lock listing metadata; Token-2022 withdraw/harvest fees and fee config; Raydium CPMM pools & liquidity; bulk SOL/SPL sends; shareable token stats & referrals; printable paper wallets. Flat SOL fees.',
     publisher: { '@type': 'Organization', name: 'RootRecord', url: base },
     inLanguage: 'en-US',
   };

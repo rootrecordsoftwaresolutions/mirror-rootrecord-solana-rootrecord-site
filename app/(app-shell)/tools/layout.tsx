@@ -1,21 +1,13 @@
 import type { Metadata } from 'next';
 
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/tools',
   title: 'Manage Solana tokens',
   description:
-    'On-chain tools: revoke mint or freeze authority, bulk freeze or thaw many holder ATAs (per-account fee bundled in each batch tx), mint more supply, update Metaplex metadata, Token-2022 transfer fee withdraw and harvest, Raydium CPMM pool helpers, and more. Flat SOL tool fees where applicable.',
-  keywords: [
-    ...SEO_KEYWORDS.core,
-    'revoke freeze authority',
-    'bulk freeze thaw SPL token accounts',
-    'update token metadata',
-    'withdraw transfer fee',
-    'Token-2022 fees',
-    'burn SPL tokens',
-  ],
+    'On-chain token tools: revoke mint authority, revoke freeze authority, bulk freeze or thaw holder wallets & ATAs, mint more supply, burn tokens, update or lock Metaplex listing metadata (legacy SPL), Token-2022 withdraw withheld fees, harvest fees to mint, update transfer fee config. Links to Raydium CPMM liquidity and bulk SOL/SPL sends. Flat SOL fees per action.',
+  keywords: pickSeoKeywords('core', 'toolActions', 'raydiumLiquidity', 'bulkSends'),
 });
 
 export default function ToolsLayout({ children }: { children: React.ReactNode }) {

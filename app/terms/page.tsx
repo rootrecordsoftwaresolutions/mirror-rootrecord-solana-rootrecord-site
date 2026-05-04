@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
 
-import { pageSeo } from '@/lib/seo';
+import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/terms',
   title: 'Terms of service',
   description:
     'Terms of service for RootRecord Solana Tools: acceptable use of the token creation and management utilities, fees, and limitations.',
-  keywords: ['RootRecord', 'terms', 'Solana tools'],
+  keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core'), [
+    'terms of service',
+    'acceptable use',
+    'Solana tools legal',
+  ]),
 });
 
 export default function TermsPage() {

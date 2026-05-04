@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FEATURED_TOKENS } from '@/lib/featuredTokens';
 import { fetchSolanaWorkerGet } from '@/lib/solanaSiteApi';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: 'New tokens feed',
     description:
       'Featured picks plus a feed of SPL tokens created with RootRecord Solana Tools. Jump to the shareable token stats dashboard for any mint address.',
-    keywords: [...SEO_KEYWORDS.core, 'new Solana tokens', 'token feed', 'mint list'],
+    keywords: pickSeoKeywords('core', 'tokenFeed', 'createMint', 'tokenDashboard'),
   });
 }
 

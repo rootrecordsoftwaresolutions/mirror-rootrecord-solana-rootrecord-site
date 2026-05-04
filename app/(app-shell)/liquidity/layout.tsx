@@ -4,7 +4,7 @@ import {
   LAUNCH_FEE_SOL,
   RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL,
 } from '@/lib/solana';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 const launchMetaFixed = (
   RAYDIUM_MAINNET_CPMM_POOL_CREATE_FEE_SOL + LAUNCH_FEE_SOL
@@ -14,7 +14,7 @@ export const metadata: Metadata = pageSeo({
   path: '/liquidity',
   title: 'Raydium CPMM liquidity',
   description: `Create a Raydium CPMM pool, add liquidity, or remove liquidity (burn LP). On mainnet, new pool setup is about ${launchMetaFixed} SOL plus your liquidity deposit (Raydium program fees plus RootRecord launch fee).`,
-  keywords: [...SEO_KEYWORDS.core, 'Raydium pool', 'add liquidity', 'CPMM', 'remove liquidity'],
+  keywords: pickSeoKeywords('core', 'raydiumLiquidity', 'bulkSends'),
 });
 
 export default function LiquidityLayout({

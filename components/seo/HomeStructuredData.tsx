@@ -58,6 +58,24 @@ const FAQ_MAIN_ENTITY = [
         'Optional logo and JSON metadata are pinned to IPFS via Pinata through server-side routes so secrets stay off the client.',
     },
   },
+  {
+    '@type': 'Question',
+    name: 'Can I add Raydium CPMM liquidity from RootRecord?',
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text:
+        'Yes. The Liquidity section supports creating a Raydium CPMM pool, adding or removing liquidity, and burning LP when you want to exit — you sign with your wallet and pay Raydium program costs plus a small RootRecord launch or action fee where applicable.',
+    },
+  },
+  {
+    '@type': 'Question',
+    name: 'How do bulk SOL or SPL sends work?',
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text:
+        'The Bulk page accepts a list of recipient addresses; RootRecord builds batched transactions for native SOL or an SPL mint you hold. Platform fee scales with the number of destinations; you also pay Solana network fees and any rent to create new recipient token accounts.',
+    },
+  },
 ];
 
 /**
@@ -93,16 +111,28 @@ export function HomeStructuredData() {
       description: 'Per-action SOL fees for on-chain tools; see site pricing.',
     },
     description:
-      'Create SPL and Token-2022 tokens, revoke authorities, update Metaplex metadata, manage Token-2022 transfer fees, Raydium CPMM liquidity, bulk SOL sends, and printable cold-storage paper wallets.',
+      'SPL & Token-2022 token creation (Metaplex + Pinata IPFS), full /tools suite: revoke mint and freeze authority, bulk freeze or thaw ATAs, mint more, burn, update and lock Metaplex listing metadata, Token-2022 withdraw/harvest fees and transfer-fee config, Raydium CPMM create pool and add/remove liquidity, bulk native SOL and SPL sends, public token stats and referral links, cold-storage paper wallet generator.',
     url: `${base}/`,
     image: logo,
     featureList: [
-      'SPL token creation with Metaplex metadata',
-      'Token-2022 mints with extensions',
-      'Revoke mint and freeze authority, bulk freeze or thaw holder token accounts',
-      'Raydium CPMM pool and liquidity helpers',
-      'Bulk SOL and token distributions',
-      'Printable Solana paper wallet generator',
+      'Create SPL or Token-2022 mint with optional extensions',
+      'Pinata IPFS logo and JSON metadata',
+      'Revoke mint authority',
+      'Revoke freeze authority',
+      'Bulk freeze or thaw holder wallets and token accounts',
+      'Mint additional token supply',
+      'Burn SPL or Token-2022 balance',
+      'Update legacy SPL Metaplex listing metadata',
+      'Lock listing metadata immutable',
+      'Token-2022 withdraw withheld transfer fees',
+      'Token-2022 harvest withheld fees to mint',
+      'Token-2022 update transfer fee configuration',
+      'Raydium CPMM create pool, add liquidity, remove liquidity',
+      'Bulk batched SOL sends',
+      'Bulk batched SPL token sends',
+      'Shareable mint dashboard with Jupiter price hint',
+      'Referral program with on-chain fee share',
+      'Printable Solana paper wallet with QR codes',
     ],
     provider: { '@type': 'Organization', name: 'RootRecord', url: base },
   };

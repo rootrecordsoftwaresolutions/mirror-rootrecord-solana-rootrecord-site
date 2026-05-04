@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
 
-import { pageSeo } from '@/lib/seo';
+import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/privacy',
   title: 'Privacy policy',
   description:
     'Privacy policy for RootRecord Solana Tools: what we collect (wallet public keys for transactions, optional IPFS uploads), analytics, and how we use data.',
-  keywords: ['RootRecord', 'privacy', 'Solana tools'],
+  keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'ipfsMetadata'), [
+    'privacy policy',
+    'wallet public key',
+    'analytics',
+  ]),
 });
 
 export default function PrivacyPage() {

@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { OPERATIONS_WIKI_PAGES } from '@/lib/operationsWikiNav';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/operations',
   title: 'Operations wiki',
   description:
     'RootRecord Solana Tools — documentation, ecosystem accounts, liquidity automation schedule, and tokenomics in one wiki-style index.',
-  keywords: [...SEO_KEYWORDS.core, 'RootRecord', 'documentation', 'treasury', 'tokenomics'],
+  keywords: pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenFeed'),
 });
 
 export default function OperationsIndexPage() {

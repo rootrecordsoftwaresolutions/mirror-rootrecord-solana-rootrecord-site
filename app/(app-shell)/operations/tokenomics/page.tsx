@@ -31,24 +31,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/operations/tokenomics',
   title: `Tokenomics & markets — ${ECOSYSTEM_LISTING_SYMBOL}`,
   description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): Raydium CPMM pool addresses, treasury mechanics, Jupiter reference pricing, multi-pool context on Solana — descriptive, not investment advice.`,
-  keywords: [
-    ...SEO_KEYWORDS.core,
+  keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenDashboard'), [
     ECOSYSTEM_LISTING_SYMBOL,
     'tokenomics',
-    'Raydium CPMM',
     'liquidity pools',
     'treasury token',
     'RRESERVE',
     'RRESERVE pool',
     'RRESERVE pool token',
     'uncirculated supply',
-  ],
+    'Jupiter OTC reference',
+  ]),
 });
 
 /** Mainnet USDC/RRTT CPMM pool state (same default as `ECOSYSTEM_SOLSCAN_CPMM_POOL_USDC`); inlined so this table always lists all four rails. */

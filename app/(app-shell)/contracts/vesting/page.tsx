@@ -2,21 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { LinearVestingClient } from '@/components/contracts/LinearVestingClient';
-import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
+import { pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/contracts/vesting',
   title: 'Linear vesting (Root Record)',
   description:
     'Roadmap for Root Record native SPL and Token-2022 vesting on Solana — linear schedules, cliffs, and treasury locks without third-party vesting protocols.',
-  keywords: [
-    ...SEO_KEYWORDS.core,
-    'vesting',
-    'token vesting',
-    'SPL vesting',
-    'Solana vesting',
-    'treasury lock',
-  ],
+  keywords: pickSeoKeywords('core', 'vestingTreasury', 'createMint'),
 });
 
 export default function ContractsVestingPage() {
