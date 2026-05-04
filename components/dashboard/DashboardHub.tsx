@@ -10,7 +10,6 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
-  FileText,
   Globe2,
   PlayCircle,
   Receipt,
@@ -123,22 +122,6 @@ const DISCOVER_CARDS: LinkCard[] = [
     title: 'Token stats',
     desc: 'Supply, holders snapshot, recent transactions, and a Jupiter price hint for any mint you paste.',
     icon: BarChart3,
-    tone: 'purple',
-  },
-  {
-    type: 'link',
-    href: '/ecosystem',
-    title: 'Purpose',
-    desc: 'Treasury transfer tool, program context, and how fees route into liquidity.',
-    icon: BookOpen,
-    tone: 'green',
-  },
-  {
-    type: 'link',
-    href: '/tokenomics',
-    title: 'Tokenomics',
-    desc: 'Pools, treasury reference pricing, and how to read multi-pool markets — descriptive docs.',
-    icon: FileText,
     tone: 'purple',
   },
 ];
@@ -479,8 +462,8 @@ function DashboardHubInner() {
             <Section
               id="dashboard-discover"
               kicker="Discover"
-              title="Markets &amp; program context"
-              subtitle="Explore mints, stats, and how the treasury program fits together."
+              title="Mints &amp; stats"
+              subtitle="Recently launched tokens and on-chain stats for any mint you paste."
             >
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {DISCOVER_CARDS.map((c) => (

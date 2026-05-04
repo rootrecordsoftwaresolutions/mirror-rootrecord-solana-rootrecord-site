@@ -34,8 +34,6 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
     items: [
       { href: '/recent-tokens', label: 'New tokens' },
       { href: '/token-stats', label: 'Token stats' },
-      { href: '/ecosystem', label: 'Purpose' },
-      { href: '/tokenomics', label: 'Tokenomics' },
     ],
   },
   {

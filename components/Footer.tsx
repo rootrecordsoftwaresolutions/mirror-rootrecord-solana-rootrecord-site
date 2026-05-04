@@ -34,7 +34,7 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm">
+        <div className="grid grid-cols-1 gap-8 text-sm sm:grid-cols-3">
           <div>
             <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-3">
               Legal
@@ -48,6 +48,23 @@ export function Footer() {
               <li>
                 <Link href="/terms" className="hover:text-sol-green">
                   Terms
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-3">
+              Program
+            </div>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/ecosystem" className="hover:text-sol-green">
+                  Purpose
+                </Link>
+              </li>
+              <li>
+                <Link href="/tokenomics" className="hover:text-sol-green">
+                  Tokenomics
                 </Link>
               </li>
             </ul>
