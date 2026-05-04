@@ -125,7 +125,7 @@ function solCachedLamportsBigint(me: PortalMeData | null): bigint | null {
 }
 
 function rewardsLedgerKindLabel(row: RewardsLedgerTransaction): string {
-  if (row.kind === 'treasury_to_custodial') return 'Rewards moved into your hosted wallet';
+  if (row.kind === 'treasury_to_custodial') return 'Rewards moved into your RootRecord Wallet';
   if (row.kind === 'withdrawal_to_personal') return 'Sent to your own wallet';
   return row.kind || 'Entry';
 }
@@ -425,7 +425,7 @@ export function AccountPageClient() {
     applyStatus('', '');
     if (!hasApi) {
       applyStatus(
-        'Sign-in isn’t enabled on this deployment yet. Use solana.rootrecord.info for the hosted account API.',
+        'Sign-in isn’t enabled on this deployment yet. Use solana.rootrecord.info for the RootRecord account API.',
         'warn',
       );
       return;
@@ -481,7 +481,7 @@ export function AccountPageClient() {
     const ok1 = window.confirm(
       'Delete your RootRecord account?\n\n' +
         'This removes your profile and data we store for you (saved spots, alerts, and similar). ' +
-        'Your hosted reward wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows. ' +
+        'Your RootRecord Wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows. ' +
         'Withdraw anything you want to keep first. If that return step fails, we cancel deletion. ' +
         'Some encrypted backup data may stay with us for safety — don’t rely on deletion to erase keys. ' +
         'This cannot be undone once it succeeds.',
@@ -603,7 +603,7 @@ export function AccountPageClient() {
       applyStatus(r.detail, 'err');
       return;
     }
-    toast.success('Hosted wallet ready');
+    toast.success('RootRecord Wallet ready');
     await loadAccount(true);
   }
 
@@ -775,7 +775,7 @@ export function AccountPageClient() {
           <a href="https://rootrecord.info" className="text-sol-green hover:underline">
             rootrecord.info
           </a>
-          . Your membership, test rewards, hosted reward wallet, and linked personal wallet are together here.
+          . Your membership, test rewards, RootRecord Wallet, and linked personal wallet are together here.
         </p>
       </div>
 
@@ -909,7 +909,7 @@ export function AccountPageClient() {
                 Numbers come from RootRecord and, when possible, a live check on Solana. We pay the network fee when
                 you cash out <span className="text-foreground font-medium">RRTT</span> rewards to your saved or linked
                 address. If you move <span className="text-foreground font-medium">SOL</span>,{' '}
-                <span className="text-foreground font-medium">USDC</span>, or other tokens out of your hosted wallet, you
+                <span className="text-foreground font-medium">USDC</span>, or other tokens out of your RootRecord Wallet, you
                 pay those fees yourself (keep a little SOL in that wallet for fees).
               </CardDescription>
             </CardHeader>
@@ -927,7 +927,7 @@ export function AccountPageClient() {
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="Rewards we’ve counted for you that haven’t been moved into your hosted wallet yet (same label as RootRecord apps)."
+                  hint="Rewards we’ve counted for you that haven’t been moved into your RootRecord Wallet yet (same label as RootRecord apps)."
                 />
                 <BalanceStat
                   label="Wallet balance"
@@ -941,7 +941,7 @@ export function AccountPageClient() {
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="RRTT already in your hosted wallet — what you can cash out to your payout address (RootRecord pays the RRTT transfer fee)."
+                  hint="RRTT already in your RootRecord Wallet — what you can cash out to your payout address (RootRecord pays the RRTT transfer fee)."
                 />
                 <BalanceStat
                   label="Lifetime rewards"
@@ -971,12 +971,12 @@ export function AccountPageClient() {
                   }
                   hint={
                     totalEarnUnits != null
-                      ? `Matches the headline total in RootRecord apps: still settling (${pendingUnits?.toLocaleString() ?? '—'}) + in hosted wallet (${rrttInWallet.toLocaleString()}). Lifetime credits from apps: ${totalEarnUnits.toLocaleString()}.`
-                      : 'Credits we owe you plus RRTT already sitting in your hosted wallet (same headline as apps).'
+                      ? `Matches the headline total in RootRecord apps: still settling (${pendingUnits?.toLocaleString() ?? '—'}) + in your RootRecord Wallet (${rrttInWallet.toLocaleString()}). Lifetime credits from apps: ${totalEarnUnits.toLocaleString()}.`
+                      : 'Credits we owe you plus RRTT already sitting in your RootRecord Wallet (same headline as apps).'
                   }
                 />
                 <BalanceStat
-                  label="SOL in hosted wallet"
+                  label="SOL in RootRecord Wallet"
                   value={
                     solLamportsDisplay != null ? (
                       <span className="font-mono text-sm tabular-nums">
@@ -989,7 +989,7 @@ export function AccountPageClient() {
                   hint="SOL you can use for fees when you move tokens yourself. A small amount usually stays put so the account stays open."
                 />
                 <BalanceStat
-                  label="USDC in hosted wallet"
+                  label="USDC in RootRecord Wallet"
                   value={
                     usdcDisplay != null ? (
                       <span className="font-mono text-sm tabular-nums">{usdcDisplay}</span>
@@ -997,14 +997,14 @@ export function AccountPageClient() {
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="USDC balance in your hosted wallet. Moving USDC uses SOL from that same wallet for fees — we don’t cover those."
+                  hint="USDC balance in your RootRecord Wallet. Moving USDC uses SOL from that same wallet for fees — we don’t cover those."
                 />
                 <BalanceStat
                   label="Quick guide"
                   value={
                     <span className="block text-xs font-normal font-sans leading-relaxed text-muted-foreground tracking-normal">
                       <strong className="text-foreground font-medium">Total (pending + wallet)</strong> = pending rewards + RRTT
-                      already in your hosted wallet (we don’t double-count). <strong className="text-foreground font-medium">Wallet balance</strong>{' '}
+                      already in your RootRecord Wallet (we don’t double-count). <strong className="text-foreground font-medium">Wallet balance</strong>{' '}
                       is the RRTT you can cash out now. <strong className="text-foreground font-medium">Fees:</strong>{' '}
                       RootRecord pays the network fee for RRTT cash-outs to your linked or saved address; you pay fees
                       for other moves. {balancesLearnLink}
@@ -1016,7 +1016,7 @@ export function AccountPageClient() {
               <p className="text-xs text-muted-foreground border-t border-border/60 pt-3 leading-relaxed">
                 <strong className="text-foreground">Automated settlement (UTC):</strong> Once per day at{' '}
                 <strong className="text-foreground">07:00 UTC</strong>, RootRecord&apos;s backend tries to move
-                owed RRTT from your rewards ledger into this hosted wallet and to top up a small SOL reserve when
+                owed RRTT from your rewards ledger into your RootRecord Wallet and to top up a small SOL reserve when
                 it is below threshold (for fees). Until that job succeeds on-chain, RRTT can show as still settling.
                 Treasury balance, RPC health, or account state can delay a payout; the schedule is daily, not
                 per-event.
@@ -1026,7 +1026,7 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Hosted reward wallet</CardTitle>
+              <CardTitle className="text-lg">RootRecord Wallet</CardTitle>
               <CardDescription className="text-muted-foreground">
                 A wallet RootRecord holds for you so test rewards (RRTT) can land in one place. You still control
                 cash-outs to your own address. Incoming RRTT and SOL reserve top-ups follow the daily 07:00 UTC job
@@ -1055,7 +1055,7 @@ export function AccountPageClient() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <EmptyLine>No hosted wallet yet — create one to receive RRTT rewards here.</EmptyLine>
+                  <EmptyLine>No RootRecord Wallet yet — create one to receive RRTT rewards here.</EmptyLine>
                   <Button
                     type="button"
                     size="sm"
@@ -1072,9 +1072,9 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Hosted wallet activity</CardTitle>
+              <CardTitle className="text-lg">RootRecord Wallet activity</CardTitle>
               <CardDescription className="text-muted-foreground">
-                On-chain moves for your hosted reward wallet: rewards paid in, and RRTT you cashed out. Each entry links
+                On-chain moves for your RootRecord Wallet: rewards paid in, and RRTT you cashed out. Each entry links
                 to Solscan (mainnet).
               </CardDescription>
             </CardHeader>
@@ -1084,7 +1084,7 @@ export function AccountPageClient() {
                   <span className="underline-offset-2 group-open:underline">What this list is</span>
                 </summary>
                 <p className="mt-2 leading-relaxed pl-0.5 border-l-2 border-border/80 pl-3">
-                  Each row is a finished move on Solana — into your hosted wallet or out to you. We show which apps the
+                  Each row is a finished move on Solana — into your RootRecord Wallet or out to you. We show which apps the
                   rewards came from when we have that detail.
                 </p>
               </details>
@@ -1400,7 +1400,7 @@ export function AccountPageClient() {
               <CardTitle className="text-lg">Cash out RRTT</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Send RRTT to your linked wallet, or to another Solana address you save below. We pay the network fee for
-                that RRTT send. Other tokens you move from your hosted wallet still use your SOL for fees.
+                that RRTT send. Other tokens you move from your RootRecord Wallet still use your SOL for fees.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1420,7 +1420,7 @@ export function AccountPageClient() {
                       <p className="text-xs leading-relaxed opacity-95">{withdrawNotice.error}</p>
                       <p className="text-xs leading-relaxed text-amber-100/90">
                         If the transfer actually landed on-chain, use this signature when you contact support. It may
-                        still appear under <strong className="font-medium">Hosted wallet activity</strong> after a
+                        still appear under <strong className="font-medium">RootRecord Wallet activity</strong> after a
                         refresh.
                       </p>
                     </>
@@ -1439,7 +1439,7 @@ export function AccountPageClient() {
                             <span className="font-mono text-foreground break-all">{withdrawNotice.destination}</span>
                           </>
                         ) : null}
-                        . It will show in <strong className="text-foreground font-medium">Hosted wallet activity</strong>{' '}
+                        . It will show in <strong className="text-foreground font-medium">RootRecord Wallet activity</strong>{' '}
                         on this page after the list refreshes.
                       </p>
                     </>
@@ -1490,7 +1490,7 @@ export function AccountPageClient() {
               <div className="space-y-2 max-w-lg pt-4 border-t border-border/60 mt-4">
                 <Label className="text-xs">Withdraw RRTT (whole numbers)</Label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sends from your hosted wallet to your verified linked wallet, or to the saved address if you
+                  Sends from your RootRecord Wallet to your verified linked wallet, or to the saved address if you
                   don’t use a linked wallet. Leave the amount blank to send everything that’s ready. We pay the fee for
                   this RRTT send.
                 </p>
@@ -1530,8 +1530,8 @@ export function AccountPageClient() {
             <CardContent className="pt-6 space-y-3">
               <h3 className="text-base font-semibold text-foreground">Delete account</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                This removes your RootRecord profile and data we keep for you (like saved spots or alerts). Your hosted
-                reward wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows
+                This removes your RootRecord profile and data we keep for you (like saved spots or alerts). Your RootRecord
+                Wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows
                 it. <strong className="text-foreground font-medium">Withdraw anything you want to keep first.</strong>{' '}
                 If the return step can’t finish, we’ll block deletion until it does. Some encrypted backup data may stay
                 in our systems for safety and recovery — don’t rely on deletion to erase keys.

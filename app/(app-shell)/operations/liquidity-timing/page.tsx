@@ -78,8 +78,8 @@ export default function LiquidityTimingPage() {
         <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
           <p>
             <strong className="text-foreground">Once per day at 07:00 UTC</strong>, RootRecord attempts to move owed{' '}
-            {ECOSYSTEM_LISTING_SYMBOL} from program accounting into <strong className="text-foreground">hosted custodial</strong>{' '}
-            wallets on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta /
+            {ECOSYSTEM_LISTING_SYMBOL} from program accounting into <strong className="text-foreground">RootRecord Wallets</strong>{' '}
+            on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta /
             earn rewards—not the shape of Raydium LP in the pools listed on{' '}
             <Link href="/operations/tokenomics" className="text-sol-green hover:underline">
               Tokenomics

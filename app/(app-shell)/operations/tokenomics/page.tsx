@@ -404,11 +404,11 @@ export default async function TokenomicsPage() {
 
           <section className="space-y-3" id="custodial-settlement">
             <h2 className="text-base font-semibold text-foreground">
-              Earn rewards → hosted wallet (daily UTC)
+              Earn rewards → RootRecord Wallet (daily UTC)
             </h2>
             <p>
               Beta / earn-program credits for {ECOSYSTEM_LISTING_SYMBOL} are reconciled into{' '}
-              <strong className="text-foreground">hosted custodial wallets</strong> on Solana by a
+              <strong className="text-foreground">RootRecord Wallets</strong> (custodial on Solana) by a
               scheduled job that runs <strong className="text-foreground">once per calendar day at 07:00 UTC</strong>. In
               that pass the treasury can send owed whole-token units to each custodial SPL account and add SOL lamports
               when the custodial account is below the fee-reserve floor—so operator-sponsored flows stay viable.

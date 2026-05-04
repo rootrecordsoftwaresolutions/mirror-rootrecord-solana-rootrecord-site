@@ -215,7 +215,7 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
   },
   {
     n: '10',
-    title: 'Hosted rewards wallet — when RRTT and SOL arrive',
+    title: 'RootRecord Wallet — when RRTT and SOL arrive',
     body: (
       <>
         <p>
@@ -223,7 +223,7 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
           <Link href="/account" className="text-sol-green hover:underline">
             Account
           </Link>{' '}
-          on Solana Tools with a RootRecord-hosted reward wallet, <strong className="text-foreground">owed RRTT</strong>{' '}
+          on Solana Tools with a RootRecord Wallet, <strong className="text-foreground">owed RRTT</strong>{' '}
           is not pushed on every click. RootRecord runs an automated backend job{' '}
           <strong className="text-foreground">once per day at 07:00 UTC</strong> that attempts to
           move credited rewards from the earn ledger into your custodial wallet on Solana, and to

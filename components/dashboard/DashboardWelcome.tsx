@@ -18,33 +18,33 @@ function shortPk(b58: string): string {
 export function DashboardWelcome() {
   const { publicKey, connected } = useWallet();
   const [solUi, setSolUi] = useState<string | null>(null);
-  const [hostedPk, setHostedPk] = useState<string | null>(null);
+  const [rootRecordWalletPk, setRootRecordWalletPk] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const token = getPortalToken();
     if (!token) {
-      setHostedPk(null);
+      setRootRecordWalletPk(null);
       return;
     }
     void (async () => {
       const info = await fetchCustodialInfo(token);
       if (cancelled) return;
       const pk = info?.public_key?.trim();
-      if (info?.custodial_enabled && pk) setHostedPk(pk);
-      else setHostedPk(null);
+      if (info?.custodial_enabled && pk) setRootRecordWalletPk(pk);
+      else setRootRecordWalletPk(null);
     })();
     const onAuth = () => {
       const t = getPortalToken();
       if (!t) {
-        setHostedPk(null);
+        setRootRecordWalletPk(null);
         return;
       }
       void fetchCustodialInfo(t).then((info) => {
         if (cancelled) return;
         const pk = info?.public_key?.trim();
-        if (info?.custodial_enabled && pk) setHostedPk(pk);
-        else setHostedPk(null);
+        if (info?.custodial_enabled && pk) setRootRecordWalletPk(pk);
+        else setRootRecordWalletPk(null);
       });
     };
     if (typeof window !== 'undefined') {
@@ -116,10 +116,10 @@ export function DashboardWelcome() {
           </dd>
         </div>
         <div className="space-y-1">
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">Hosted</dt>
+          <dt className="text-xs uppercase tracking-wide text-muted-foreground">RootRecord Wallet</dt>
           <dd className="font-mono text-[13px] text-foreground/95">
-            {hostedPk ? (
-              shortPk(hostedPk)
+            {rootRecordWalletPk ? (
+              shortPk(rootRecordWalletPk)
             ) : (
               <span className="text-muted-foreground">Sign in via Account when custodial is enabled.</span>
             )}

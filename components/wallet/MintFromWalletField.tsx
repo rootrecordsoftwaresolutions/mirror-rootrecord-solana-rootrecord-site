@@ -57,7 +57,7 @@ export function MintFromWalletField({
         const pk = info?.public_key?.trim();
         if (pk) {
           try {
-            merge(await listSplMintsForOwner(conn, new PublicKey(pk), 'Hosted · '));
+            merge(await listSplMintsForOwner(conn, new PublicKey(pk), 'RootRecord Wallet · '));
           } catch {
             /* ignore */
           }
@@ -103,7 +103,7 @@ export function MintFromWalletField({
             {loading
               ? 'Loading tokens from wallet…'
               : rows.length
-                ? 'Pick from connected / hosted wallet…'
+                ? 'Pick from connected / RootRecord Wallet…'
                 : 'No SPL balances in wallet — paste mint below'}
           </option>
           {rows.map((r) => (

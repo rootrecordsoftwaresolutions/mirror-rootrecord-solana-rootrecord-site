@@ -7,7 +7,7 @@ export const metadata: Metadata = pageSeo({
   path: '/dashboard',
   title: 'Hub',
   description:
-    'Solana Tools home: wallet snapshot, hosted account hint, and links to create and tools. Sidebar lists every tool on other pages; Hub keeps a short layout.',
+    'Solana Tools home: wallet snapshot, RootRecord account hint, and links to create and tools. Sidebar lists every tool on other pages; Hub keeps a short layout.',
   keywords: [...SEO_KEYWORDS.core, 'Solana dashboard', 'wallet'],
 });
 

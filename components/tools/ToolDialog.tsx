@@ -683,7 +683,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
             ].includes(kind) && (
               <p className="text-[11px] text-muted-foreground">
                 Pick the <strong className="text-foreground/90">mint</strong> from your connected or
-                hosted wallet when it appears in the list, or paste the mint from Solscan / your launch
+                RootRecord Wallet when it appears in the list, or paste the mint from Solscan / your launch
                 dialog (not your wallet address).
                 {meta.t2022
                   ? ' Must be a Token-2022 mint.'
