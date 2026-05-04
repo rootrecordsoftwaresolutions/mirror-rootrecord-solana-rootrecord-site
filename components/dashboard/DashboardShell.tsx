@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,21 +17,35 @@ import {
 } from '@/components/ui/dialog';
 import {
   DASHBOARD_HUB_ANCHORS,
-  DASHBOARD_SHELL_NAV,
+  getDashboardShellNav,
 } from '@/lib/dashboardShellNav';
 import { cn } from '@/lib/utils';
 
-function routeActive(pathname: string, href: string): boolean {
+function routeActive(pathname: string, href: string, toolsTool: string | null): boolean {
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/operations')
     return pathname === '/operations' || pathname.startsWith('/operations/');
+  if (pathname === '/tools') {
+    if (href === '/tools') return !toolsTool;
+    if (href.startsWith('/tools?')) {
+      try {
+        const qs = href.slice(href.indexOf('?') + 1);
+        const kind = new URLSearchParams(qs).get('tool');
+        return Boolean(kind && kind === toolsTool);
+      } catch {
+        return false;
+      }
+    }
+  }
   if (pathname === href) return true;
-  if (href !== '/' && pathname.startsWith(`${href}/`)) return true;
+  if (href !== '/' && !href.includes('?') && pathname.startsWith(`${href}/`)) return true;
   return false;
 }
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || '';
+  const searchParams = useSearchParams();
+  const toolsTool = pathname === '/tools' ? searchParams.get('tool')?.trim() || null : null;
   const { connected } = useWallet();
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -39,10 +53,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isOperationsWiki = pathname === '/operations' || pathname.startsWith('/operations/');
 
   const onHub = pathname === '/dashboard';
+  const shellNav = useMemo(() => getDashboardShellNav(pathname), [pathname]);
 
   const NavBody = ({ onPick }: { onPick?: () => void }) => (
     <div className="flex flex-col gap-2 px-2 py-1.5">
-      {DASHBOARD_SHELL_NAV.map((group) => (
+      {shellNav.map((group) => (
         <section
           key={group.heading}
           className="rounded-lg border border-border/70 bg-[#070b0f] p-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
@@ -61,10 +76,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             {group.items
               .filter((item) => item.href !== '/my-actions' || connected)
               .map((item) => {
-                const active = routeActive(pathname, item.href);
+                const active = routeActive(pathname, item.href, toolsTool);
                 return (
                   <Link
-                    key={item.href}
+                    key={`${item.href}|${item.label}`}
                     href={item.href}
                     onClick={onPick}
                     className={cn(
@@ -79,7 +94,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 );
               })}
           </div>
-          {group.heading === 'Overview' && onHub ? (
+          {group.heading === 'Overview' && onHub && DASHBOARD_HUB_ANCHORS.length > 0 ? (
             <div className="mt-1.5 rounded-md border border-border/40 bg-black/25 p-1">
               <div className="mb-0.5 flex items-center gap-2 border-b border-border/40 px-1 pb-0.5">
                 <span className="h-2 w-0.5 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />

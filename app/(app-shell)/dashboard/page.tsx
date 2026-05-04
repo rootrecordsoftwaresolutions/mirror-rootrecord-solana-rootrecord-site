@@ -1,23 +1,16 @@
 import type { Metadata } from 'next';
 
-import { DashboardHub } from '@/components/dashboard/DashboardHub';
+import { DashboardWelcome } from '@/components/dashboard/DashboardWelcome';
 import { pageSeo, SEO_KEYWORDS } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
   path: '/dashboard',
-  title: 'Dashboard',
+  title: 'Hub',
   description:
-    'Single-page hub for RootRecord Solana Tools: onboarding (Start here), create tokens, manage mints and metadata, Raydium liquidity, bulk sends, wallet generator, token stats, liquidity timing, pricing, and docs — same flows as the rest of the site.',
-  keywords: [
-    ...SEO_KEYWORDS.core,
-    'Solana dashboard',
-    'Solana onboarding',
-    'token tools hub',
-    'SPL token management',
-    'Raydium liquidity tools',
-  ],
+    'Solana Tools home: wallet snapshot, hosted account hint, and links to create and tools. Sidebar lists every tool on other pages; Hub keeps a short layout.',
+  keywords: [...SEO_KEYWORDS.core, 'Solana dashboard', 'wallet'],
 });
 
 export default function DashboardPage() {
-  return <DashboardHub />;
+  return <DashboardWelcome />;
 }

@@ -2,6 +2,8 @@
  * Persistent left navigation for the dashboard shell (`app/(app-shell)`).
  * URLs stay the same; only the filesystem route group changes.
  */
+import { TOOL_CATALOG } from '@/lib/toolsCatalog';
+
 export type ShellNavItem = { href: string; label: string };
 
 export type ShellNavGroup = {
@@ -9,6 +11,27 @@ export type ShellNavGroup = {
   items: ShellNavItem[];
 };
 
+function navTrimTitle(title: string): string {
+  const t = title.replace(/\s+/g, ' ').trim();
+  return t.length <= 34 ? t : `${t.slice(0, 32)}…`;
+}
+
+function buildToolsNavItems(): ShellNavItem[] {
+  const items: ShellNavItem[] = [{ href: '/tools', label: 'All tools' }];
+  for (const e of TOOL_CATALOG) {
+    if ('href' in e) {
+      items.push({ href: e.href, label: navTrimTitle(e.title) });
+    } else {
+      items.push({
+        href: `/tools?tool=${encodeURIComponent(e.kind)}`,
+        label: navTrimTitle(e.title),
+      });
+    }
+  }
+  return items;
+}
+
+/** Full sidebar: every tool under Tools (used off the Hub). */
 export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
   {
     heading: 'Overview',
@@ -16,18 +39,15 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
   },
   {
     heading: 'Build',
-    items: [
-      { href: '/create', label: 'Create token' },
-      { href: '/tools', label: 'Tools' },
-      { href: '/liquidity', label: 'Liquidity' },
-    ],
+    items: [{ href: '/create', label: 'Create token' }],
+  },
+  {
+    heading: 'Tools',
+    items: buildToolsNavItems(),
   },
   {
     heading: 'Distribute',
-    items: [
-      { href: '/bulk', label: 'Bulk SOL & SPL' },
-      { href: '/wallet-generator', label: 'Paper wallet' },
-    ],
+    items: [{ href: '/wallet-generator', label: 'Paper wallet' }],
   },
   {
     heading: 'Discover',
@@ -56,15 +76,19 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
   },
 ];
 
-/** In-page sections on `/dashboard` (hash links). */
-export const DASHBOARD_HUB_ANCHORS: { hash: string; label: string }[] = [
-  { hash: 'dashboard-overview', label: 'Overview' },
-  { hash: 'dashboard-start', label: 'Start here' },
-  { hash: 'dashboard-launch', label: 'Launch' },
-  { hash: 'dashboard-token-manage', label: 'Token manage' },
-  { hash: 'dashboard-liquidity', label: 'Liquidity' },
-  { hash: 'dashboard-distribute', label: 'Distribute' },
-  { hash: 'dashboard-discover', label: 'Discover' },
-  { hash: 'dashboard-program', label: 'Program' },
-  { hash: 'dashboard-account', label: 'Account' },
-];
+/**
+ * Sidebar for the current route. On Hub (`/dashboard`) the Tools group is only “All tools” so
+ * the page is not a wall of links; individual tools stay in the full nav everywhere else.
+ */
+export function getDashboardShellNav(pathname: string): ShellNavGroup[] {
+  const onHub = pathname === '/dashboard';
+  if (!onHub) return DASHBOARD_SHELL_NAV;
+  return DASHBOARD_SHELL_NAV.map((group) =>
+    group.heading === 'Tools'
+      ? { ...group, items: [{ href: '/tools', label: 'All tools' }] }
+      : group,
+  );
+}
+
+/** In-page sections on `/dashboard` (hash links). Empty — Hub is a single short screen. */
+export const DASHBOARD_HUB_ANCHORS: { hash: string; label: string }[] = [];
