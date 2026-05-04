@@ -17,6 +17,7 @@ import {
   ECOSYSTEM_SOLSCAN_CPMM_POOL_SOL,
   ECOSYSTEM_SOLSCAN_CPMM_POOL_USDC,
   ECOSYSTEM_SOLSCAN_DEVELOPER,
+  ECOSYSTEM_RRESERVE_TOKEN_MINT,
   ECOSYSTEM_SOLSCAN_RRESERVE,
   ECOSYSTEM_SOLSCAN_TREASURY,
   solscanAccount,
@@ -56,7 +57,7 @@ export default function EcosystemPage() {
         <CardHeader>
           <CardTitle className="text-xl">On-chain references</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            Solscan (mainnet). Env overrides in deployment may change these defaults.
+            Solscan (mainnet). Addresses match the live site configuration.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm">
@@ -67,7 +68,8 @@ export default function EcosystemPage() {
           <ExplorerLink href={solscanAccount(ECOSYSTEM_SOLSCAN_CPMM_POOL_USDC)} label="CPMM pool (USDC leg)" />
           <ExplorerLink href={solscanAccount(ECOSYSTEM_SOLSCAN_CPMM_POOL_JUP_RRTT)} label="CPMM pool (JUP / RRTT)" />
           <ExplorerLink href={solscanAccount(ECOSYSTEM_SOLSCAN_CPMM_POOL_RAY_RRTT)} label="CPMM pool (RAY / RRTT)" />
-          <ExplorerLink href={solscanAccount(ECOSYSTEM_SOLSCAN_RRESERVE)} label="RRESERVE pair account" />
+          <ExplorerLink href={solscanToken(ECOSYSTEM_RRESERVE_TOKEN_MINT)} label="RRESERVE mint" />
+          <ExplorerLink href={solscanAccount(ECOSYSTEM_SOLSCAN_RRESERVE)} label="RRESERVE / RRTT pool state" />
         </CardContent>
       </Card>
 

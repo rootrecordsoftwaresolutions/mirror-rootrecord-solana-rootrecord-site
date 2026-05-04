@@ -190,11 +190,8 @@ export default async function TokenomicsPage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground border-t border-border/60 pt-4">
-            For a custom or non-mainnet USDC pool id shown here, set{' '}
-            <span className="font-mono">NEXT_PUBLIC_ECOSYSTEM_OTC_CPMM_POOL_ID_USDC</span>. Raydium
-            maintenance pool ids for automation live on the treasury Workers (
-            <span className="font-mono">TREASURY_SOL_CP_POOL_ID</span>,{' '}
-            <span className="font-mono">TREASURY_CP_MM_POOL_ID</span>)—see{' '}
+            Pool ids in this table track the live Raydium CPMM state accounts on mainnet. Treasury automation that
+            maintains SOL and RRESERVE-related liquidity runs on the schedule in{' '}
             <Link href="/operations/liquidity-timing" className="text-sol-green hover:underline">
               Liquidity timing
             </Link>
@@ -229,8 +226,8 @@ export default async function TokenomicsPage() {
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">Tokenomics — how the pieces fit</CardTitle>
           <CardDescription className="leading-relaxed text-base">
-            High-level map of supply, fees, treasury, external marks, and automation. Numbers that
-            are configurable in this app are called out explicitly; everything else is chain-observed.
+            High-level map of supply, fees, treasury, external marks, and automation. Treat explorer data as the source
+            of truth for live balances.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-8 leading-relaxed">
@@ -261,37 +258,51 @@ export default async function TokenomicsPage() {
             </p>
           </section>
 
-          <section className="space-y-3" id="rrreserve">
+          <section className="space-y-5" id="rrreserve-operations">
             <h2 className="text-base font-semibold text-foreground">
-              RRESERVE — pool token &amp; uncirculated reserve
+              RReserve operations — reserve pair &amp; treasury plumbing
             </h2>
-            <p>
-              The uncirculated reserve is an on-chain <strong className="text-foreground">pair</strong>{' '}
-              (pair / pool state below) that vaults <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong>{' '}
-              and the separate SPL mint{' '}
-              <strong className="text-foreground">RRESERVE</strong>{' '}
-              (<strong className="text-foreground">RRESERVE is a token in the pool</strong>—mint address
-              is not the same as the pair account). RRESERVE supply is capped at a maximum of{' '}
-              <strong className="text-foreground">{RRESERVE_TOKEN_SUPPLY_CAP}</strong> whole tokens.
-              Accounting in the pool uses a fixed{' '}
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">What it is.</strong> RRESERVE is the SPL mint used together with{' '}
+              {ECOSYSTEM_LISTING_SYMBOL} in RootRecord&apos;s <strong className="text-foreground">uncirculated reserve</strong>{' '}
+              Raydium CPMM pair. It is <strong className="text-foreground">not</strong> one of the open-market quote pools
+              (SOL, USDC, JUP, RAY) in the table above—those are where aggregators usually route public swaps. The RRESERVE
+              pair is where treasury-side accounting and inventory for the reserve leg live on-chain.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Accounting.</strong> RRESERVE supply is capped at{' '}
+              <strong className="text-foreground">{RRESERVE_TOKEN_SUPPLY_CAP}</strong> whole tokens. The pool uses a fixed{' '}
               <strong className="text-foreground">
                 1 : {RRESERVE_RRTT_RATIO_DENOMINATOR.toLocaleString('en-US')}
               </strong>{' '}
-              relationship—<strong className="text-foreground">1</strong> RRESERVE token to{' '}
+              mapping: <strong className="text-foreground">1</strong> whole RRESERVE token corresponds to{' '}
               <strong className="text-foreground">
                 {RRESERVE_RRTT_RATIO_DENOMINATOR.toLocaleString('en-US')}
               </strong>{' '}
-              {ECOSYSTEM_LISTING_SYMBOL} in the mint&apos;s smallest on-chain unit (atomic SPL amount;
-              confirm decimals on Solscan when converting to human-readable {ECOSYSTEM_LISTING_SYMBOL}).
+              atomic units of {ECOSYSTEM_LISTING_SYMBOL} (check mint decimals on Solscan when converting to human-readable
+              amounts).
             </p>
-            <p>
-              This reserve pool <strong className="text-foreground">does not</strong> have a WSOL/SOL
-              or USDC Raydium quote pair; do not expect Jupiter-style routing against SOL or USDC at
-              this pool id. Verify vault balances and both mints on Solscan.
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">How operations use it.</strong> Treasury automation watches native SOL
+              and SPL floors—including {ECOSYSTEM_LISTING_SYMBOL} and RRESERVE held for programs that depend on this
+              reserve—on the schedule in{' '}
+              <Link href="/operations/liquidity-timing" className="text-sol-green hover:underline font-medium">
+                Liquidity timing
+              </Link>
+              . When a leg is below target, the system can unwind liquidity from the treasury&apos;s{' '}
+              {ECOSYSTEM_LISTING_SYMBOL}/RRESERVE Raydium position (or use designated reserve inventory) so operational
+              wallets keep enough inventory without manual clicks. That is separate from users trading in the public quote
+              pools.
             </p>
-            <div className="space-y-2">
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Swaps.</strong> Do not expect Jupiter or typical routers to treat this
+              pair like a SOL- or USDC-quoted market—verify both mints and vault balances on an explorer before signing
+              anything unfamiliar.
+            </p>
+            <div className="space-y-2 rounded-lg border border-border/80 bg-white/[0.03] p-4">
+              <p className="text-sm font-medium text-foreground">On-chain references</p>
               <p>
-                <span className="text-muted-foreground">RRESERVE mint (Solscan token):</span>{' '}
+                <span className="text-muted-foreground">RRESERVE mint:</span>{' '}
                 <a
                   href={solscanToken(ECOSYSTEM_RRESERVE_TOKEN_MINT)}
                   target="_blank"
@@ -302,7 +313,7 @@ export default async function TokenomicsPage() {
                 </a>
               </p>
               <p>
-                <span className="text-muted-foreground">RRESERVE / {ECOSYSTEM_LISTING_SYMBOL} pair (Solscan):</span>{' '}
+                <span className="text-muted-foreground">RRESERVE / {ECOSYSTEM_LISTING_SYMBOL} pool state:</span>{' '}
                 <a
                   href={solscanAccount(ECOSYSTEM_SOLSCAN_RRESERVE)}
                   target="_blank"
@@ -398,12 +409,9 @@ export default async function TokenomicsPage() {
             <p>
               Beta / earn-program credits for {ECOSYSTEM_LISTING_SYMBOL} are reconciled into{' '}
               <strong className="text-foreground">hosted custodial wallets</strong> on Solana by a
-              scheduled job on RootRecord&apos;s API Worker: it runs{' '}
-              <strong className="text-foreground">once per calendar day at 07:00 UTC</strong> (cron{' '}
-              <code className="text-xs font-mono text-foreground/90">0 7 * * *</code>
-              ). In that pass the treasury keypair, when configured, can send owed whole-token units
-              to each custodial SPL account and add SOL lamports when the custodial account is below
-              the internal reserve floor—so network fees for operator-sponsored flows remain viable.
+              scheduled job that runs <strong className="text-foreground">once per calendar day at 07:00 UTC</strong>. In
+              that pass the treasury can send owed whole-token units to each custodial SPL account and add SOL lamports
+              when the custodial account is below the fee-reserve floor—so operator-sponsored flows stay viable.
             </p>
             <p>
               That timing is <strong className="text-foreground">not</strong> the same as app

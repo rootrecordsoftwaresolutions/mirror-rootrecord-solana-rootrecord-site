@@ -306,7 +306,7 @@ export function AccountPageClient() {
   const [ledger, setLedger] = useState<RewardsLedgerPage | null>(null);
   const [ledgerErr, setLedgerErr] = useState('');
   const [ledgerLoadingMore, setLedgerLoadingMore] = useState(false);
-  /** Mainnet balances read in the browser (uses NEXT_PUBLIC_RPC_URL + public fallbacks) when `/v1/me` exposes mint. */
+  /** Mainnet balances read in the browser when `/v1/me` exposes mint + pubkey. */
   const [chainBal, setChainBal] = useState<CustodialChainBalances | null>(null);
   const hasApi = Boolean(getRootRecordApiBase());
 
@@ -424,7 +424,10 @@ export function AccountPageClient() {
     e.preventDefault();
     applyStatus('', '');
     if (!hasApi) {
-      applyStatus('Sign-in is not available here yet. Set NEXT_PUBLIC_ROOTRECORD_API_BASE.', 'warn');
+      applyStatus(
+        'Sign-in isn’t enabled on this deployment yet. Use solana.rootrecord.info for the hosted account API.',
+        'warn',
+      );
       return;
     }
     setBusy(true);

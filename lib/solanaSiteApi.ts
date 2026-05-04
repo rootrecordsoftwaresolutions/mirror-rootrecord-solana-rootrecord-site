@@ -26,14 +26,11 @@ export async function fetchSolanaWorker(
   const origin = solanaWorkerOrigin();
   const secret = solanaWorkerSecret();
   if (!origin || !secret) {
-    const missing: string[] = [];
-    if (!origin) missing.push('SOLANA_SITE_LOG_URL');
-    if (!secret) missing.push('SOLANA_SITE_LOG_SECRET');
     return new Response(
       JSON.stringify({
         ok: false,
         skipped: true,
-        detail: `Server env not set: ${missing.join(', ')}. Use the Worker log URL origin and the same Bearer secret as on the Worker (see .env.example).`,
+        detail: 'This feature is not available on the server. Operators: configure the Solana site API connection in the deployment environment.',
       }),
       {
         status: 503,

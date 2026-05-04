@@ -16,159 +16,104 @@ export default function LiquidityTimingPage() {
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Automation</div>
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">Liquidity timing</h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl">
-          RootRecord keeps treasury Raydium CPMM positions within configured floors using a{' '}
-          <strong className="text-foreground">fixed UTC schedule</strong>. A short job runs on the
-          RootRecord API Worker (<code className="text-xs font-mono text-foreground/90">rootrecord-primary</code>
-          ), which calls a dedicated Solana transaction Worker (
-          <code className="text-xs font-mono text-foreground/90">rootrecord-solana-tx</code>) over HTTP
-          with an operator secret. On-chain signing uses the same treasury key material as earn and
-          custodial flows (<code className="text-xs font-mono text-foreground/90">RRTT_TREASURY_SECRET_KEY_B58</code>
-          on the Solana Worker).
+          RootRecord runs treasury checks on a <strong className="text-foreground">fixed UTC schedule</strong> so
+          Raydium positions and SPL balances used for operations stay within healthy floors—without tying that work
+          to when someone loads this site. Times below are all{' '}
+          <strong className="text-foreground">UTC</strong>.
         </p>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Why a schedule</CardTitle>
+          <CardTitle className="text-xl">Hourly treasury checks</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            Raydium maintenance touches RPC, pool state, and sometimes large transactions. Running
-            at predictable minutes spreads work across the hour and keeps the automation separate
-            from interactive site traffic. Times below are{' '}
-            <strong className="text-foreground">UTC</strong>.
+            Two windows each hour: first native SOL, then token balances including {ECOSYSTEM_LISTING_SYMBOL} and
+            RRESERVE.
           </CardDescription>
         </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Trigger: every five minutes</CardTitle>
-          <CardDescription className="text-base leading-relaxed">
-            Cloudflare invokes the API Worker on{' '}
-            <code className="text-xs font-mono text-foreground/90">*/5 * * * *</code> (minutes 0, 5,
-            10, 15, …). The handler always runs routine weather-related work first; then it inspects
-            the scheduled minute. Only <strong className="text-foreground">:00</strong> and{' '}
-            <strong className="text-foreground">:10</strong> enqueue treasury Solana jobs, so each
-            automation runs <strong className="text-foreground">once per hour</strong> at those
-            marks.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">:00 UTC — native SOL (treasury operations)</CardTitle>
-          <CardDescription className="text-base leading-relaxed">
-            Internal endpoint: <code className="text-xs font-mono text-foreground/90">POST …/run-treasury-sol-lp-check</code>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-4 leading-relaxed">
-          <p>
-            <strong className="text-foreground">Goal:</strong> keep the treasury wallet above a
-            minimum of <strong className="text-foreground">native SOL</strong> so it can pay network
-            fees and sponsor custodial flows. The floor comes from{' '}
-            <code className="text-xs font-mono text-foreground/90">TREASURY_MIN_SOL_UI</code> on the
-            Solana Worker (commonly around <strong className="text-foreground">0.01 SOL</strong>; exact
-            value is deployment-specific).
-          </p>
-          <p>
-            <strong className="text-foreground">Mechanism:</strong> if native SOL is below that
-            threshold, the Worker withdraws LP from the treasury&apos;s{' '}
-            <strong className="text-foreground">RRESERVE / WSOL</strong> Raydium CPMM pool configured
-            as <code className="text-xs font-mono text-foreground/90">TREASURY_SOL_CP_POOL_ID</code>,
-            burning LP shares held by the treasury and returning wrapped SOL, then unwrapping to native
-            SOL where the builder allows. If the pool id or mint envs are missing, the run is skipped
-            with a logged reason rather than failing the whole Worker.
-          </p>
-          <p>
-            <strong className="text-foreground">Net effect:</strong> inventory moves from the SOL-side
-            Raydium pool into spendable lamports on the treasury, prioritizing operational SOL over
-            LP depth until the floor is restored.
-          </p>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm text-left border border-border/80 rounded-lg overflow-hidden">
+            <thead className="bg-white/5 text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">When (UTC)</th>
+                <th className="px-4 py-3 font-medium">What it does</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/80 text-muted-foreground">
+              <tr className="align-top">
+                <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">Each hour at :00</td>
+                <td className="px-4 py-3 leading-relaxed">
+                  Confirms the treasury wallet holds enough <strong className="text-foreground">native SOL</strong>{' '}
+                  for fees and custodial flows. If SOL is low, automation can unwind liquidity from the treasury&apos;s{' '}
+                  <strong className="text-foreground">SOL-side Raydium pool</strong> (wrapped SOL leg) so lamports are
+                  available for operations.
+                </td>
+              </tr>
+              <tr className="align-top">
+                <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">Each hour at :10</td>
+                <td className="px-4 py-3 leading-relaxed">
+                  Confirms <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> and{' '}
+                  <strong className="text-foreground">RRESERVE</strong> on the treasury meet minimum targets for earn,
+                  liquidity tooling, and RReserve-style accounting. If a leg is short, automation can withdraw liquidity
+                  from the treasury&apos;s <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL} / RRESERVE</strong>{' '}
+                  Raydium pool (see{' '}
+                  <Link href="/operations/tokenomics#rrreserve-operations" className="text-sol-green hover:underline">
+                    RReserve operations
+                  </Link>
+                  ) or move inventory from a designated reserve wallet when configured.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">
-            :10 UTC — {ECOSYSTEM_LISTING_SYMBOL} and RRESERVE SPL floors
-          </CardTitle>
+          <CardTitle className="text-xl">Daily earn settlement</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            Internal endpoint:{' '}
-            <code className="text-xs font-mono text-foreground/90">POST …/run-treasury-liquidity-check</code>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-4 leading-relaxed">
-          <p>
-            <strong className="text-foreground">Goal:</strong> keep minimum on-hand balances of{' '}
-            <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> and{' '}
-            <strong className="text-foreground">RRESERVE</strong> on the treasury for earn, liquidity
-            tooling, and related programs. Minimums are whole-token UI strings on the Solana Worker:{' '}
-            <code className="text-xs font-mono text-foreground/90">TREASURY_LIQ_MIN_RRTT_UI</code> and{' '}
-            <code className="text-xs font-mono text-foreground/90">TREASURY_LIQ_MIN_RRESERVE_UI</code>{' '}
-            (defaults in code are high enough that normal operations expect millions of whole{' '}
-            {ECOSYSTEM_LISTING_SYMBOL} and a small whole number of RRESERVE—treat docs as illustrative
-            and read live env for your deployment).
-          </p>
-          <p>
-            <strong className="text-foreground">Mechanism:</strong> the Worker compares SPL balances
-            at the treasury ATAs to those floors. If either leg is short, it burns treasury-held LP on
-            the <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL} / RRESERVE</strong> CPMM
-            pool <code className="text-xs font-mono text-foreground/90">TREASURY_CP_MM_POOL_ID</code>{' '}
-            to release underlying tokens. If balances are still short after that (for example LP was
-            thin or already depleted), an optional second wallet{' '}
-            <code className="text-xs font-mono text-foreground/90">TREASURY_MAINTENANCE_SOURCE_SECRET_KEY_B58</code>{' '}
-            may transfer SPL from inventory into the treasury. Failures and persistent shortages can
-            emit Discord notifications when webhooks are configured.
-          </p>
-          <p>
-            <strong className="text-foreground">Net effect:</strong> SPL inventory on the treasury
-            is replenished from Raydium LP (and optionally from a maintenance wallet) before user-facing
-            jobs need those tokens—without tying the process to browser sessions or manual clicks.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Other automation you may see referenced</CardTitle>
-          <CardDescription className="text-base leading-relaxed">
-            Separate from the Raydium five-minute cadence above.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-4 leading-relaxed">
-          <p>
-            <strong className="text-foreground">Earn → custodial mirror (07:00 UTC):</strong> the same
-            API Worker runs a <strong className="text-foreground">daily</strong> cron (
-            <code className="text-xs font-mono text-foreground/90">0 7 * * *</code>) that can push
-            owed {ECOSYSTEM_LISTING_SYMBOL} from treasury to hosted custodial wallets and top up
-            custodial SOL reserves. That job answers product settlement, not Raydium LP shape.
-          </p>
-          <p>
-            <strong className="text-foreground">Manual runs:</strong> operators can POST the same
-            internal treasury routes with the admin key when debugging or catching up—behavior
-            matches the scheduled invocations.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">How to verify on-chain</CardTitle>
-          <CardDescription className="text-base leading-relaxed">
-            Explorer truth beats documentation when the two differ.
+            Separate from the hourly Raydium checks above.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
           <p>
-            Confirm treasury pubkey, pool ids, and transaction history in Solscan (or your preferred
-            explorer) using the env values actually deployed. Jupiter marks and pool reserves change
-            continuously; this page describes <em>when</em> automation runs and <em>what</em> it is
-            designed to do, not future prices or yields.
-          </p>
-          <p>
-            For pool addresses and reserve accounting context, see{' '}
+            <strong className="text-foreground">Once per day at 07:00 UTC</strong>, RootRecord attempts to move owed{' '}
+            {ECOSYSTEM_LISTING_SYMBOL} from program accounting into <strong className="text-foreground">hosted custodial</strong>{' '}
+            wallets on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta /
+            earn rewards—not the shape of Raydium LP in the pools listed on{' '}
             <Link href="/operations/tokenomics" className="text-sol-green hover:underline">
               Tokenomics
+            </Link>
+            .
+          </p>
+          <p>
+            Until a run succeeds on-chain, apps may still show balances as settling. RPC or treasury conditions can defer
+            an individual payout.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Verify on-chain</CardTitle>
+          <CardDescription className="text-base leading-relaxed">
+            Explorers show live balances and txs; this page only describes intent and timing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
+          <p>
+            Use{' '}
+            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="text-sol-green hover:underline">
+              Solscan
+            </a>{' '}
+            (or your explorer) for treasury keys, pool state accounts, and reserves. For addresses and how RRESERVE
+            fits next to public SOL/USDC/JUP/RAY pools, see{' '}
+            <Link href="/operations/ecosystem" className="text-sol-green hover:underline">
+              Ecosystem
+            </Link>{' '}
+            and{' '}
+            <Link href="/operations/tokenomics" className="text-sol-green hover:underline">
+              Tokenomics &amp; markets
             </Link>
             .
           </p>

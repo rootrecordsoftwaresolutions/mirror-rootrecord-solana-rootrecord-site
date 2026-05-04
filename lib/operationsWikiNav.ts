@@ -9,26 +9,26 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
   {
     href: '/operations',
     label: 'Overview',
-    description: 'How this wiki is organized and what to read first.',
+    description: 'Short guide to pools, docs, and schedules.',
   },
   {
     href: '/operations/docs',
     label: 'Documentation',
-    description: 'Wallet setup, create & manage tokens, referrals, paper wallets, and hosted rewards.',
+    description: 'Wallet, create, tools, referrals, paper wallet, rewards.',
   },
   {
     href: '/operations/ecosystem',
     label: 'Ecosystem',
-    description: 'Listing mint, treasury, Raydium CPMM pool accounts — Solscan links.',
+    description: 'Solscan links for mint, treasury, and pools.',
   },
   {
     href: '/operations/liquidity-timing',
     label: 'Liquidity timing',
-    description: 'UTC cadence for treasury Raydium maintenance and SPL floor checks.',
+    description: 'When treasury checks run (UTC) and daily earn settlement.',
   },
   {
     href: '/operations/tokenomics',
     label: 'Tokenomics & markets',
-    description: 'Pools, supply, fees, automation, and how to read multi-pool context.',
+    description: 'Pools, RReserve operations, fees, and reading markets responsibly.',
   },
 ] as const;

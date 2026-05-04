@@ -40,7 +40,7 @@ export function friendlyPortalApiError(j: Record<string, unknown>): string {
         : '';
   if (msg && msg.length < 400 && !looksTechnicalMessage(msg)) {
     if (msg === 'not_found') {
-      return 'That account API path is not available. Deploy the latest rootrecord-primary Worker or check NEXT_PUBLIC_ROOTRECORD_API_BASE.';
+      return 'That account API path is not available. Try again on the production Solana Tools site.';
     }
     return msg;
   }
@@ -98,7 +98,7 @@ export async function portalSignup(
   deviceId: string,
 ): Promise<{ ok: true; access_token: string } | { ok: false; detail: string }> {
   const base = getRootRecordApiBase();
-  if (!base) return { ok: false, detail: 'Account API is not configured (NEXT_PUBLIC_ROOTRECORD_API_BASE).' };
+  if (!base) return { ok: false, detail: 'Account API is not configured for this build.' };
   const res = await fetch(`${base}/v1/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

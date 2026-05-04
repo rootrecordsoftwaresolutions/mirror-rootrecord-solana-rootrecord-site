@@ -30,7 +30,10 @@ export function AccountSignupClient() {
     e.preventDefault();
     setStatus({ msg: '', kind: '' });
     if (!hasApi) {
-      setStatus({ msg: 'Creating an account is not available here yet. Set NEXT_PUBLIC_ROOTRECORD_API_BASE.', kind: 'warn' });
+      setStatus({
+        msg: 'Creating an account isn’t enabled on this deployment yet. Try the live site at solana.rootrecord.info.',
+        kind: 'warn',
+      });
       return;
     }
     if (password.length < 10) {
@@ -103,7 +106,8 @@ export function AccountSignupClient() {
       {!hasApi ? (
         <Card className="border-border bg-ink-800/40">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            Account API is not configured. Add <code className="text-xs">NEXT_PUBLIC_ROOTRECORD_API_BASE</code>.
+            Account sign-up isn’t wired up on this copy of the app. Use the production Solana Tools site to create an
+            account.
           </CardContent>
         </Card>
       ) : (

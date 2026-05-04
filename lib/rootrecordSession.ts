@@ -120,7 +120,7 @@ export async function rootrecordLogin(
   password: string,
 ): Promise<{ ok: true; access_token: string } | { ok: false; detail: string }> {
   const base = getRootRecordApiBase();
-  if (!base) return { ok: false, detail: 'Account API is not configured (NEXT_PUBLIC_ROOTRECORD_API_BASE).' };
+  if (!base) return { ok: false, detail: 'Account API is not configured for this build.' };
   const res = await fetch(`${base}/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

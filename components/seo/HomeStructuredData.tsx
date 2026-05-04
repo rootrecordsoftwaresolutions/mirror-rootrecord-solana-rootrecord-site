@@ -28,7 +28,7 @@ const FAQ_MAIN_ENTITY = [
     acceptedAnswer: {
       '@type': 'Answer',
       text:
-        'Yes. Set NEXT_PUBLIC_SOLANA_NETWORK=devnet and a devnet RPC URL in your environment. The same create and tool flows work on devnet for testing.',
+        'Yes. With a devnet-capable site configuration and RPC, the same create and tool flows work on Solana devnet for testing.',
     },
   },
   {

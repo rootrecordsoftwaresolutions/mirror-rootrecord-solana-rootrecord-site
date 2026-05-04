@@ -21,9 +21,8 @@ export default function OperationsIndexPage() {
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Wiki</div>
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">Operations</h1>
         <p className="max-w-2xl text-muted-foreground leading-relaxed">
-          How the product works, how treasury and pools show up on-chain, and where to verify claims in
-          a block explorer. Pick a page from the tree — the same list stays in the sidebar on desktop
-          and in the menu on mobile.
+          Plain-language notes on pools, balances, and schedules. Use the explorer links on each page to confirm anything
+          that matters for your decisions.
         </p>
       </header>
 
