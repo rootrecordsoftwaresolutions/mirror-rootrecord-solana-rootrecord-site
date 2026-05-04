@@ -1069,7 +1069,7 @@ export function ToolDialog({ kind, initialMint, onClose }: Props) {
                 (!burnMintMeta ||
                   burnMintMeta.loading ||
                   burnMintMeta.decimals === undefined ||
-                  burnMintMeta.error))
+                  !!burnMintMeta.error))
             }
             variant={
               kind.startsWith('revoke') ||
