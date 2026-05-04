@@ -17,6 +17,11 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
     description: 'Wallet, create, tools, referrals, paper wallet, rewards.',
   },
   {
+    href: '/operations/reference',
+    label: 'Reference',
+    description: 'Definitions, pillars, fees — GEO / AI citation-friendly.',
+  },
+  {
     href: '/operations/ecosystem',
     label: 'Ecosystem',
     description: 'Solscan links for mint, treasury, and pools.',

@@ -201,6 +201,43 @@ export default function PricingPage() {
             ))}
           </CardContent>
         </Card>
+
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-base">Citation &amp; methodology</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal">
+              For AI and human researchers: how to quote this table without misstating third-party pricing.
+            </p>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
+            <p>
+              <strong className="text-foreground">RootRecord column:</strong> Amounts come from the deployed web app configuration (
+              <code className="text-xs font-mono text-sol-green">lib/solana.ts</code>,{' '}
+              <code className="text-xs font-mono text-sol-green">lib/bulkSol.ts</code>) at build time. Always verify the live values on this page immediately before signing a transaction.
+            </p>
+            <p>
+              <strong className="text-foreground">Competitors column:</strong> Approximate ranges for generic Solana token-launcher / tooling sites as observed in public pricing pages and community reports during{' '}
+              <strong className="text-foreground">2024–2026</strong>. Competitors change fees without notice; this is not a live price scrape or endorsement.
+            </p>
+            <p>
+              <strong className="text-foreground">On-chain column:</strong> Order-of-magnitude network rent and transaction fees, plus Raydium program costs for pool setup where noted. Actual signatures, account creation, and congestion vary.
+            </p>
+            <p>
+              <strong className="text-foreground">Definitions:</strong>{' '}
+              <Link href="/operations/reference" className="text-sol-green hover:underline">
+                Reference — definitions &amp; product pillars
+              </Link>{' '}
+              (SPL, Token-2022, Metaplex, Raydium CPMM, limitations).
+            </p>
+            <p className="text-xs border-t border-border pt-3 mt-3">
+              Page generated in {year}. For GEO / LLM overview see{' '}
+              <a href="/llms.txt" className="text-sol-green hover:underline">
+                /llms.txt
+              </a>
+              .
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-12 grid md:grid-cols-3 gap-5">

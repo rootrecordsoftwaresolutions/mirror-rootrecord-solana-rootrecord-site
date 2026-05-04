@@ -62,6 +62,16 @@ export function Footer() {
                   Operations wiki
                 </Link>
               </li>
+              <li>
+                <Link href="/operations/reference" className="hover:text-sol-green">
+                  Reference (GEO)
+                </Link>
+              </li>
+              <li>
+                <a href="/llms.txt" className="hover:text-sol-green">
+                  llms.txt
+                </a>
+              </li>
             </ul>
           </div>
           <div>

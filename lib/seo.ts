@@ -303,6 +303,7 @@ export const SEO_STATIC_PATHS: readonly string[] = [
   '/token-stats',
   '/operations',
   '/operations/docs',
+  '/operations/reference',
   '/operations/ecosystem',
   '/operations/liquidity-timing',
   '/operations/tokenomics',

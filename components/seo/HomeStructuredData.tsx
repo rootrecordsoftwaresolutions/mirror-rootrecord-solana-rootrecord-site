@@ -60,6 +60,15 @@ const FAQ_MAIN_ENTITY = [
   },
   {
     '@type': 'Question',
+    name: 'Where are canonical definitions for RootRecord Solana tools?',
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text:
+        'Use the Reference page at /operations/reference for dated definitions of SPL, Token-2022, Metaplex metadata, Raydium CPMM, each /tools action, bulk sends, and paper wallets, with fee context pointing to /pricing. A short machine-readable summary for crawlers is at /llms.txt.',
+    },
+  },
+  {
+    '@type': 'Question',
     name: 'Can I add Raydium CPMM liquidity from RootRecord?',
     acceptedAnswer: {
       '@type': 'Answer',
