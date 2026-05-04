@@ -9,6 +9,12 @@ designed as a calm, no-BS extension of [rootrecord.info](https://rootrecord.info
 
 Lives at: **solana.rootrecord.info**
 
+## GEO / AI-friendly entry points (citations)
+
+- **[`/llms.txt`](https://solana.rootrecord.info/llms.txt)** — short machine-readable product summary for LLM crawlers.
+- **[`/operations/reference`](https://solana.rootrecord.info/operations/reference)** — dated definitions (SPL, Token-2022, Metaplex, Raydium CPMM, `/tools` actions, bulk, paper wallet) + FAQ/HowTo JSON-LD.
+- **[`/pricing`](https://solana.rootrecord.info/pricing)** — live fee table + “Citation & methodology” for the competitor column.
+
 ## Features
 
 - **Create Token** (`/create`) — Single-tx SPL mint creation with Metaplex v3
