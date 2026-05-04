@@ -49,7 +49,10 @@ const SITE = metadataBaseUrl();
 
 const SOCIAL_IMAGE_PATH = '/brand.jpg';
 
-const GOOGLE_SITE_VERIFICATION = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
+/** Override via `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` if Search Console rotates the token. */
+const GOOGLE_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() ||
+  'ODUjEogoHQ7G5UBPR3sy5ESJ-gKo47hgy35OHV4ecrs';
 
 export const metadata: Metadata = {
   metadataBase: SITE,
@@ -98,9 +101,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
   },
-  ...(GOOGLE_SITE_VERIFICATION
-    ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
-    : {}),
+  verification: {
+    google: GOOGLE_SITE_VERIFICATION,
+  },
 };
 
 export const viewport: Viewport = {
