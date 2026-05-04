@@ -12,9 +12,9 @@ import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
 export async function generateMetadata(): Promise<Metadata> {
   return pageSeo({
     path: '/',
-    title: 'Solana SPL & Token-2022 tools',
+    title: 'Create Solana Token',
     description:
-      'Low-fee Solana token creator and full tool suite: SPL & Token-2022 mints, Metaplex metadata via Pinata IPFS, revoke mint & freeze authority, bulk freeze/thaw holder ATAs, mint more & burn, update & lock listing metadata, Token-2022 withdraw/harvest fees & fee config, Raydium CPMM liquidity, bulk SOL & SPL sends, shareable token stats, referrals, printable paper wallets. Flat SOL pricing — no subscriptions.',
+      'The easiest way to create a Solana token (SPL) in seconds. Use RootRecord high-speed infrastructure to deploy tokens and manage on-chain assets.',
     keywords: [...SEO_MASTER_KEYWORDS],
   });
 }
@@ -208,6 +208,16 @@ export default function HomePage() {
         <p className="mt-4 text-xs text-muted-foreground">
           Fees collected from public pricing pages of competitors as of Q1 2026.
           We&apos;ll happily update if anyone publishes lower numbers.
+        </p>
+      </section>
+
+      {/* Intent / SEO — instructional copy for “create Solana token” queries */}
+      <section className="container pb-16 md:pb-20">
+        <p className="mx-auto max-w-3xl text-center text-sm md:text-base text-muted-foreground leading-relaxed">
+          RootRecord is the premier tool to{' '}
+          <strong className="text-foreground font-medium">create a Solana token</strong>. Whether you are
+          launching a memecoin or a utility project, our Solana token creator ensures low fees and instant
+          deployment — connect your wallet, configure your mint, sign on-chain, and keep custody.
         </p>
       </section>
 

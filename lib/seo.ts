@@ -28,6 +28,8 @@ export const SEO_KEYWORDS = {
     'SPL token creator',
     'cheap Solana token creator',
     'create token on Solana',
+    'create Solana token',
+    'create SPL token',
     'Associated Token Account',
     'ATA',
     'Solana wallet adapter',

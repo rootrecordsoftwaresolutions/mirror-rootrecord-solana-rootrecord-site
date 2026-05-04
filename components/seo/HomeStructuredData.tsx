@@ -15,6 +15,15 @@ function JsonLd({ data }: { data: Record<string, unknown> }) {
 const FAQ_MAIN_ENTITY = [
   {
     '@type': 'Question',
+    name: 'How do I create a Solana token?',
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text:
+        'Go to solana.rootrecord.info, connect a wallet (Phantom, Backpack, etc.), open Create, enter token name, symbol, and decimals, then sign the deployment transaction. RootRecord never asks for your seed phrase.',
+    },
+  },
+  {
+    '@type': 'Question',
     name: 'Does RootRecord custody my tokens?',
     acceptedAnswer: {
       '@type': 'Answer',

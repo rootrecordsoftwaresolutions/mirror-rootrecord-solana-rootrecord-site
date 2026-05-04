@@ -58,11 +58,11 @@ export const metadata: Metadata = {
   metadataBase: SITE,
   applicationName: 'RootRecord Solana Tools',
   title: {
-    default: 'RootRecord Solana Tools | SPL & Token-2022 creator',
+    default: 'Create Solana Token | RootRecord Solana Tools',
     template: '%s | RootRecord Solana Tools',
   },
   description:
-    'Solana SPL & Token-2022 toolkit: create mints + Metaplex metadata (Pinata IPFS), revoke mint/freeze authority, bulk freeze or thaw holder ATAs, mint more or burn, update or lock listing metadata, Token-2022 withdraw/harvest fees and fee config, Raydium CPMM pools and liquidity, bulk SOL/SPL sends, paper wallet generator, token stats & referrals. Flat SOL fees, no subscriptions.',
+    'The easiest way to create a Solana token (SPL) in seconds. Use RootRecord high-speed infrastructure to deploy tokens and manage on-chain assets.',
   keywords: [...SEO_MASTER_KEYWORDS],
   authors: [{ name: 'RootRecord', url: 'https://rootrecord.info' }],
   creator: 'RootRecord',
@@ -73,9 +73,9 @@ export const metadata: Metadata = {
     apple: [{ url: SOCIAL_IMAGE_PATH, type: 'image/jpeg' }],
   },
   openGraph: {
-    title: 'RootRecord Solana Tools | Cheapest Token Creator on Solana',
+    title: 'Create Solana Token | RootRecord Solana Tools',
     description:
-      'Create SPL & Token-2022 tokens, manage authorities & metadata, Raydium liquidity, bulk sends, paper wallets — low flat SOL fees.',
+      'The easiest way to create a Solana token (SPL) in seconds. Deploy SPL & Token-2022 mints, manage authorities & metadata, Raydium liquidity, bulk sends — low flat SOL fees.',
     url: SITE.href.replace(/\/$/, ''),
     siteName: 'RootRecord Solana Tools',
     type: 'website',
@@ -91,9 +91,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@rootrecord',
     creator: '@rootrecord',
-    title: 'RootRecord Solana Tools',
+    title: 'Create Solana Token | RootRecord Solana Tools',
     description:
-      'Full Solana token stack: create, tools, liquidity, bulk, cold wallets — flat SOL fees vs typical 2× elsewhere.',
+      'Create a Solana token (SPL) in seconds. Deploy tokens and manage on-chain assets with flat SOL fees.',
     images: [SOCIAL_IMAGE_PATH],
   },
   robots: {
