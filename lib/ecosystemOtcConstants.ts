@@ -75,11 +75,17 @@ export const OTC_PRESALE_MATCHED_FEE_RESERVE_BPS = 200;
 export const OTC_PRESALE_POOL_USDC_BPS = 4900;
 export const OTC_PRESALE_POOL_SOL_BPS = 4900;
 
-const parsedFreezeDays = Number(process.env.NEXT_PUBLIC_OTC_PRESALE_FREEZE_DAYS?.trim());
+/** Public pool liquidity opens (tradable on Raydium / aggregators). UTC. */
+export const PRESALE_MARKET_OPEN_AT_ISO = '2026-06-07T10:00:00.000Z' as const;
+
+export const PRESALE_MARKET_OPEN_AT_MS = new Date(PRESALE_MARKET_OPEN_AT_ISO).getTime();
 
 /**
- * OTC buyer allocation: SPL token account stays **frozen** this many full calendar days after mint
- * (operator must thaw after; see tokenomics). Override with `NEXT_PUBLIC_OTC_PRESALE_FREEZE_DAYS`.
+ * Pool vault accounts that unlock at {@link PRESALE_MARKET_OPEN_AT_ISO} (SOL vs USDC quote legs).
+ * Same addresses as custodial freeze exclusions / homepage countdown.
  */
-export const OTC_PRESALE_FREEZE_DAYS =
-  Number.isFinite(parsedFreezeDays) && parsedFreezeDays > 0 ? Math.floor(parsedFreezeDays) : 30;
+export const PRESALE_POOL_UNLOCK_SOL_ACCOUNT =
+  'GjUnPAYqf3NQL5dDBDH2TdmgkSe53AdaXwDggxFKFryz';
+
+export const PRESALE_POOL_UNLOCK_USDC_ACCOUNT =
+  'B5AZM1c9oPDUUY4bgyaEYNaGHbnPDXGp1qDqQeU1w9KW';

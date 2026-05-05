@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JupiterWalletPromo } from '@/components/JupiterWalletPromo';
+import { PresaleMarketCountdown } from '@/components/home/PresaleMarketCountdown';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageSeo({
@@ -108,6 +109,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <PresaleMarketCountdown />
 
       {/* WALLET */}
       <section

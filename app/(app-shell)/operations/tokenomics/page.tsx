@@ -9,7 +9,6 @@ import {
   ECOSYSTEM_SOLSCAN_DEVELOPER,
   ECOSYSTEM_SOLSCAN_TREASURY,
   OTC_PRESALE_MATCHED_FEE_RESERVE_BPS,
-  OTC_PRESALE_FREEZE_DAYS,
   OTC_PRESALE_POOL_SOL_BPS,
   OTC_PRESALE_POOL_USDC_BPS,
   OTC_PRESALE_USD_PEG,
@@ -32,12 +31,11 @@ const showSeparateDevWallet =
 export const metadata: Metadata = pageSeo({
   path: '/operations/tokenomics',
   title: `Tokenomics & markets — ${ECOSYSTEM_LISTING_SYMBOL}`,
-  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): OTC pre-sale peg, ${OTC_PRESALE_FREEZE_DAYS}-day buyer freeze, mint allocation, treasury, pool-related accounts — descriptive, not investment advice.`,
+  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): OTC pre-sale peg, mint allocation, treasury, pool-related accounts — descriptive, not investment advice.`,
   keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenDashboard'), [
     ECOSYSTEM_LISTING_SYMBOL,
     'tokenomics',
     'OTC pre-sale',
-    'token freeze',
     'liquidity',
     'treasury token',
     'live price',
@@ -90,59 +88,12 @@ export default function TokenomicsPage() {
           <CardTitle className="text-xl md:text-2xl">OTC pre-sale</CardTitle>
           <CardDescription className="leading-relaxed text-base">
             Primary allocation mechanics for early supporters: fixed USD peg, mint-based fulfillment (no inventory
-            transfer), paired liquidity seeding, and a{' '}
-            <strong className="text-foreground">{OTC_PRESALE_FREEZE_DAYS}-day SPL freeze</strong> on buyer token
-            accounts. This section describes operator intent for the current program — not a binding contract, not
-            investment advice, and not an offer to sell securities in any jurisdiction.
+            transfer), and paired liquidity seeding. Buyer allocations are minted to normal unlocked token accounts.
+            This section describes operator intent for the current program — not a binding contract, not investment
+            advice, and not an offer to sell securities in any jurisdiction.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-6 leading-relaxed">
-          <div
-            id="otc-freeze"
-            className="scroll-mt-24 rounded-xl border-2 border-amber-500/70 bg-gradient-to-br from-amber-950/50 to-black/40 px-4 py-5 md:px-6 md:py-6 shadow-[inset_0_1px_0_0_rgba(251,191,36,0.15)]"
-            role="region"
-            aria-label="OTC buyer freeze policy"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-200/90">
-              Required notice — buyer allocation
-            </p>
-            <p className="mt-3 font-display text-2xl font-semibold tracking-tight text-amber-50 md:text-3xl">
-              {OTC_PRESALE_FREEZE_DAYS}-day freeze on your {ECOSYSTEM_LISTING_SYMBOL}
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-amber-50/90 md:text-base">
-              OTC allocations are minted to your wallet&apos;s <strong className="text-amber-100">token account</strong>{' '}
-              for {ECOSYSTEM_LISTING_SYMBOL}, then that account is <strong className="text-amber-100">frozen</strong>{' '}
-              under standard SPL rules. You <strong className="text-amber-100">cannot transfer, swap, or sell</strong>{' '}
-              those tokens until the freeze authority <strong className="text-amber-100">thaws</strong> your account after{' '}
-              <strong className="text-amber-100">{OTC_PRESALE_FREEZE_DAYS} full calendar days</strong> from mint settlement.
-              Your wallet still holds other assets normally; only this mint&apos;s balance in that token account is
-              restricted.
-            </p>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-amber-50/85 marker:text-amber-400/90">
-              <li>
-                <strong className="text-amber-100">Purpose:</strong> reduce immediate resale pressure so OTC issuance does
-                not dump onto open markets on day one.
-              </li>
-              <li>
-                <strong className="text-amber-100">Clock:</strong> {OTC_PRESALE_FREEZE_DAYS} calendar days from the{' '}
-                <strong className="text-amber-100">confirmed</strong> mint / settlement — verify the transaction time on{' '}
-                <a
-                  href="https://solscan.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-amber-200 underline decoration-amber-400/60 underline-offset-2 hover:text-amber-50"
-                >
-                  Solscan
-                </a>
-                .
-              </li>
-              <li>
-                <strong className="text-amber-100">After day {OTC_PRESALE_FREEZE_DAYS}:</strong> operators thaw your{' '}
-                {ECOSYSTEM_LISTING_SYMBOL} token account so you can move tokens freely (subject to normal network fees).
-              </li>
-            </ul>
-          </div>
-
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Price &amp; payment</h2>
             <p>
@@ -183,12 +134,7 @@ export default function TokenomicsPage() {
                 </thead>
                 <tbody className="divide-y divide-border/80">
                   <tr>
-                    <td className="px-4 py-3 text-foreground">
-                      Buyer ATA (minted)
-                      <span className="mt-1 block text-xs font-normal text-amber-200/90">
-                        SPL-frozen {OTC_PRESALE_FREEZE_DAYS} days — no transfers until thaw
-                      </span>
-                    </td>
+                    <td className="px-4 py-3 text-foreground">Buyer ATA (minted, transferable)</td>
                     <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground align-top">100</td>
                   </tr>
                   <tr>
@@ -246,9 +192,8 @@ export default function TokenomicsPage() {
             <p className="font-medium text-foreground">Participation</p>
             <p>
               OTC subscriptions are arranged directly with RootRecord operators and may require KYC / eligibility checks
-              depending on jurisdiction. By participating you acknowledge the{' '}
-              <strong className="text-foreground">{OTC_PRESALE_FREEZE_DAYS}-day SPL freeze</strong> on minted buyer tokens
-              described above. This website documents mechanics only; it does not process OTC payments or mint on its own.
+              depending on jurisdiction. This website documents mechanics only; it does not process OTC payments or mint on
+              its own.
             </p>
           </section>
         </CardContent>
