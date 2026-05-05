@@ -58,3 +58,19 @@ export const OTC_USD_PER_TOKEN = 0.00001;
 
 /** Wrapped SOL mint (Jupiter price id). */
 export const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+/** OTC pre-sale peg: USD per whole listing token (public tokenomics). */
+export const OTC_PRESALE_USD_PEG = 1;
+
+/**
+ * Of the **matched** liquidity mint (equal to the buyer tranche at the peg), basis points
+ * reserved to accumulate SOL for SPL transfer fees before splitting the rest across pools.
+ */
+export const OTC_PRESALE_MATCHED_FEE_RESERVE_BPS = 200;
+
+/**
+ * Remainder of the matched tranche after {@link OTC_PRESALE_MATCHED_FEE_RESERVE_BPS}, split
+ * between USDC-quoted and SOL-quoted pool seeding (each ~49% of the original matched tranche).
+ */
+export const OTC_PRESALE_POOL_USDC_BPS = 4900;
+export const OTC_PRESALE_POOL_SOL_BPS = 4900;

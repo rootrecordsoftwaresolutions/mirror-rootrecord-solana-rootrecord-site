@@ -8,6 +8,10 @@ import {
   ECOSYSTEM_POOL_RELATED_ACCOUNTS,
   ECOSYSTEM_SOLSCAN_DEVELOPER,
   ECOSYSTEM_SOLSCAN_TREASURY,
+  OTC_PRESALE_MATCHED_FEE_RESERVE_BPS,
+  OTC_PRESALE_POOL_SOL_BPS,
+  OTC_PRESALE_POOL_USDC_BPS,
+  OTC_PRESALE_USD_PEG,
   OTC_USD_PER_TOKEN,
   solscanAccount,
   solscanToken,
@@ -32,10 +36,11 @@ const showSeparateDevWallet =
 export const metadata: Metadata = pageSeo({
   path: '/operations/tokenomics',
   title: `Tokenomics & markets — ${ECOSYSTEM_LISTING_SYMBOL}`,
-  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): treasury, pool-related on-chain accounts, Jupiter reference pricing, and RootRecord fee context on Solana — descriptive, not investment advice.`,
+  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): OTC pre-sale peg and mint allocation, treasury, pool-related accounts, Jupiter reference pricing — descriptive, not investment advice.`,
   keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenDashboard'), [
     ECOSYSTEM_LISTING_SYMBOL,
     'tokenomics',
+    'OTC pre-sale',
     'liquidity',
     'treasury token',
     'Jupiter OTC reference',
@@ -91,6 +96,121 @@ export default async function TokenomicsPage() {
           .
         </p>
       </header>
+
+      <Card id="otc-presale" className="scroll-mt-24 border-sol-green/40">
+        <CardHeader>
+          <CardTitle className="text-xl md:text-2xl">OTC pre-sale</CardTitle>
+          <CardDescription className="leading-relaxed text-base">
+            Primary allocation mechanics for early supporters: fixed USD peg, mint-based fulfillment (no inventory
+            transfer), and paired liquidity seeding. This section describes operator intent for the current program —
+            not a binding contract, not investment advice, and not an offer to sell securities in any jurisdiction.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-6 leading-relaxed">
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Price &amp; payment</h2>
+            <p>
+              Each whole <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> token is offered at a{' '}
+              <strong className="text-foreground">${OTC_PRESALE_USD_PEG.toFixed(2)} USD</strong> reference peg for this
+              pre-sale. Payment is accepted in <strong className="text-foreground">native SOL</strong> or{' '}
+              <strong className="text-foreground">USDC</strong>. The USD value of SOL at settlement follows the same
+              pricing sources operators use for treasury accounting (typically a short-lived Jupiter / index-style USD
+              mark at execution time — confirm in your purchase instructions).
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Mint, don&apos;t transfer</h2>
+            <p>
+              Buyer allocations are <strong className="text-foreground">minted</strong> by the mint authority — existing
+              treasury inventory is not simply moved from an operator wallet. Net new supply increases by the amounts
+              below for each filled subscription.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Allocation (matched mint + pools)</h2>
+            <p>
+              For each purchase at the peg, total mint is structured as{' '}
+              <strong className="text-foreground">buyer tokens + an equal matched tranche</strong> for liquidity and
+              operations. Example at <strong className="text-foreground">$100</strong> notion (
+              <strong className="text-foreground">100 {ECOSYSTEM_LISTING_SYMBOL}</strong> to the buyer at{' '}
+              ${OTC_PRESALE_USD_PEG}/token):
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-white/5 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Destination</th>
+                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">{ECOSYSTEM_LISTING_SYMBOL}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/80">
+                  <tr>
+                    <td className="px-4 py-3 text-foreground">Buyer wallet (minted)</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">100</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3">
+                      USDC-quoted pool seed (minted + paired with quote inventory from proceeds)
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">49</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3">
+                      SOL-quoted pool seed (minted + paired with quote inventory from proceeds)
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">49</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3">
+                      SOL reserve for SPL transfer fees ({OTC_PRESALE_MATCHED_FEE_RESERVE_BPS / 100}% of matched tranche)
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-foreground">2</td>
+                  </tr>
+                  <tr className="bg-white/[0.04] font-medium text-foreground">
+                    <td className="px-4 py-3">Total minted in example</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">200</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs">
+              The <strong className="text-foreground">matched tranche</strong> (100 tokens in the example) routes{' '}
+              <strong className="text-foreground">{OTC_PRESALE_MATCHED_FEE_RESERVE_BPS / 100}%</strong> (
+              {OTC_PRESALE_MATCHED_FEE_RESERVE_BPS} bps) to accumulating SOL so ongoing mint-and-transfer operations keep
+              enough lamports for network fees. The remainder splits{' '}
+              <strong className="text-foreground">
+                {OTC_PRESALE_POOL_USDC_BPS / 100}% / {OTC_PRESALE_POOL_SOL_BPS / 100}%
+              </strong>{' '}
+              toward USDC- and SOL-quoted liquidity seeding ({OTC_PRESALE_POOL_USDC_BPS} / {OTC_PRESALE_POOL_SOL_BPS}{' '}
+              bps of the matched tranche respectively in the illustration above).
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Quote-side balancing (SOL vs USDC)</h2>
+            <p>
+              Proceeds are deployed alongside the minted {ECOSYSTEM_LISTING_SYMBOL} into the two pool rails. If the buyer
+              pays entirely in <strong className="text-foreground">USDC</strong>, operators swap roughly{' '}
+              <strong className="text-foreground">half</strong> of that USDC into SOL (or otherwise rebalance) so both
+              the USDC- and SOL-quoted legs can be funded for deposit. If they pay entirely in{' '}
+              <strong className="text-foreground">SOL</strong>, the mirror applies: swap roughly half into USDC for the
+              stable-quoted side before seeding. Exact swap paths and timing are operational — Jupiter or similar
+              routing is typical.
+            </p>
+          </section>
+
+          <section className="space-y-2 rounded-lg border border-border/80 bg-white/[0.03] p-4 text-xs">
+            <p className="font-medium text-foreground">Participation</p>
+            <p>
+              OTC subscriptions are arranged directly with RootRecord operators and may require KYC / eligibility checks
+              depending on jurisdiction. This website documents mechanics only; it does not process OTC payments or mint
+              on its own.
+            </p>
+          </section>
+        </CardContent>
+      </Card>
 
       <Card id="pools" className="scroll-mt-24">
         <CardHeader>
