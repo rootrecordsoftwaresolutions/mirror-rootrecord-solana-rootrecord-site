@@ -163,7 +163,10 @@ export async function buildCpmmAddLiquidityVersionedTx(opts: {
   });
 
   return {
-    instructions: filterOutComputeBudget(built.builder.allInstructions),
+    // Use the built legacy `Transaction`'s instructions rather than the builder's instruction list.
+    // The builder may contain partially-resolved metas in some environments, which later blow up
+    // as `undefined.toBase58()` during compile.
+    instructions: filterOutComputeBudget(built.transaction.instructions),
     signers: (built.signers ?? []).filter((s): s is Keypair => s instanceof Keypair),
   };
 }
