@@ -41,7 +41,8 @@ async function loadRaydiumForPresaleTreasury(
     cluster,
     owner: treasury.publicKey,
     signAllTransactions,
-    disableLoadToken: true,
+    /** Required for `cpmm.addLiquidity` to resolve treasury WSOL / SPL ATAs and LP rows. */
+    disableLoadToken: false,
   });
 }
 
@@ -63,7 +64,9 @@ export async function mergePresaleInstructionsWithRaydiumV0(opts: {
   const rayIxs: TransactionInstruction[] = [];
 
   for (const vtx of opts.raydiumTransactions) {
-    for (const l of vtx.message.addressTableLookups) {
+    const lookups = vtx.message.addressTableLookups ?? [];
+    for (const l of lookups) {
+      if (!l?.accountKey) continue;
       const k = l.accountKey.toBase58();
       if (!altByAddr.has(k)) {
         const res = await opts.connection.getAddressLookupTable(l.accountKey, {
@@ -72,8 +75,8 @@ export async function mergePresaleInstructionsWithRaydiumV0(opts: {
         if (res.value) altByAddr.set(k, res.value);
       }
     }
-    const altsForDecompile = vtx.message.addressTableLookups
-      .map((l) => altByAddr.get(l.accountKey.toBase58()))
+    const altsForDecompile = lookups
+      .map((l) => (l?.accountKey ? altByAddr.get(l.accountKey.toBase58()) : undefined))
       .filter((x): x is NonNullable<typeof x> => Boolean(x));
     const inner = TransactionMessage.decompile(vtx.message, {
       addressLookupTableAccounts: altsForDecompile,
@@ -110,6 +113,7 @@ export async function buildCpmmAddLiquidityVersionedTx(opts: {
   const rootsMint = opts.listingMint.trim();
 
   const raydium = await loadRaydiumForPresaleTreasury(opts.connection, opts.cluster, opts.treasury);
+  await raydium.account.fetchWalletTokenAccounts({ forceUpdate: true });
   const list = coerceRaydiumPoolByIdList(await raydium.api.fetchPoolById({ ids: trimmed }));
   const poolInfo = list.find(isCpmmPoolItem);
   if (!poolInfo) {
@@ -140,5 +144,9 @@ export async function buildCpmmAddLiquidityVersionedTx(opts: {
     feePayer: opts.buyer,
   });
 
-  return built.transaction;
+  const vtx = built.transaction;
+  if (!vtx) {
+    throw new Error('Raydium addLiquidity did not produce a versioned transaction');
+  }
+  return vtx;
 }
