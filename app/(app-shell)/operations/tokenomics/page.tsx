@@ -13,15 +13,9 @@ import {
   OTC_PRESALE_POOL_SOL_BPS,
   OTC_PRESALE_POOL_USDC_BPS,
   OTC_PRESALE_USD_PEG,
-  OTC_USD_PER_TOKEN,
   solscanAccount,
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
-import {
-  fetchJupiterOtcPriceMarks,
-  formatOtcUsdPerWholeToken,
-  resolveOtcUsdPerWholeToken,
-} from '@/lib/ecosystemJupUsd';
 import {
   Card,
   CardContent,
@@ -29,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { ListingUsdLive } from '@/components/tokenomics/ListingUsdLive';
 import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 const showSeparateDevWallet =
@@ -45,20 +40,11 @@ export const metadata: Metadata = pageSeo({
     'token freeze',
     'liquidity',
     'treasury token',
-    'Jupiter OTC reference',
+    'live price',
   ]),
 });
 
-export default async function TokenomicsPage() {
-  let otcRefUsd = OTC_USD_PER_TOKEN;
-  try {
-    const marks = await fetchJupiterOtcPriceMarks({ next: { revalidate: 60 } });
-    otcRefUsd = resolveOtcUsdPerWholeToken(marks);
-  } catch {
-    /* keep OTC_USD_PER_TOKEN */
-  }
-  const otcRefLabel = formatOtcUsdPerWholeToken(otcRefUsd);
-
+export default function TokenomicsPage() {
   return (
     <div className="space-y-12">
       <header className="space-y-4">
@@ -348,8 +334,7 @@ export default async function TokenomicsPage() {
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">Tokenomics — how the pieces fit</CardTitle>
           <CardDescription className="leading-relaxed text-base">
-            High-level map of supply, fees, treasury, external marks, and automation. Treat explorer data as the
-            source of truth for live balances.
+            High-level map of supply, fees, and treasury. Treat explorer data as the source of truth for live balances.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-8 leading-relaxed">
@@ -418,23 +403,8 @@ export default async function TokenomicsPage() {
             ) : null}
           </section>
 
-          <section className="space-y-3" id="treasury-automation">
-            <h2 className="text-base font-semibold text-foreground">Treasury automation &amp; USD mark</h2>
-            <p>
-              This page fetches a <strong className="text-foreground">Jupiter USD mark</strong> for the listing mint
-              server-side (about <strong className="text-foreground">${otcRefLabel} per whole token</strong> when this
-              page was built, subject to cache). If Jupiter has no mark, the build falls back to a fixed numeric floor (
-              {OTC_USD_PER_TOKEN} USD). That value tracks external pricing for documentation; it is not a guarantee that
-              every AMM mid matches it at execution time.
-            </p>
-            <p>
-              Scheduled Raydium maintenance for the earn treasury (native SOL floor and {ECOSYSTEM_LISTING_SYMBOL} SPL
-              floors) runs on a fixed UTC cadence described on{' '}
-              <Link href="/operations/liquidity-timing" className="text-sol-green hover:underline">
-                Liquidity timing
-              </Link>
-              . It is separate from the daily custodial settlement cron summarized below.
-            </p>
+          <section className="space-y-3" id="listing-live-price">
+            <ListingUsdLive />
           </section>
 
           <section className="space-y-3" id="referrals">
