@@ -6,6 +6,13 @@ export const ECOSYSTEM_OTC_TOKEN_MINT =
 /** Metaplex listing symbol — keep in sync with on-chain metadata. */
 export const ECOSYSTEM_LISTING_SYMBOL = 'ROOTS';
 
+/**
+ * Symbol shown for earn-program / custodial rewards in Account UI and related wallet copy.
+ * Listing OTC and tokenomics use {@link ECOSYSTEM_LISTING_SYMBOL} instead.
+ */
+export const ECOSYSTEM_EARN_REWARD_SYMBOL =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_EARN_REWARD_SYMBOL?.trim() || 'RRTT';
+
 /** Metaplex listing name — keep in sync with on-chain metadata. */
 export const ECOSYSTEM_LISTING_NAME = 'Root Record Software Solutions';
 

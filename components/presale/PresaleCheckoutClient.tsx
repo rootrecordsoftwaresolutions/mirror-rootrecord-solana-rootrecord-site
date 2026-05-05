@@ -17,6 +17,7 @@ type StatusJson = {
   active: boolean;
   min_usd: number;
   max_usd: number;
+  instant_pool_seed?: { wsol_pool_configured: boolean; usdc_pool_configured: boolean };
 };
 
 type QuoteJson = {
@@ -236,7 +237,12 @@ export function PresaleCheckoutClient() {
               </li>
             ) : null}
             <li className="text-xs">
-              Treasury receives payment; mint authority signs mint to your ATA in one transaction.
+              Treasury receives payment; mint authority signs mint to your ATA
+              {status?.instant_pool_seed &&
+              (status.instant_pool_seed.wsol_pool_configured ||
+                status.instant_pool_seed.usdc_pool_configured)
+                ? ', matched mint to treasury, and Raydium add-liquidity for the pool that matches SOL vs USDC payment — all in one transaction.'
+                : ' in one transaction.'}
             </li>
           </ul>
         ) : (

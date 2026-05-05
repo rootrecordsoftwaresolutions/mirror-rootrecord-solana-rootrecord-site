@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { ECOSYSTEM_LISTING_SYMBOL } from '@/lib/ecosystemOtcConstants';
+import { ECOSYSTEM_EARN_REWARD_SYMBOL, ECOSYSTEM_LISTING_SYMBOL } from '@/lib/ecosystemOtcConstants';
 import {
   Card,
   CardContent,
@@ -74,7 +74,7 @@ export default function LiquidityTimingPage() {
         <CardContent className="text-sm text-muted-foreground space-y-3 leading-relaxed">
           <p>
             <strong className="text-foreground">Once per day at 07:00 UTC</strong>, RootRecord attempts to move owed{' '}
-            {ECOSYSTEM_LISTING_SYMBOL} from program accounting into <strong className="text-foreground">RootRecord Wallets</strong>{' '}
+            {ECOSYSTEM_EARN_REWARD_SYMBOL} from program accounting into <strong className="text-foreground">RootRecord Wallets</strong>{' '}
             on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta / earn
             rewards—not the shape of Raydium LP in the accounts listed on{' '}
             <Link href="/operations/tokenomics" className="text-sol-green hover:underline">

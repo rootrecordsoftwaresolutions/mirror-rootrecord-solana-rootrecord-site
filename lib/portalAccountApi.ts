@@ -2,7 +2,7 @@
  * RootRecord portal account API — same routes as `Web/main/account.js` (rootrecord-primary `/v1/*`).
  */
 
-import { ECOSYSTEM_LISTING_SYMBOL } from '@/lib/ecosystemOtcConstants';
+import { ECOSYSTEM_EARN_REWARD_SYMBOL } from '@/lib/ecosystemOtcConstants';
 import { getRootRecordApiBase } from '@/lib/rootrecordSession';
 
 /** Must match first line in `Web/cloudflare/rootrecord-primary/src/solana-linked-wallet.ts`. */
@@ -338,7 +338,7 @@ export async function portalWithdrawRrtt(
   });
   const { j } = await parsePortalJson(res);
   if (!res.ok || j?.ok === false) {
-    const detail = friendlyPortalApiError(j) || `Could not withdraw ${ECOSYSTEM_LISTING_SYMBOL}.`;
+    const detail = friendlyPortalApiError(j) || `Could not withdraw ${ECOSYSTEM_EARN_REWARD_SYMBOL}.`;
     const tx = typeof j?.tx_signature === 'string' ? j.tx_signature : undefined;
     return { ok: false, detail, tx_signature: tx };
   }

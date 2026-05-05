@@ -20,12 +20,20 @@ import {
 
 import {
   ECOSYSTEM_OTC_TOKEN_MINT,
+  OTC_PRESALE_MATCHED_FEE_RESERVE_BPS,
+  OTC_PRESALE_POOL_SOL_BPS,
+  OTC_PRESALE_POOL_USDC_BPS,
   OTC_PRESALE_USD_PEG,
   PRESALE_MARKET_OPEN_AT_MS,
 } from '@/lib/ecosystemOtcConstants';
 import { fetchJupiterSolUsd } from '@/lib/ecosystemJupUsd';
 import { getConnection } from '@/lib/solana';
 import { loadListingTreasuryKeypair } from '@/lib/listingTreasury';
+import {
+  buildCpmmAddLiquidityVersionedTx,
+  mergePresaleInstructionsWithRaydiumV0,
+  raydiumClusterFromNetwork,
+} from '@/lib/presaleCheckoutRaydium';
 
 /** Mainnet USDC (legacy SPL). Override with NEXT_PUBLIC_MAINNET_USDC_MINT. */
 export const MAINNET_USDC_MINT =
@@ -150,6 +158,29 @@ function assertMintAuthorityMatchesTreasury(
   }
 }
 
+/** Matched tranche (same ROOTS count as buyer at peg), split for pool + fee reserve (tokenomics bps). */
+function splitMatchedRootsRootsRaw(rootsRaw: bigint): {
+  poolUsdc: bigint;
+  poolSol: bigint;
+  feeReserve: bigint;
+  total: bigint;
+} {
+  const total = rootsRaw;
+  if (total <= 0n) {
+    return { poolUsdc: 0n, poolSol: 0n, feeReserve: 0n, total: 0n };
+  }
+  const poolUsdc = (total * BigInt(OTC_PRESALE_POOL_USDC_BPS)) / 10000n;
+  const poolSol = (total * BigInt(OTC_PRESALE_POOL_SOL_BPS)) / 10000n;
+  const feeReserve = (total * BigInt(OTC_PRESALE_MATCHED_FEE_RESERVE_BPS)) / 10000n;
+  const remainder = total - poolUsdc - poolSol - feeReserve;
+  return {
+    poolUsdc,
+    poolSol,
+    feeReserve: feeReserve + remainder,
+    total,
+  };
+}
+
 /**
  * Build partially signed transaction (treasury signed); buyer signs + submits.
  */
@@ -173,7 +204,7 @@ export async function buildPresaleTransaction(opts: {
   const solUsd = await fetchJupiterSolUsd({ cache: 'no-store' });
 
   const ixs = [
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 450_000 }),
+    ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
   ];
 
@@ -264,15 +295,94 @@ export async function buildPresaleTransaction(opts: {
     ),
   );
 
-  const { blockhash } = await connection.getLatestBlockhash('confirmed');
-  const msg = new TransactionMessage({
-    payerKey: buyer,
-    recentBlockhash: blockhash,
-    instructions: ixs,
-  }).compileToV0Message();
+  const matched = splitMatchedRootsRootsRaw(rootsRaw);
+  const matchedMintTotal = matched.total;
+  if (matchedMintTotal > 0n) {
+    const treasuryRootsAta = getAssociatedTokenAddressSync(
+      mintPk,
+      treasuryPk,
+      false,
+      tokenProgramId,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+    if (!(await accountExists(treasuryRootsAta))) {
+      ixs.push(
+        createAssociatedTokenAccountInstruction(
+          buyer,
+          treasuryRootsAta,
+          treasuryPk,
+          mintPk,
+          tokenProgramId,
+          ASSOCIATED_TOKEN_PROGRAM_ID,
+        ),
+      );
+    }
+    ixs.push(
+      createMintToInstruction(
+        mintPk,
+        treasuryRootsAta,
+        treasuryPk,
+        matchedMintTotal,
+        [],
+        tokenProgramId,
+      ),
+    );
+  }
 
-  const tx = new VersionedTransaction(msg);
-  tx.sign([treasury]);
+  const wsolPool = process.env.PRESALE_CP_MM_POOL_WSOL?.trim();
+  const usdcPool = process.env.PRESALE_CP_MM_POOL_USDC?.trim();
+  const listingMint = ECOSYSTEM_OTC_TOKEN_MINT.trim();
+  const cluster = raydiumClusterFromNetwork();
+  const raydiumParts: VersionedTransaction[] = [];
+
+  if (currency === 'SOL' && wsolPool && matched.poolSol > 0n) {
+    raydiumParts.push(
+      await buildCpmmAddLiquidityVersionedTx({
+        connection,
+        cluster,
+        treasury,
+        buyer,
+        poolId: wsolPool,
+        listingMint,
+        rootsSideRaw: matched.poolSol,
+        slippageBps: 300,
+      }),
+    );
+  }
+  if (currency === 'USDC' && usdcPool && matched.poolUsdc > 0n) {
+    raydiumParts.push(
+      await buildCpmmAddLiquidityVersionedTx({
+        connection,
+        cluster,
+        treasury,
+        buyer,
+        poolId: usdcPool,
+        listingMint,
+        rootsSideRaw: matched.poolUsdc,
+        slippageBps: 300,
+      }),
+    );
+  }
+
+  let tx: VersionedTransaction;
+  if (raydiumParts.length > 0) {
+    tx = await mergePresaleInstructionsWithRaydiumV0({
+      connection,
+      buyer,
+      treasury,
+      presaleInstructions: ixs,
+      raydiumTransactions: raydiumParts,
+    });
+  } else {
+    const { blockhash } = await connection.getLatestBlockhash('confirmed');
+    const msg = new TransactionMessage({
+      payerKey: buyer,
+      recentBlockhash: blockhash,
+      instructions: ixs,
+    }).compileToV0Message();
+    tx = new VersionedTransaction(msg);
+    tx.sign([treasury]);
+  }
 
   return {
     serialized: tx.serialize(),

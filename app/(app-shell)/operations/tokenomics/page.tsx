@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import {
+  ECOSYSTEM_EARN_REWARD_SYMBOL,
   ECOSYSTEM_LISTING_NAME,
   ECOSYSTEM_LISTING_SYMBOL,
   ECOSYSTEM_OTC_TOKEN_MINT,
@@ -464,7 +465,7 @@ export default function TokenomicsPage() {
           <section className="space-y-3" id="custodial-settlement">
             <h2 className="text-base font-semibold text-foreground">Earn rewards → RootRecord Wallet (daily UTC)</h2>
             <p>
-              Beta / earn-program credits for {ECOSYSTEM_LISTING_SYMBOL} are reconciled into{' '}
+              Beta / earn-program credits ({ECOSYSTEM_EARN_REWARD_SYMBOL}) are reconciled into{' '}
               <strong className="text-foreground">RootRecord Wallets</strong> (custodial on Solana) by a scheduled job
               that runs <strong className="text-foreground">once per calendar day at 07:00 UTC</strong>. In that pass
               the treasury can send owed whole-token units to each custodial SPL account and add SOL lamports when the
