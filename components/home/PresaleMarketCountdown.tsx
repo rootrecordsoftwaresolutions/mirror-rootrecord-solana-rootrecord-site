@@ -8,6 +8,7 @@ import {
   ECOSYSTEM_LISTING_SYMBOL,
   PRESALE_MARKET_OPEN_AT_ISO,
   PRESALE_MARKET_OPEN_AT_MS,
+  PRESALE_MARKET_OPEN_LABEL_EN_UTC,
   PRESALE_POOL_UNLOCK_SOL_ACCOUNT,
   PRESALE_POOL_UNLOCK_USDC_ACCOUNT,
   solscanAccount,
@@ -15,20 +16,6 @@ import {
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
-}
-
-function formatOpenLabel(): string {
-  const d = new Date(PRESALE_MARKET_OPEN_AT_MS);
-  return d.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-    timeZoneName: 'short',
-  });
 }
 
 type PresaleMarketCountdownProps = {
@@ -88,13 +75,13 @@ export function PresaleMarketCountdown({ hideTokenomicsLink = false }: PresaleMa
               <>
                 SOL and USDC pool vaults are live for trading. All holder token accounts remain transferable — no OTC
                 buyer freeze. Official open time was{' '}
-                <time dateTime={PRESALE_MARKET_OPEN_AT_ISO}>{formatOpenLabel()}</time>.
+                <time dateTime={PRESALE_MARKET_OPEN_AT_ISO}>{PRESALE_MARKET_OPEN_LABEL_EN_UTC}</time>.
               </>
             ) : (
               <>
                 Pool liquidity for <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> unlocks at{' '}
                 <time dateTime={PRESALE_MARKET_OPEN_AT_ISO} className="font-medium text-foreground">
-                  {formatOpenLabel()}
+                  {PRESALE_MARKET_OPEN_LABEL_EN_UTC}
                 </time>
                 . OTC allocations mint to unlocked wallets; two Raydium vaults thaw at this instant so swaps can route.
               </>

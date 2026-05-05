@@ -80,6 +80,29 @@ export const PRESALE_MARKET_OPEN_AT_ISO = '2026-06-07T10:00:00.000Z' as const;
 
 export const PRESALE_MARKET_OPEN_AT_MS = new Date(PRESALE_MARKET_OPEN_AT_ISO).getTime();
 
+/** Human-readable open instant (UTC), aligned with countdown copy on marketing surfaces. */
+export const PRESALE_MARKET_OPEN_LABEL_EN_UTC = new Date(PRESALE_MARKET_OPEN_AT_ISO).toLocaleString(
+  'en-US',
+  {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  },
+);
+
+/**
+ * Basis points of **total** token supply operators intend to mint to the developer/treasury
+ * allocation **after** {@link PRESALE_MARKET_OPEN_AT_ISO} (i.e. once public pool liquidity is live).
+ * Immediately afterward, documented intent is to revoke mint authority, Metaplex metadata update
+ * authority, and freeze authority. Not enforced by this repo — verify authorities and supply on-chain.
+ */
+export const POST_MARKET_OPEN_DEVELOPER_MINT_TOTAL_SUPPLY_BPS = 2500;
+
 /**
  * Pool vault accounts that unlock at {@link PRESALE_MARKET_OPEN_AT_ISO} (SOL vs USDC quote legs).
  * Same addresses as custodial freeze exclusions / homepage countdown.

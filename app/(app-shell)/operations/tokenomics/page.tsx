@@ -12,6 +12,9 @@ import {
   OTC_PRESALE_POOL_SOL_BPS,
   OTC_PRESALE_POOL_USDC_BPS,
   OTC_PRESALE_USD_PEG,
+  POST_MARKET_OPEN_DEVELOPER_MINT_TOTAL_SUPPLY_BPS,
+  PRESALE_MARKET_OPEN_AT_ISO,
+  PRESALE_MARKET_OPEN_LABEL_EN_UTC,
   solscanAccount,
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
@@ -23,6 +26,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PresaleMarketCountdown } from '@/components/home/PresaleMarketCountdown';
+import { PresaleCheckoutClient } from '@/components/presale/PresaleCheckoutClient';
 import { ListingUsdLive } from '@/components/tokenomics/ListingUsdLive';
 import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
@@ -76,6 +80,10 @@ export default function TokenomicsPage() {
             Presale countdown &amp; pool unlock
           </Link>
           {' · '}
+          <Link href="#presale-checkout" className="text-sol-green hover:underline font-medium">
+            Presale checkout
+          </Link>
+          {' · '}
           For treasury Raydium maintenance (native SOL and {ECOSYSTEM_LISTING_SYMBOL} SPL floors), see{' '}
           <Link href="/operations/liquidity-timing" className="text-sol-green hover:underline font-medium">
             Liquidity timing
@@ -89,6 +97,10 @@ export default function TokenomicsPage() {
       </header>
 
       <PresaleMarketCountdown hideTokenomicsLink />
+
+      <section id="presale-checkout" className="scroll-mt-24">
+        <PresaleCheckoutClient />
+      </section>
 
       <Card id="otc-presale" className="scroll-mt-24 border-sol-green/40">
         <CardHeader>
@@ -198,9 +210,13 @@ export default function TokenomicsPage() {
           <section className="space-y-2 rounded-lg border border-border/80 bg-white/[0.03] p-4 text-xs">
             <p className="font-medium text-foreground">Participation</p>
             <p>
-              OTC subscriptions are arranged directly with RootRecord operators and may require KYC / eligibility checks
-              depending on jurisdiction. This website documents mechanics only; it does not process OTC payments or mint on
-              its own.
+              When the presale window is open, use{' '}
+              <Link href="#presale-checkout" className="text-sol-green hover:underline font-medium">
+                presale checkout
+              </Link>{' '}
+              above for wallet-based SOL or USDC payment (mint settles in one transaction). Otherwise, OTC subscriptions
+              are arranged directly with RootRecord operators and may require KYC / eligibility checks depending on
+              jurisdiction.
             </p>
           </section>
         </CardContent>
@@ -313,6 +329,32 @@ export default function TokenomicsPage() {
                 Token Stats
               </Link>{' '}
               flow for a snapshot; this page does not cache supply.
+            </p>
+          </section>
+
+          <section className="space-y-3 rounded-lg border border-border/80 bg-white/[0.03] p-4 md:p-5" id="post-open-supply-lock">
+            <h2 className="text-base font-semibold text-foreground">After market open — final mint &amp; authority sunset</h2>
+            <p>
+              Once the presale period ends and{' '}
+              <strong className="text-foreground">public pool liquidity is live</strong> (documented unlock:{' '}
+              <time dateTime={PRESALE_MARKET_OPEN_AT_ISO} className="text-foreground/90">
+                {PRESALE_MARKET_OPEN_LABEL_EN_UTC}
+              </time>
+              ), operator intent is for the developer to mint a final{' '}
+              <strong className="text-foreground">
+                {POST_MARKET_OPEN_DEVELOPER_MINT_TOTAL_SUPPLY_BPS / 100}%
+              </strong>{' '}
+              of <strong className="text-foreground">total supply</strong> to the documented treasury / operator
+              allocation, then to{' '}
+              <strong className="text-foreground">revoke mint authority</strong>,{' '}
+              <strong className="text-foreground">revoke Metaplex metadata update authority</strong> (lock on-chain
+              listing metadata), and <strong className="text-foreground">revoke freeze authority</strong>. That sequence
+              is <strong className="text-foreground">descriptive intent</strong> — not a smart-contract guarantee from
+              this website. Always confirm current minted supply and whether authorities are null in the explorer or{' '}
+              <Link href="/token-stats" className="text-sol-green hover:underline">
+                Token Stats
+              </Link>{' '}
+              before relying on it.
             </p>
           </section>
 
