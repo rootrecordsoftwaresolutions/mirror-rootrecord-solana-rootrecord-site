@@ -34,6 +34,6 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
   {
     href: '/operations/tokenomics',
     label: 'Tokenomics & markets',
-    description: 'OTC pre-sale, mint, pool-related accounts, fees, and markets.',
+    description: 'OTC pre-sale (30-day buyer freeze), mint, pools, fees, markets.',
   },
 ] as const;

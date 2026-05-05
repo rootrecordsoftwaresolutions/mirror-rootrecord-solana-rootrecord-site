@@ -74,3 +74,12 @@ export const OTC_PRESALE_MATCHED_FEE_RESERVE_BPS = 200;
  */
 export const OTC_PRESALE_POOL_USDC_BPS = 4900;
 export const OTC_PRESALE_POOL_SOL_BPS = 4900;
+
+const parsedFreezeDays = Number(process.env.NEXT_PUBLIC_OTC_PRESALE_FREEZE_DAYS?.trim());
+
+/**
+ * OTC buyer allocation: SPL token account stays **frozen** this many full calendar days after mint
+ * (operator must thaw after; see tokenomics). Override with `NEXT_PUBLIC_OTC_PRESALE_FREEZE_DAYS`.
+ */
+export const OTC_PRESALE_FREEZE_DAYS =
+  Number.isFinite(parsedFreezeDays) && parsedFreezeDays > 0 ? Math.floor(parsedFreezeDays) : 30;
