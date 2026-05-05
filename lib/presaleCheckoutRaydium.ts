@@ -65,19 +65,30 @@ export async function mergePresaleInstructionsWithRaydiumV0(opts: {
 
   for (const vtx of opts.raydiumTransactions) {
     const lookups = vtx.message.addressTableLookups ?? [];
+    /** Must include one entry per lookup row — `MessageV0.resolveAddressTableLookups` iterates lookups and calls `.find` by key; omitting a failed fetch led to `undefined.toBase58()` inside web3.js. */
+    const altsForDecompile: AddressLookupTableAccount[] = [];
     for (const l of lookups) {
-      if (!l?.accountKey) continue;
+      if (!l?.accountKey) {
+        throw new Error(
+          'Presale merge: Raydium v0 transaction has an address-table lookup without accountKey.',
+        );
+      }
       const k = l.accountKey.toBase58();
-      if (!altByAddr.has(k)) {
+      let acc = altByAddr.get(k);
+      if (!acc) {
         const res = await opts.connection.getAddressLookupTable(l.accountKey, {
           commitment: 'confirmed',
         });
-        if (res.value) altByAddr.set(k, res.value);
+        if (!res.value) {
+          throw new Error(
+            `Presale merge: address lookup table not found on-chain (${k}). Re-fetch the Raydium tx or check RPC/network.`,
+          );
+        }
+        acc = res.value;
+        altByAddr.set(k, acc);
       }
+      altsForDecompile.push(acc);
     }
-    const altsForDecompile = lookups
-      .map((l) => (l?.accountKey ? altByAddr.get(l.accountKey.toBase58()) : undefined))
-      .filter((x): x is NonNullable<typeof x> => Boolean(x));
     const inner = TransactionMessage.decompile(vtx.message, {
       addressLookupTableAccounts: altsForDecompile,
     });
