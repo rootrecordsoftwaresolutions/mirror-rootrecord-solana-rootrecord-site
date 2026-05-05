@@ -122,7 +122,7 @@ export async function buildCpmmAddLiquidityVersionedTx(opts: {
   /** Raw listing-token amount for the pool leg (mint A or B per baseIn). */
   rootsSideRaw: bigint;
   slippageBps?: number;
-}): Promise<VersionedTransaction> {
+}): Promise<{ instructions: TransactionInstruction[]; signers: Keypair[] }> {
   const trimmed = opts.poolId.trim();
   if (!trimmed) throw new Error('poolId empty');
   const rootsMint = opts.listingMint.trim();
@@ -155,13 +155,15 @@ export async function buildCpmmAddLiquidityVersionedTx(opts: {
     inputAmount,
     baseIn,
     slippage,
-    txVersion: TxVersion.V0,
+    // Build legacy tx to avoid Raydium's v0 compile path (which has been crashing with `undefined.toBase58()`
+    // inside web3.js during ALT compilation in some serverless runtimes).
+    txVersion: TxVersion.LEGACY,
+    payer: opts.treasury.publicKey,
     feePayer: opts.buyer,
   });
 
-  const vtx = built.transaction;
-  if (!vtx) {
-    throw new Error('Raydium addLiquidity did not produce a versioned transaction');
-  }
-  return vtx;
+  return {
+    instructions: filterOutComputeBudget(built.builder.allInstructions),
+    signers: (built.signers ?? []).filter((s): s is Keypair => s instanceof Keypair),
+  };
 }

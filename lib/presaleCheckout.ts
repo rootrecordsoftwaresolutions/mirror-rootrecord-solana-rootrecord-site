@@ -4,6 +4,7 @@ import {
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js';
@@ -31,7 +32,6 @@ import { getConnection } from '@/lib/solana';
 import { loadListingTreasuryKeypair } from '@/lib/listingTreasury';
 import {
   buildCpmmAddLiquidityVersionedTx,
-  mergePresaleInstructionsWithRaydiumV0,
   raydiumClusterFromNetwork,
 } from '@/lib/presaleCheckoutRaydium';
 
@@ -333,56 +333,46 @@ export async function buildPresaleTransaction(opts: {
   const usdcPool = process.env.PRESALE_CP_MM_POOL_USDC?.trim();
   const listingMint = ECOSYSTEM_OTC_TOKEN_MINT.trim();
   const cluster = raydiumClusterFromNetwork();
-  const raydiumParts: VersionedTransaction[] = [];
+  const raydiumIxs: TransactionInstruction[] = [];
+  const raydiumExtraSigners: Keypair[] = [];
 
   if (currency === 'SOL' && wsolPool && matched.poolSol > 0n) {
-    raydiumParts.push(
-      await buildCpmmAddLiquidityVersionedTx({
-        connection,
-        cluster,
-        treasury,
-        buyer,
-        poolId: wsolPool,
-        listingMint,
-        rootsSideRaw: matched.poolSol,
-        slippageBps: 300,
-      }),
-    );
+    const built = await buildCpmmAddLiquidityVersionedTx({
+      connection,
+      cluster,
+      treasury,
+      buyer,
+      poolId: wsolPool,
+      listingMint,
+      rootsSideRaw: matched.poolSol,
+      slippageBps: 300,
+    });
+    raydiumIxs.push(...built.instructions);
+    raydiumExtraSigners.push(...built.signers);
   }
   if (currency === 'USDC' && usdcPool && matched.poolUsdc > 0n) {
-    raydiumParts.push(
-      await buildCpmmAddLiquidityVersionedTx({
-        connection,
-        cluster,
-        treasury,
-        buyer,
-        poolId: usdcPool,
-        listingMint,
-        rootsSideRaw: matched.poolUsdc,
-        slippageBps: 300,
-      }),
-    );
+    const built = await buildCpmmAddLiquidityVersionedTx({
+      connection,
+      cluster,
+      treasury,
+      buyer,
+      poolId: usdcPool,
+      listingMint,
+      rootsSideRaw: matched.poolUsdc,
+      slippageBps: 300,
+    });
+    raydiumIxs.push(...built.instructions);
+    raydiumExtraSigners.push(...built.signers);
   }
 
-  let tx: VersionedTransaction;
-  if (raydiumParts.length > 0) {
-    tx = await mergePresaleInstructionsWithRaydiumV0({
-      connection,
-      buyer,
-      treasury,
-      presaleInstructions: ixs,
-      raydiumTransactions: raydiumParts,
-    });
-  } else {
-    const { blockhash } = await connection.getLatestBlockhash('confirmed');
-    const msg = new TransactionMessage({
-      payerKey: buyer,
-      recentBlockhash: blockhash,
-      instructions: ixs,
-    }).compileToV0Message();
-    tx = new VersionedTransaction(msg);
-    tx.sign([treasury]);
-  }
+  const { blockhash } = await connection.getLatestBlockhash('confirmed');
+  const msg = new TransactionMessage({
+    payerKey: buyer,
+    recentBlockhash: blockhash,
+    instructions: [...ixs, ...raydiumIxs],
+  }).compileToV0Message();
+  const tx = new VersionedTransaction(msg);
+  tx.sign([treasury, ...raydiumExtraSigners]);
 
   return {
     serialized: tx.serialize(),
