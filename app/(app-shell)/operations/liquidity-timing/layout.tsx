@@ -7,7 +7,7 @@ import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 export const metadata: Metadata = pageSeo({
   path: '/operations/liquidity-timing',
   title: `Liquidity timing — ${ECOSYSTEM_LISTING_SYMBOL}`,
-  description: `UTC schedule and behavior for RootRecord treasury Raydium LP maintenance (${ECOSYSTEM_LISTING_SYMBOL}): native SOL floor checks and RRTT/RRESERVE inventory floors.`,
+  description: `UTC schedule and behavior for RootRecord treasury Raydium LP maintenance (${ECOSYSTEM_LISTING_SYMBOL}): native SOL floor checks and listing-token SPL inventory floors.`,
   keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity'), [
     ECOSYSTEM_LISTING_SYMBOL,
     'liquidity automation schedule',

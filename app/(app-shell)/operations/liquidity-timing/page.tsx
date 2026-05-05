@@ -17,9 +17,8 @@ export default function LiquidityTimingPage() {
         <h1 className="font-display text-4xl md:text-5xl tracking-tight">Liquidity timing</h1>
         <p className="text-muted-foreground leading-relaxed max-w-2xl">
           RootRecord runs treasury checks on a <strong className="text-foreground">fixed UTC schedule</strong> so
-          Raydium positions and SPL balances used for operations stay within healthy floors—without tying that work
-          to when someone loads this site. Times below are all{' '}
-          <strong className="text-foreground">UTC</strong>.
+          Raydium positions and SPL balances used for operations stay within healthy floors—without tying that work to
+          when someone loads this site. Times below are all <strong className="text-foreground">UTC</strong>.
         </p>
       </header>
 
@@ -27,8 +26,7 @@ export default function LiquidityTimingPage() {
         <CardHeader>
           <CardTitle className="text-xl">Hourly treasury checks</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            Two windows each hour: first native SOL, then token balances including {ECOSYSTEM_LISTING_SYMBOL} and
-            RRESERVE.
+            Two windows each hour: first native SOL, then {ECOSYSTEM_LISTING_SYMBOL} SPL balances on the treasury.
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -43,8 +41,8 @@ export default function LiquidityTimingPage() {
               <tr className="align-top">
                 <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">Each hour at :00</td>
                 <td className="px-4 py-3 leading-relaxed">
-                  Confirms the treasury wallet holds enough <strong className="text-foreground">native SOL</strong>{' '}
-                  for fees and custodial flows. If SOL is low, automation can unwind liquidity from the treasury&apos;s{' '}
+                  Confirms the treasury wallet holds enough <strong className="text-foreground">native SOL</strong> for
+                  fees and custodial flows. If SOL is low, automation can unwind liquidity from the treasury&apos;s{' '}
                   <strong className="text-foreground">SOL-side Raydium pool</strong> (wrapped SOL leg) so lamports are
                   available for operations.
                 </td>
@@ -52,13 +50,11 @@ export default function LiquidityTimingPage() {
               <tr className="align-top">
                 <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">Each hour at :10</td>
                 <td className="px-4 py-3 leading-relaxed">
-                  Confirms <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> and{' '}
-                  <strong className="text-foreground">RRESERVE</strong> on the treasury meet minimum targets for earn,
-                  liquidity tooling, and RReserve-style accounting. If a leg is short, automation can withdraw liquidity
-                  from the treasury&apos;s <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL} / RRESERVE</strong>{' '}
-                  Raydium pool (see{' '}
-                  <Link href="/operations/tokenomics#rrreserve-operations" className="text-sol-green hover:underline">
-                    RReserve operations
+                  Confirms <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> on the treasury meets
+                  minimum targets for earn, liquidity tooling, and operational inventory. If the leg is short, automation
+                  can withdraw liquidity from the treasury&apos;s Raydium positions (see{' '}
+                  <Link href="/operations/tokenomics#pools" className="text-sol-green hover:underline">
+                    Tokenomics — pool-related accounts
                   </Link>
                   ) or move inventory from a designated reserve wallet when configured.
                 </td>
@@ -79,8 +75,8 @@ export default function LiquidityTimingPage() {
           <p>
             <strong className="text-foreground">Once per day at 07:00 UTC</strong>, RootRecord attempts to move owed{' '}
             {ECOSYSTEM_LISTING_SYMBOL} from program accounting into <strong className="text-foreground">RootRecord Wallets</strong>{' '}
-            on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta /
-            earn rewards—not the shape of Raydium LP in the pools listed on{' '}
+            on Solana and to top up a small SOL reserve on those wallets when needed. That pass covers beta / earn
+            rewards—not the shape of Raydium LP in the accounts listed on{' '}
             <Link href="/operations/tokenomics" className="text-sol-green hover:underline">
               Tokenomics
             </Link>
@@ -106,8 +102,8 @@ export default function LiquidityTimingPage() {
             <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="text-sol-green hover:underline">
               Solscan
             </a>{' '}
-            (or your explorer) for treasury keys, pool state accounts, and reserves. For addresses and how RRESERVE
-            fits next to public SOL/USDC/JUP/RAY pools, see{' '}
+            (or your explorer) for treasury keys, pool state accounts, and reserves. For addresses and how pool-related
+            accounts are documented, see{' '}
             <Link href="/operations/ecosystem" className="text-sol-green hover:underline">
               Ecosystem
             </Link>{' '}

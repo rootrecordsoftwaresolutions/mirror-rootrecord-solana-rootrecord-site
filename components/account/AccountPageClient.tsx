@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ECOSYSTEM_LISTING_SYMBOL } from '@/lib/ecosystemOtcConstants';
 import { cn } from '@/lib/utils';
 import {
   buildSolanaWalletLinkMessage,
@@ -481,7 +482,7 @@ export function AccountPageClient() {
     const ok1 = window.confirm(
       'Delete your RootRecord account?\n\n' +
         'This removes your profile and data we store for you (saved spots, alerts, and similar). ' +
-        'Your RootRecord Wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows. ' +
+        `Your RootRecord Wallet is closed: we move SOL, ${ECOSYSTEM_LISTING_SYMBOL}, and other tokens back to RootRecord when the network allows. ` +
         'Withdraw anything you want to keep first. If that return step fails, we cancel deletion. ' +
         'Some encrypted backup data may stay with us for safety — don’t rely on deletion to erase keys. ' +
         'This cannot be undone once it succeeds.',
@@ -694,7 +695,7 @@ export function AccountPageClient() {
         amount_whole: r.amount_whole,
         destination: r.destination,
       });
-      toast.success(`Sent ${r.amount_whole.toLocaleString()} RRTT to your payout address.`, {
+      toast.success(`Sent ${r.amount_whole.toLocaleString()} ${ECOSYSTEM_LISTING_SYMBOL} to your payout address.`, {
         description: 'Confirmation and Solscan link stay on this page below.',
         duration: 10_000,
       });
@@ -730,7 +731,7 @@ export function AccountPageClient() {
   /** Browser mainnet read wins; otherwise exact lamports from API cache. */
   const solLamportsDisplay = solLamportsChain ?? solLamportsApi;
   const onchainRrttApi = earnOptionalInt(earn, 'custodial_onchain_rrtt');
-  /** Whole RRTT units Solana shows in custodial wallet (browser read wins over API when present). */
+  /** Whole listing-token units Solana shows in custodial wallet (browser read wins over API when present). */
   const rrttInWallet =
     chainBal?.tokenOk === true ? (chainBal.rrttWhole ?? 0) : (onchainRrttApi ?? 0);
   const totalEarnUnits =
@@ -744,7 +745,7 @@ export function AccountPageClient() {
   /** Headline total = pending slice + SPL in custodial wallet (e.g. 135,800 + 1 = 135,801 — not balance + wallet). */
   const sumLedgerWallet =
     pendingUnits != null ? pendingUnits + rrttInWallet : null;
-  /** RRTT in the custodial SPL account is what the user can withdraw from that account. */
+  /** Listing token in the custodial SPL account is what the user can withdraw from that account. */
   const availWithdraw = rrttInWallet;
 
   const usdcDisplay =
@@ -907,7 +908,8 @@ export function AccountPageClient() {
               <CardTitle className="text-lg">Balances</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Numbers come from RootRecord and, when possible, a live check on Solana. We pay the network fee when
-                you cash out <span className="text-foreground font-medium">RRTT</span> rewards to your saved or linked
+                you cash out{' '}
+                <span className="text-foreground font-medium">{ECOSYSTEM_LISTING_SYMBOL}</span> rewards to your saved or linked
                 address. If you move <span className="text-foreground font-medium">SOL</span>,{' '}
                 <span className="text-foreground font-medium">USDC</span>, or other tokens out of your RootRecord Wallet, you
                 pay those fees yourself (keep a little SOL in that wallet for fees).
@@ -921,7 +923,7 @@ export function AccountPageClient() {
                     pendingUnits != null ? (
                       <span className={pendingUnits > 0 ? 'text-amber-200/95' : undefined}>
                         {pendingUnits.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                        <span className="text-muted-foreground font-medium text-sm">{ECOSYSTEM_LISTING_SYMBOL}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -935,13 +937,18 @@ export function AccountPageClient() {
                     availWithdraw != null ? (
                       <span className={availWithdraw > 0 ? 'text-sol-green' : undefined}>
                         {availWithdraw.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                        <span className="text-muted-foreground font-medium text-sm">{ECOSYSTEM_LISTING_SYMBOL}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )
                   }
-                  hint="RRTT already in your RootRecord Wallet — what you can cash out to your payout address (RootRecord pays the RRTT transfer fee)."
+                  hint={
+                    ECOSYSTEM_LISTING_SYMBOL +
+                    ' already in your RootRecord Wallet — what you can cash out to your payout address (RootRecord pays the ' +
+                    ECOSYSTEM_LISTING_SYMBOL +
+                    ' transfer fee).'
+                  }
                 />
                 <BalanceStat
                   label="Lifetime rewards"
@@ -949,7 +956,7 @@ export function AccountPageClient() {
                     totalEarnUnits != null ? (
                       <>
                         {totalEarnUnits.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                        <span className="text-muted-foreground font-medium text-sm">{ECOSYSTEM_LISTING_SYMBOL}</span>
                       </>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -963,7 +970,7 @@ export function AccountPageClient() {
                     sumLedgerWallet != null ? (
                       <>
                         {sumLedgerWallet.toLocaleString()}{' '}
-                        <span className="text-muted-foreground font-medium text-sm">RRTT</span>
+                        <span className="text-muted-foreground font-medium text-sm">{ECOSYSTEM_LISTING_SYMBOL}</span>
                       </>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -972,7 +979,7 @@ export function AccountPageClient() {
                   hint={
                     totalEarnUnits != null
                       ? `Matches the headline total in RootRecord apps: still settling (${pendingUnits?.toLocaleString() ?? '—'}) + in your RootRecord Wallet (${rrttInWallet.toLocaleString()}). Lifetime credits from apps: ${totalEarnUnits.toLocaleString()}.`
-                      : 'Credits we owe you plus RRTT already sitting in your RootRecord Wallet (same headline as apps).'
+                      : `Credits we owe you plus ${ECOSYSTEM_LISTING_SYMBOL} already sitting in your RootRecord Wallet (same headline as apps).`
                   }
                 />
                 <BalanceStat
@@ -1003,10 +1010,12 @@ export function AccountPageClient() {
                   label="Quick guide"
                   value={
                     <span className="block text-xs font-normal font-sans leading-relaxed text-muted-foreground tracking-normal">
-                      <strong className="text-foreground font-medium">Total (pending + wallet)</strong> = pending rewards + RRTT
+                      <strong className="text-foreground font-medium">Total (pending + wallet)</strong> = pending rewards +{' '}
+                      {ECOSYSTEM_LISTING_SYMBOL}
                       already in your RootRecord Wallet (we don’t double-count). <strong className="text-foreground font-medium">Wallet balance</strong>{' '}
-                      is the RRTT you can cash out now. <strong className="text-foreground font-medium">Fees:</strong>{' '}
-                      RootRecord pays the network fee for RRTT cash-outs to your linked or saved address; you pay fees
+                      is the {ECOSYSTEM_LISTING_SYMBOL} you can cash out now.{' '}
+                      <strong className="text-foreground font-medium">Fees:</strong>{' '}
+                      RootRecord pays the network fee for {ECOSYSTEM_LISTING_SYMBOL} cash-outs to your linked or saved address; you pay fees
                       for other moves. {balancesLearnLink}
                     </span>
                   }
@@ -1016,8 +1025,8 @@ export function AccountPageClient() {
               <p className="text-xs text-muted-foreground border-t border-border/60 pt-3 leading-relaxed">
                 <strong className="text-foreground">Automated settlement (UTC):</strong> Once per day at{' '}
                 <strong className="text-foreground">07:00 UTC</strong>, RootRecord&apos;s backend tries to move
-                owed RRTT from your rewards ledger into your RootRecord Wallet and to top up a small SOL reserve when
-                it is below threshold (for fees). Until that job succeeds on-chain, RRTT can show as still settling.
+                owed {ECOSYSTEM_LISTING_SYMBOL} from your rewards ledger into your RootRecord Wallet and to top up a small SOL reserve when
+                it is below threshold (for fees). Until that job succeeds on-chain, {ECOSYSTEM_LISTING_SYMBOL} can show as still settling.
                 Treasury balance, RPC health, or account state can delay a payout; the schedule is daily, not
                 per-event.
               </p>
@@ -1028,8 +1037,8 @@ export function AccountPageClient() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">RootRecord Wallet</CardTitle>
               <CardDescription className="text-muted-foreground">
-                A wallet RootRecord holds for you so test rewards (RRTT) can land in one place. You still control
-                cash-outs to your own address. Incoming RRTT and SOL reserve top-ups follow the daily 07:00 UTC job
+                A wallet RootRecord holds for you so test rewards ({ECOSYSTEM_LISTING_SYMBOL}) can land in one place. You still control
+                cash-outs to your own address. Incoming {ECOSYSTEM_LISTING_SYMBOL} and SOL reserve top-ups follow the daily 07:00 UTC job
                 described under Balances.
               </CardDescription>
             </CardHeader>
@@ -1040,7 +1049,7 @@ export function AccountPageClient() {
                     <SolscanAddressLink address={custodialPk} />
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
                       Add SOL here if you plan to move USDC or other tokens yourself — those moves use SOL for network
-                      fees. RRTT cash-outs to your payout address use a fee we pay. Scan the QR from your phone to
+                      fees. {ECOSYSTEM_LISTING_SYMBOL} cash-outs to your payout address use a fee we pay. Scan the QR from your phone to
                       deposit.
                     </p>
                   </div>
@@ -1055,7 +1064,9 @@ export function AccountPageClient() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <EmptyLine>No RootRecord Wallet yet — create one to receive RRTT rewards here.</EmptyLine>
+                  <EmptyLine>
+                    No RootRecord Wallet yet — create one to receive {ECOSYSTEM_LISTING_SYMBOL} rewards here.
+                  </EmptyLine>
                   <Button
                     type="button"
                     size="sm"
@@ -1074,7 +1085,7 @@ export function AccountPageClient() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">RootRecord Wallet activity</CardTitle>
               <CardDescription className="text-muted-foreground">
-                On-chain moves for your RootRecord Wallet: rewards paid in, and RRTT you cashed out. Each entry links
+                On-chain moves for your RootRecord Wallet: rewards paid in, and {ECOSYSTEM_LISTING_SYMBOL} you cashed out. Each entry links
                 to Solscan (mainnet).
               </CardDescription>
             </CardHeader>
@@ -1124,7 +1135,7 @@ export function AccountPageClient() {
                             <span className="text-muted-foreground">{formatLedgerWhen(row.created_at)}</span>
                             <span className="tabular-nums font-semibold text-foreground">
                               {row.direction === 'out' ? '−' : '+'}
-                              {row.units.toLocaleString()} RRTT
+                              {row.units.toLocaleString()} {ECOSYSTEM_LISTING_SYMBOL}
                             </span>
                           </div>
                           <p className="font-medium text-foreground leading-snug">{rewardsLedgerKindLabel(row)}</p>
@@ -1209,7 +1220,7 @@ export function AccountPageClient() {
                         <tr className="border-b border-border/80 bg-background/50 text-muted-foreground">
                           <th className="py-2 px-2 font-medium whitespace-nowrap">When</th>
                           <th className="py-2 px-2 font-medium">What</th>
-                          <th className="py-2 px-2 font-medium text-right whitespace-nowrap">RRTT</th>
+                          <th className="py-2 px-2 font-medium text-right whitespace-nowrap">{ECOSYSTEM_LISTING_SYMBOL}</th>
                           <th className="py-2 px-2 font-medium min-w-[11rem]">From apps</th>
                           <th className="py-2 px-2 font-medium min-w-[9rem]">Transaction</th>
                           <th className="py-2 px-2 font-medium min-w-[9rem]">To / note</th>
@@ -1397,10 +1408,10 @@ export function AccountPageClient() {
 
           <Card className="border-border bg-ink-800/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Cash out RRTT</CardTitle>
+              <CardTitle className="text-lg">Cash out {ECOSYSTEM_LISTING_SYMBOL}</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Send RRTT to your linked wallet, or to another Solana address you save below. We pay the network fee for
-                that RRTT send. Other tokens you move from your RootRecord Wallet still use your SOL for fees.
+                Send {ECOSYSTEM_LISTING_SYMBOL} to your linked wallet, or to another Solana address you save below. We pay the network fee for
+                that {ECOSYSTEM_LISTING_SYMBOL} send. Other tokens you move from your RootRecord Wallet still use your SOL for fees.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1430,7 +1441,7 @@ export function AccountPageClient() {
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Sent{' '}
                         <strong className="tabular-nums text-foreground">
-                          {withdrawNotice.amount_whole.toLocaleString()} RRTT
+                          {withdrawNotice.amount_whole.toLocaleString()} {ECOSYSTEM_LISTING_SYMBOL}
                         </strong>
                         {withdrawNotice.destination ? (
                           <>
@@ -1488,11 +1499,11 @@ export function AccountPageClient() {
                 </p>
               ) : null}
               <div className="space-y-2 max-w-lg pt-4 border-t border-border/60 mt-4">
-                <Label className="text-xs">Withdraw RRTT (whole numbers)</Label>
+                <Label className="text-xs">Withdraw {ECOSYSTEM_LISTING_SYMBOL} (whole numbers)</Label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Sends from your RootRecord Wallet to your verified linked wallet, or to the saved address if you
                   don’t use a linked wallet. Leave the amount blank to send everything that’s ready. We pay the fee for
-                  this RRTT send.
+                  this {ECOSYSTEM_LISTING_SYMBOL} send.
                 </p>
                 <Input
                   value={withdrawAmtWhole}
@@ -1515,7 +1526,7 @@ export function AccountPageClient() {
                   }
                   onClick={() => void onWithdrawRrtt()}
                 >
-                  {withdrawBusy ? 'Sending…' : 'Withdraw RRTT'}
+                  {withdrawBusy ? 'Sending…' : `Withdraw ${ECOSYSTEM_LISTING_SYMBOL}`}
                 </Button>
                 {!canWithdrawDest ? (
                   <p className="text-xs text-amber-200/90">
@@ -1531,7 +1542,7 @@ export function AccountPageClient() {
               <h3 className="text-base font-semibold text-foreground">Delete account</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 This removes your RootRecord profile and data we keep for you (like saved spots or alerts). Your RootRecord
-                Wallet is closed: we move SOL, RRTT, and other tokens back to RootRecord when the network allows
+                Wallet is closed: we move SOL, {ECOSYSTEM_LISTING_SYMBOL}, and other tokens back to RootRecord when the network allows
                 it. <strong className="text-foreground font-medium">Withdraw anything you want to keep first.</strong>{' '}
                 If the return step can’t finish, we’ll block deletion until it does. Some encrypted backup data may stay
                 in our systems for safety and recovery — don’t rely on deletion to erase keys.

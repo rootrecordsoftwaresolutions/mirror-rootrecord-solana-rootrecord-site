@@ -34,6 +34,6 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
   {
     href: '/operations/tokenomics',
     label: 'Tokenomics & markets',
-    description: 'Pools, RReserve operations, fees, and reading markets responsibly.',
+    description: 'Mint, pool-related accounts, fees, and reading markets responsibly.',
   },
 ] as const;

@@ -12,7 +12,7 @@ import { getConnection } from '@/lib/solana';
 
 export const dynamic = 'force-dynamic';
 
-/** Public: treasury pubkey + RRTT SPL balance (no secret exposed). */
+/** Public: treasury pubkey + listing mint SPL balance (no secret exposed). */
 export async function GET() {
   try {
     const kp = loadListingTreasuryKeypair();

@@ -164,7 +164,7 @@ export type CustodialChainBalances = {
 };
 
 /**
- * Reads SOL + RRTT (whole units) for the custodial wallet on mainnet in the browser.
+ * Reads SOL + listing token (whole units) for the custodial wallet on mainnet in the browser.
  */
 export async function fetchCustodialMainnetBalances(
   custodialPubkeyB58: string,

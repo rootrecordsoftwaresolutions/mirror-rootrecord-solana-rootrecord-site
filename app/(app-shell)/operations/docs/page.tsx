@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { ECOSYSTEM_LISTING_SYMBOL } from '@/lib/ecosystemOtcConstants';
 import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 export const metadata: Metadata = pageSeo({
@@ -211,7 +212,7 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
   },
   {
     n: '10',
-    title: 'RootRecord Wallet — when RRTT and SOL arrive',
+    title: `RootRecord Wallet — when ${ECOSYSTEM_LISTING_SYMBOL} and SOL arrive`,
     body: (
       <>
         <p>
@@ -219,15 +220,16 @@ const SECTIONS: { n: string; title: string; body: ReactNode }[] = [
           <Link href="/account" className="text-sol-green hover:underline">
             Account
           </Link>{' '}
-          on Solana Tools with a RootRecord Wallet, <strong className="text-foreground">owed RRTT</strong>{' '}
+          on Solana Tools with a RootRecord Wallet,{' '}
+          <strong className="text-foreground">owed {ECOSYSTEM_LISTING_SYMBOL}</strong>{' '}
           is not pushed on every click. RootRecord runs an automated backend job{' '}
           <strong className="text-foreground">once per day at 07:00 UTC</strong> that attempts to
           move credited rewards from the earn ledger into your custodial wallet on Solana, and to
           top up a small <strong className="text-foreground">SOL</strong> balance on that wallet when
-          it falls below the fee-reserve floor (so sponsored RRTT withdrawals can still work).
+          it falls below the fee-reserve floor (so sponsored {ECOSYSTEM_LISTING_SYMBOL} withdrawals can still work).
         </p>
         <p className="mt-3">
-          Until a run succeeds on-chain, the UI may show RRTT as &quot;still settling.&quot; Delays
+          Until a run succeeds on-chain, the UI may show {ECOSYSTEM_LISTING_SYMBOL} as &quot;still settling.&quot; Delays
           can happen for RPC outages, treasury inventory, or per-account limits — the schedule is a
           target, not a guarantee of instant posting. For program rules and fees, see the{' '}
           <a
