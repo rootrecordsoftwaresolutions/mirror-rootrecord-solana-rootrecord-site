@@ -65,11 +65,16 @@ export async function POST(req: Request) {
       roots_raw,
     });
   } catch (e) {
+    const debugStack = process.env.PRESALE_DEBUG_STACK?.trim() === '1';
     const msg = e instanceof Error ? e.message : 'build_failed';
+    const stack =
+      debugStack && e instanceof Error
+        ? e.stack || '(no stack)'
+        : undefined;
     const missingKey =
       msg.includes('ECOSYSTEM_OTC_TREASURY_PRIVATE_KEY') || msg.includes('not set');
     return NextResponse.json(
-      { ok: false, error: msg },
+      { ok: false, error: msg, stack },
       { status: missingKey ? 503 : 400 },
     );
   }
