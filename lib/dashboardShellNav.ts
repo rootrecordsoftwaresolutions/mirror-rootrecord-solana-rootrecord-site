@@ -52,7 +52,6 @@ export const DASHBOARD_SHELL_NAV: ShellNavGroup[] = [
   {
     heading: 'Discover',
     items: [
-      { href: '/recent-tokens', label: 'New tokens' },
       { href: '/token-stats', label: 'Token stats' },
     ],
   },

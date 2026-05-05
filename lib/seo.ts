@@ -177,14 +177,6 @@ export const SEO_KEYWORDS = {
     'referrer reward',
   ],
 
-  /** /recent-tokens */
-  tokenFeed: [
-    'new Solana tokens',
-    'recent SPL mints',
-    'token launch feed',
-    'RootRecord mint feed',
-  ],
-
   /** /pricing */
   pricingFees: [
     'Solana tool fees',
@@ -301,7 +293,6 @@ export const SEO_STATIC_PATHS: readonly string[] = [
   '/tools',
   '/contracts',
   '/contracts/vesting',
-  '/recent-tokens',
   '/token-stats',
   '/operations',
   '/operations/docs',

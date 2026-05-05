@@ -32,7 +32,6 @@ const PATH_PRESETS: { label: string; path: string; hint?: string }[] = [
   { label: 'Liquidity', path: '/liquidity' },
   { label: 'Bulk SOL', path: '/bulk' },
   { label: 'Pricing', path: '/pricing' },
-  { label: 'New tokens', path: '/recent-tokens' },
   { label: 'Token stats', path: '/token-stats' },
   { label: 'Operations', path: '/operations' },
 ];

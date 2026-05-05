@@ -9,7 +9,7 @@ export const metadata: Metadata = pageSeo({
   title: 'Operations wiki',
   description:
     'RootRecord Solana Tools — documentation, ecosystem accounts, liquidity automation schedule, and tokenomics in one wiki-style index.',
-  keywords: pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenFeed'),
+  keywords: pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity'),
 });
 
 export default function OperationsIndexPage() {

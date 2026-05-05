@@ -22,7 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
               ? 0.85
               : 0.75;
     const changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] =
-      path === '/' || path === '/recent-tokens' ? 'weekly' : 'monthly';
+      path === '/' ? 'weekly' : 'monthly';
 
     return { url, lastModified, changeFrequency, priority };
   });
