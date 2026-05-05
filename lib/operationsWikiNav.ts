@@ -1,3 +1,5 @@
+import { OTC_PRESALE_FREEZE_DAYS } from '@/lib/ecosystemOtcConstants';
+
 /** Sidebar + index for `/operations` wiki (program docs, on-chain context, product guides). */
 export type OperationsWikiPage = {
   href: string;
@@ -34,6 +36,6 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
   {
     href: '/operations/tokenomics',
     label: 'Tokenomics & markets',
-    description: 'OTC pre-sale (30-day buyer freeze), mint, pools, fees, markets.',
+    description: `OTC pre-sale (${OTC_PRESALE_FREEZE_DAYS}-day buyer freeze), mint, pools, fees, markets.`,
   },
 ] as const;
