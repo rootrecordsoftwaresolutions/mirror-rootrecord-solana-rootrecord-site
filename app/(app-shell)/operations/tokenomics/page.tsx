@@ -15,6 +15,7 @@ import {
   POST_MARKET_OPEN_DEVELOPER_MINT_TOTAL_SUPPLY_BPS,
   PRESALE_MARKET_OPEN_AT_ISO,
   PRESALE_MARKET_OPEN_LABEL_EN_UTC,
+  WSOL_MINT,
   solscanAccount,
   solscanToken,
 } from '@/lib/ecosystemOtcConstants';
@@ -32,6 +33,21 @@ import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
 const showSeparateDevWallet =
   ECOSYSTEM_SOLSCAN_DEVELOPER.trim() !== ECOSYSTEM_SOLSCAN_TREASURY.trim();
+
+const BIRDEYE_TV_WIDGET_SRC = (() => {
+  const mint = ECOSYSTEM_OTC_TOKEN_MINT.trim();
+  const quote = WSOL_MINT.trim();
+  const params = new URLSearchParams({
+    chain: 'solana',
+    viewMode: 'base/quote',
+    chartInterval: '1',
+    chartType: 'Candle',
+    chartTimezone: 'Etc/UTC',
+    chartLeftToolbar: 'show',
+    theme: 'dark',
+  });
+  return `https://embed.birdeye.so/tv-widget/${mint}/${quote}?${params.toString()}`;
+})();
 
 export const metadata: Metadata = pageSeo({
   path: '/operations/tokenomics',
@@ -102,7 +118,8 @@ export default function TokenomicsPage() {
         <PresaleCheckoutClient />
       </section>
 
-      <Card id="otc-presale" className="scroll-mt-24 border-sol-green/40">
+      <div className="grid scroll-mt-24 gap-8 lg:grid-cols-2 lg:items-start">
+        <Card id="otc-presale" className="border-sol-green/40 lg:min-w-0">
         <CardHeader>
           <CardTitle className="text-xl md:text-2xl">OTC pre-sale</CardTitle>
           <CardDescription className="leading-relaxed text-base">
@@ -221,6 +238,36 @@ export default function TokenomicsPage() {
           </section>
         </CardContent>
       </Card>
+
+        <div id="birdeye-tv" className="scroll-mt-24 lg:min-w-0">
+          <div className="rounded-xl border border-border bg-black/30 p-3 md:p-4">
+            <p className="mb-3 text-xs text-muted-foreground">
+              Live chart — <strong className="text-foreground">{ECOSYSTEM_LISTING_SYMBOL}</strong> / SOL (
+              <span className="font-mono text-[11px] text-foreground/80">{ECOSYSTEM_OTC_TOKEN_MINT.trim()}</span>
+              ). Embedded via{' '}
+              <a
+                href="https://birdeye.so"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sol-green hover:underline"
+              >
+                Birdeye
+              </a>
+              ; third-party interface — verify prices against your venues.
+            </p>
+            <div className="overflow-hidden rounded-lg border border-border/80 bg-black/40">
+              <iframe
+                title={`${ECOSYSTEM_LISTING_SYMBOL} price chart (Birdeye)`}
+                width="100%"
+                height={600}
+                src={BIRDEYE_TV_WIDGET_SRC}
+                className="block min-h-[400px] w-full border-0 md:min-h-[600px]"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <Card id="pools" className="scroll-mt-24">
         <CardHeader>

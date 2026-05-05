@@ -41,8 +41,8 @@ export function isPresaleCheckoutActive(): boolean {
 }
 
 export function presaleMinUsd(): number {
-  const n = parseFloat(process.env.PRESALE_MIN_USD ?? '5');
-  return Number.isFinite(n) && n > 0 ? n : 5;
+  const n = parseFloat(process.env.PRESALE_MIN_USD ?? '1');
+  return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
 export function presaleMaxUsd(): number {
