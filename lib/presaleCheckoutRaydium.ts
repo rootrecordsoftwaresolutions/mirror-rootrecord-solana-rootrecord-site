@@ -101,7 +101,11 @@ export async function mergePresaleInstructionsWithRaydiumV0(opts: {
     payerKey: opts.buyer,
     recentBlockhash: blockhash,
     instructions: [...opts.presaleInstructions, ...rayIxs],
-  }).compileToV0Message(alts);
+  })
+    // We rebuild a single v0 transaction from extracted instructions; re-compiling with ALTs is optional.
+    // In some environments, malformed ALT objects can trigger `undefined.toBase58()` during compile.
+    // Building without ALTs trades size for reliability; if this ever exceeds limits, we'll fail with a clear compile error instead.
+    .compileToV0Message();
 
   const tx = new VersionedTransaction(msg);
   tx.sign([opts.treasury]);
