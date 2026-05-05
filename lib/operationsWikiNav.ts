@@ -34,6 +34,6 @@ export const OPERATIONS_WIKI_PAGES: readonly OperationsWikiPage[] = [
   {
     href: '/operations/tokenomics',
     label: 'Tokenomics & markets',
-    description: 'OTC pre-sale, pool unlock schedule, mint, pools, fees, markets.',
+    description: 'Presale countdown, OTC peg, pool unlock, mint, pools, live price, fees.',
   },
 ] as const;

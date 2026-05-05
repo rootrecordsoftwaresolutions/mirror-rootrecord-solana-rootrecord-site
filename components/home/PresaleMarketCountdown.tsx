@@ -31,7 +31,12 @@ function formatOpenLabel(): string {
   });
 }
 
-export function PresaleMarketCountdown() {
+type PresaleMarketCountdownProps = {
+  /** Hide the “Tokenomics” link (e.g. when embedded on the tokenomics page). */
+  hideTokenomicsLink?: boolean;
+};
+
+export function PresaleMarketCountdown({ hideTokenomicsLink = false }: PresaleMarketCountdownProps) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -63,7 +68,8 @@ export function PresaleMarketCountdown() {
 
   return (
     <section
-      className="border-y border-border/60 bg-gradient-to-b from-sol-green/[0.07] to-transparent"
+      id="presale-market"
+      className="scroll-mt-24 border-y border-border/60 bg-gradient-to-b from-sol-green/[0.07] to-transparent"
       aria-labelledby="presale-countdown-heading"
     >
       <div className="container py-12 md:py-16">
@@ -146,12 +152,14 @@ export function PresaleMarketCountdown() {
             >
               USDC pool vault — Solscan
             </a>
-            <Link
-              href="/operations/tokenomics"
-              className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Tokenomics
-            </Link>
+            {!hideTokenomicsLink ? (
+              <Link
+                href="/operations/tokenomics#presale-market"
+                className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Tokenomics
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

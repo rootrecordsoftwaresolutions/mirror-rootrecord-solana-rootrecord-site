@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { PresaleMarketCountdown } from '@/components/home/PresaleMarketCountdown';
 import { ListingUsdLive } from '@/components/tokenomics/ListingUsdLive';
 import { flattenSeoKeywordBuckets, pageSeo, pickSeoKeywords } from '@/lib/seo';
 
@@ -31,7 +32,7 @@ const showSeparateDevWallet =
 export const metadata: Metadata = pageSeo({
   path: '/operations/tokenomics',
   title: `Tokenomics & markets — ${ECOSYSTEM_LISTING_SYMBOL}`,
-  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): OTC pre-sale peg, mint allocation, treasury, pool-related accounts — descriptive, not investment advice.`,
+  description: `${ECOSYSTEM_LISTING_NAME} (${ECOSYSTEM_LISTING_SYMBOL}): presale countdown & pool unlock (June 2026 UTC), OTC peg, mint allocation, treasury, pool accounts — descriptive, not investment advice.`,
   keywords: flattenSeoKeywordBuckets(pickSeoKeywords('core', 'operationsWiki', 'raydiumLiquidity', 'tokenDashboard'), [
     ECOSYSTEM_LISTING_SYMBOL,
     'tokenomics',
@@ -39,6 +40,7 @@ export const metadata: Metadata = pageSeo({
     'liquidity',
     'treasury token',
     'live price',
+    'presale countdown',
   ]),
 });
 
@@ -70,18 +72,23 @@ export default function TokenomicsPage() {
           , Raydium, or your aggregator of choice.
         </p>
         <p className="text-sm text-muted-foreground">
-          For the UTC schedule of treasury Raydium maintenance (native SOL and {ECOSYSTEM_LISTING_SYMBOL}{' '}
-          SPL floors), see{' '}
+          <Link href="#presale-market" className="text-sol-green hover:underline font-medium">
+            Presale countdown &amp; pool unlock
+          </Link>
+          {' · '}
+          For treasury Raydium maintenance (native SOL and {ECOSYSTEM_LISTING_SYMBOL} SPL floors), see{' '}
           <Link href="/operations/liquidity-timing" className="text-sol-green hover:underline font-medium">
             Liquidity timing
           </Link>
-          . For a shareable mint dashboard, see{' '}
+          . For a mint dashboard, see{' '}
           <Link href="/token-stats" className="text-sol-green hover:underline font-medium">
             Token Stats
           </Link>
           .
         </p>
       </header>
+
+      <PresaleMarketCountdown hideTokenomicsLink />
 
       <Card id="otc-presale" className="scroll-mt-24 border-sol-green/40">
         <CardHeader>
