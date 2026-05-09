@@ -10,15 +10,19 @@ function rootrecordApiBase(): string {
 }
 
 /**
- * Server-side proxy: attaches `X-RR-Push-Admin-Key` so rootrecord-primary wallet-admin
- * accepts the request in production (must match Worker secret `RR_PUSH_ADMIN_SECRET`).
+ * Server-side proxy: attaches `X-RR-Wallet-Admin-Key` (if `WALLET_ADMIN_PROXY_SECRET` is set) or
+ * `X-RR-Push-Admin-Key` (if only `RR_PUSH_ADMIN_SECRET`) so rootrecord-primary accepts the request.
  * Never expose that secret to the browser — only this route reads it.
  */
 async function proxy(request: NextRequest, pathSegments: string[], method: 'GET' | 'POST'): Promise<NextResponse> {
-  const secret = process.env.RR_PUSH_ADMIN_SECRET?.trim() || '';
-  if (!secret) {
+  const proxySecret = process.env.WALLET_ADMIN_PROXY_SECRET?.trim() || '';
+  const pushSecret = process.env.RR_PUSH_ADMIN_SECRET?.trim() || '';
+  if (!proxySecret && !pushSecret) {
     return NextResponse.json(
-      { detail: 'Wallet admin proxy is not configured. Set RR_PUSH_ADMIN_SECRET on Vercel (same value as the Worker secret).' },
+      {
+        detail:
+          'Wallet admin proxy is not configured. Set WALLET_ADMIN_PROXY_SECRET on Vercel (recommended; same as Worker wrangler secret put WALLET_ADMIN_PROXY_SECRET), or RR_PUSH_ADMIN_SECRET matching the Worker.',
+      },
       { status: 503 },
     );
   }
@@ -29,7 +33,9 @@ async function proxy(request: NextRequest, pathSegments: string[], method: 'GET'
 
   const authorization = request.headers.get('Authorization') || '';
   const headers: HeadersInit = {
-    'X-RR-Push-Admin-Key': secret,
+    ...(proxySecret
+      ? { 'X-RR-Wallet-Admin-Key': proxySecret }
+      : { 'X-RR-Push-Admin-Key': pushSecret }),
     ...(authorization ? { Authorization: authorization } : {}),
   };
 
