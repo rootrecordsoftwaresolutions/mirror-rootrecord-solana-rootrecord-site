@@ -1,8 +1,10 @@
-import { getRootRecordApiBase } from '@/lib/rootrecordSession';
-
-function base(): string {
-  const b = getRootRecordApiBase();
-  return b.replace(/\/+$/, '');
+/**
+ * Wallet admin calls go to same-origin `/api/dev/wallet-admin/*` (Next.js route proxies to
+ * rootrecord-primary with server-side `RR_PUSH_ADMIN_SECRET`). Do not call the API host directly
+ * from the browser — production Worker requires `X-RR-Push-Admin-Key`.
+ */
+function walletAdminBase(): string {
+  return '';
 }
 
 function authHeaders(token: string): HeadersInit {
@@ -31,10 +33,16 @@ export type DevWalletOverview = {
   }>;
 };
 
+function detailFromBody(body: unknown, fallback: string): string {
+  if (body && typeof body === 'object' && 'detail' in body) {
+    const d = (body as { detail?: unknown }).detail;
+    if (typeof d === 'string' && d.trim()) return d;
+  }
+  return fallback;
+}
+
 async function apiFetch(path: string, token: string, init?: RequestInit): Promise<Response> {
-  const b = base();
-  if (!b) throw new Error('Account API is not configured for this build.');
-  return fetch(`${b}${path}`, {
+  return fetch(`${walletAdminBase()}${path}`, {
     ...init,
     headers: {
       ...(init?.headers || {}),
@@ -49,9 +57,13 @@ export async function devListWallets(
   limit = 200,
 ): Promise<{ ok: true; items: DevWalletListItem[] } | { ok: false; status: number; detail: string }> {
   const res = await apiFetch(`/api/dev/wallet-admin/wallets?limit=${encodeURIComponent(String(limit))}`, token);
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
-  return { ok: true, items: Array.isArray(j?.items) ? (j.items as DevWalletListItem[]) : [] };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
+  const items =
+    j && typeof j === 'object' && 'items' in j && Array.isArray((j as { items: unknown }).items)
+      ? ((j as { items: DevWalletListItem[] }).items as DevWalletListItem[])
+      : [];
+  return { ok: true, items };
 }
 
 export async function devWalletOverview(
@@ -59,8 +71,8 @@ export async function devWalletOverview(
   accountId: string,
 ): Promise<{ ok: true; overview: DevWalletOverview } | { ok: false; status: number; detail: string }> {
   const res = await apiFetch(`/api/dev/wallet-admin/wallet/${encodeURIComponent(accountId)}/overview`, token);
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
   return { ok: true, overview: j as DevWalletOverview };
 }
 
@@ -74,9 +86,13 @@ export async function devTransferSol(
     method: 'POST',
     body: JSON.stringify({ to_pubkey_base58: toPubkeyBase58, lamports }),
   });
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
-  return { ok: true, signature: typeof j?.signature === 'string' ? j.signature : '' };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
+  const sig =
+    j && typeof j === 'object' && 'signature' in j && typeof (j as { signature?: unknown }).signature === 'string'
+      ? (j as { signature: string }).signature
+      : '';
+  return { ok: true, signature: sig };
 }
 
 export async function devTransferSpl(
@@ -91,9 +107,13 @@ export async function devTransferSpl(
     method: 'POST',
     body: JSON.stringify({ mint_base58: mintBase58, to_owner_base58: toOwnerBase58, amount_ui: amountUi, decimals }),
   });
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
-  return { ok: true, signature: typeof j?.signature === 'string' ? j.signature : '' };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
+  const sig =
+    j && typeof j === 'object' && 'signature' in j && typeof (j as { signature?: unknown }).signature === 'string'
+      ? (j as { signature: string }).signature
+      : '';
+  return { ok: true, signature: sig };
 }
 
 export async function devBurnSpl(
@@ -107,9 +127,13 @@ export async function devBurnSpl(
     method: 'POST',
     body: JSON.stringify({ mint_base58: mintBase58, amount_ui: amountUi, decimals }),
   });
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
-  return { ok: true, signature: typeof j?.signature === 'string' ? j.signature : '' };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
+  const sig =
+    j && typeof j === 'object' && 'signature' in j && typeof (j as { signature?: unknown }).signature === 'string'
+      ? (j as { signature: string }).signature
+      : '';
+  return { ok: true, signature: sig };
 }
 
 export async function devCloseEmptyAta(
@@ -122,8 +146,12 @@ export async function devCloseEmptyAta(
     method: 'POST',
     body: JSON.stringify({ token_account_base58: tokenAccountBase58, destination_base58: destinationBase58 }),
   });
-  const j = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) return { ok: false, status: res.status, detail: typeof j?.detail === 'string' ? j.detail : `HTTP ${res.status}` };
-  return { ok: true, signature: typeof j?.signature === 'string' ? j.signature : '' };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
+  const sig =
+    j && typeof j === 'object' && 'signature' in j && typeof (j as { signature?: unknown }).signature === 'string'
+      ? (j as { signature: string }).signature
+      : '';
+  return { ok: true, signature: sig };
 }
 
