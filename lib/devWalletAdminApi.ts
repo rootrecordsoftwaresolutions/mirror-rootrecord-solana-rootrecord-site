@@ -52,18 +52,43 @@ async function apiFetch(path: string, token: string, init?: RequestInit): Promis
   });
 }
 
+export type DevListWalletsParams = {
+  limit?: number;
+  cursor?: string | null;
+  q?: string;
+};
+
 export async function devListWallets(
   token: string,
-  limit = 200,
-): Promise<{ ok: true; items: DevWalletListItem[] } | { ok: false; status: number; detail: string }> {
-  const res = await apiFetch(`/api/dev/wallet-admin/wallets?limit=${encodeURIComponent(String(limit))}`, token);
+  params: DevListWalletsParams | number = {},
+): Promise<
+  | { ok: true; items: DevWalletListItem[]; total_count: number; next_cursor: string | null }
+  | { ok: false; status: number; detail: string }
+> {
+  const p: DevListWalletsParams = typeof params === 'number' ? { limit: params } : params;
+  const limit = p.limit ?? 10;
+  const qs = new URLSearchParams();
+  qs.set('limit', String(limit));
+  const c = p.cursor == null ? '' : String(p.cursor).trim();
+  if (c) qs.set('cursor', c);
+  const q = String(p.q ?? '').trim();
+  if (q) qs.set('q', q);
+  const res = await apiFetch(`/api/dev/wallet-admin/wallets?${qs.toString()}`, token);
   const j: unknown = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
   const items =
     j && typeof j === 'object' && 'items' in j && Array.isArray((j as { items: unknown }).items)
       ? ((j as { items: DevWalletListItem[] }).items as DevWalletListItem[])
       : [];
-  return { ok: true, items };
+  const total_count =
+    j && typeof j === 'object' && 'total_count' in j && typeof (j as { total_count?: unknown }).total_count === 'number'
+      ? Math.max(0, Math.floor((j as { total_count: number }).total_count))
+      : 0;
+  const next_cursor =
+    j && typeof j === 'object' && 'next_cursor' in j && typeof (j as { next_cursor?: unknown }).next_cursor === 'string'
+      ? (j as { next_cursor: string }).next_cursor
+      : null;
+  return { ok: true, items, total_count, next_cursor };
 }
 
 export async function devWalletOverview(
@@ -73,7 +98,18 @@ export async function devWalletOverview(
   const res = await apiFetch(`/api/dev/wallet-admin/wallet/${encodeURIComponent(accountId)}/overview`, token);
   const j: unknown = await res.json().catch(() => ({}));
   if (!res.ok) return { ok: false, status: res.status, detail: detailFromBody(j, `HTTP ${res.status}`) };
-  return { ok: true, overview: j as DevWalletOverview };
+  if (!j || typeof j !== 'object') {
+    return { ok: false, status: 502, detail: 'Invalid overview response.' };
+  }
+  const raw = j as Record<string, unknown>;
+  const token_accounts = Array.isArray(raw.token_accounts) ? raw.token_accounts : [];
+  const overview: DevWalletOverview = {
+    account_id: String(raw.account_id ?? accountId),
+    pubkey: String(raw.pubkey ?? ''),
+    sol_balance_lamports: typeof raw.sol_balance_lamports === 'number' ? raw.sol_balance_lamports : null,
+    token_accounts: token_accounts as DevWalletOverview['token_accounts'],
+  };
+  return { ok: true, overview };
 }
 
 export async function devTransferSol(
