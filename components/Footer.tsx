@@ -68,6 +68,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <a
+                  href="https://invite.kraken.com/JDNW/gx8r1knw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-sol-green"
+                >
+                  Buy Crypto
+                </a>
+              </li>
+              <li>
                 <a href="/llms.txt" className="hover:text-sol-green">
                   llms.txt
                 </a>

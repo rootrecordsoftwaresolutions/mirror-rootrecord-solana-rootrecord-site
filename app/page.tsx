@@ -117,8 +117,37 @@ export default function HomePage() {
         className="container pt-4 pb-16 md:pt-2 md:pb-20"
         aria-labelledby="jupiter-wallet-heading"
       >
-        <div className="max-w-2xl">
+        <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
           <JupiterWalletPromo variant="featured" />
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-aurora pointer-events-none opacity-50" />
+            <div className="relative p-7 md:p-8 h-full flex flex-col justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  On-ramp
+                </div>
+                <h2 className="mt-3 font-display text-2xl md:text-3xl tracking-tight">
+                  Buy Crypto
+                </h2>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-md">
+                  Need funds for gas and launches? Use Kraken to buy crypto, then send it to
+                  your wallet.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button asChild size="lg" variant="outline">
+                  <a
+                    href="https://invite.kraken.com/JDNW/gx8r1knw"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Buy Crypto
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </section>
 
